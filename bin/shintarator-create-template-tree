@@ -1,0 +1,117 @@
+#!/usr/bin/env python
+# Copyright (C) : Gerhard Lausser, gerhard.lausser@consol.de
+
+from optparse import OptionParser
+import ConfigParser
+import sys
+import os
+import shutil
+
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'shintarator'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'classes'))
+from shintarator.site import Site
+from datasource import Datasource,DatasourceUnavailable
+from shintarator.log import logger
+
+
+class GeneratorMessage(object):
+    def __init__(self, message):
+        self.message = message
+
+class WarningMessage(GeneratorMessage):
+    pass
+
+class CriticalMessage(GeneratorMessage):
+    pass
+
+class OkMessage(GeneratorMessage):
+    pass
+
+class CSCG(object):
+
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+    messages = []
+
+    def __init__(self):
+        self.sites = {}
+        self.datasources = {}
+
+
+    def add_site(self, *args, **kwargs):
+        try:
+            site = Site(**kwargs)
+            self.sites[kwargs["name"]] = site
+        except Exception, e:
+            print e
+        pass
+
+
+    def run(self, template):
+        for site in self.sites.values():
+            #site.collect()
+            basedir = site.objects_dir + "/static/service_templates"
+            if os.path.exists(site.objects_dir):
+                if not os.path.exists(site.objects_dir + "/static"):
+                    os.mkdir(site.objects_dir + "/static")
+                if not os.path.exists(site.objects_dir + "/static/service_templates"):
+                    os.mkdir(site.objects_dir + "/static/service_templates")
+
+            while template.find("_") != -1:
+                template, sep, tail = template.rpartition("_")
+                output = "define service {\n  name %s\n  use %s\n  register 0\n}\n" % (template + sep + tail, template)
+                template_file = os.path.join(basedir, template + sep + tail + ".cfg")
+                if not os.path.exists(template_file):
+                    logger.info("create %s" % template_file)
+                    with open(template_file, "w") as f:
+                        f.write(output)
+                else:
+                    logger.info("confirm %s" % template_file)
+
+
+
+if __name__ == '__main__':
+    VERSION = "1.0"
+
+
+    parser = OptionParser(
+        "%prog [options] --config configfile [--config additional_config_file]",
+        version="%prog " + VERSION)
+    parser.add_option('--config', action='store',
+                      dest="config_file",
+                      help='Config file')
+    parser.add_option('--site', action='store',
+                      dest="default_site",
+                      help="Only create a config for <site>")
+    parser.add_option('--template', action='store',
+                      dest="template_name",
+                      help="Build a template hierarchy for this service profile")
+
+    opts, args = parser.parse_args()
+    generator = CSCG()
+    if opts.config_file:
+        config = ConfigParser.ConfigParser()
+        config.read(opts.config_file)
+        if config._sections == {}:
+            print "Bad or missing config file : %s " % opts.config_file
+            sys.exit(2)
+            
+        sites = []
+        if not opts.template_name:
+            parser.error("Which template hierarchy should i create? Use --template")
+        if opts.default_site:
+            sites = [opts.default_site.lower()]
+        else:
+            sites = [s.strip().lower() for s in config.get("defaults", "sites").split(",")]
+        for site in [section for section in config.sections() if section.startswith('site_')]:
+            if site.replace("site_", "", 1).lower() in sites:
+                generator.add_site(name=site.replace("site_", "", 1), **dict(config.items(site)))
+
+    if args:
+        parser.error("Does not accept any argument. Use option -c/--config")
+
+    # nagios_dir config option sets an alternative target
+    # and may be used to replace CSCG.base_dir
+    generator.run(opts.template_name)
+
