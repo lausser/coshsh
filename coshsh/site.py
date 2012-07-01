@@ -16,6 +16,7 @@ from coshsh.log import logger
 from coshsh.item import Item
 from monitoring_detail import MonitoringDetail
 from application import Application
+from datasource import Datasource
 
 class Site(object):
 
@@ -23,8 +24,8 @@ class Site(object):
         self.name = kwargs["name"]
         logger.info("site %s init" % self.name)
         self.objects_dir = kwargs["objects_dir"]
-        self.templates_dir = kwargs.get("templates_dir", os.path.join(os.path.dirname(__file__), '../templates'))
-        self.classes_dir = kwargs.get("classes_dir", os.path.join(os.path.dirname(__file__), '../classes'))
+        self.templates_dir = kwargs.get("templates_dir", os.path.join(os.path.dirname(__file__), '../sites/default/templates'))
+        self.classes_dir = kwargs.get("classes_dir", os.path.join(os.path.dirname(__file__), '../sites/default/classes'))
         self.filter = kwargs.get("filter")
         if self.templates_dir:
             Item.templates_path.insert(0, self.templates_dir)
@@ -257,6 +258,7 @@ class Site(object):
     def init_class_cache(self):
         class_factory = []
         detail_factory = []
+        datasource_factory = []
         logger.debug("site %s init detail cache" % self.name)
         for module in  [item for sublist in [os.listdir(p) for p in sys.path[1], sys.path[0] if os.path.exists(p)] for item in sublist if item[-3:] == ".py" and item.startswith("detail_")]:
             toplevel = __import__(module[:-3], locals(), globals())
@@ -273,3 +275,14 @@ class Site(object):
                 if cl[0] ==  "__mi_ident__":
                     class_factory.append(cl[1])
         Application.class_factory = class_factory
+        # find datasource adapter files which have the ability
+        # to identify themselves with a __ds_ident__ finction
+        logger.debug("site %s init datasource cache" % self.name)
+        for module in  [item for sublist in [os.listdir(p) for p in sys.path[1], sys.path[0] if os.path.exists(p)] for item in sublist if item[-3:] == ".py"]:
+            toplevel = __import__(module[:-3], locals(), globals())
+            print "inspect", module
+            for cl in inspect.getmembers(toplevel, inspect.isfunction):
+                if cl[0] ==  "__ds_ident__":
+                    class_factory.append(cl[1])
+        Datasource.class_factory = class_factory
+
