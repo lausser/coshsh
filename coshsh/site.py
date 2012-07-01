@@ -102,10 +102,6 @@ class Site(object):
             self.new_objects = (0, 0)
 
     def collect(self):
-        if self.classes_dir:
-            sys.path.insert(0, self.classes_dir)
-        else:
-            sys.path.insert(0, "classes")
         self.init_class_cache()
         for ds in self.datasources:
             filter = self.datasource_filters.get(ds.name)
@@ -153,8 +149,6 @@ class Site(object):
             self.hostgroups[hostgroup_name] = Hostgroup({ "hostgroup_name" : hostgroup_name, "members" : members})
             self.hostgroups[hostgroup_name].create_templates()
             self.hostgroups[hostgroup_name].create_contacts()
-        if self.classes_dir:
-            sys.path.remove(self.classes_dir)
  
 
     def render(self):
@@ -259,6 +253,10 @@ class Site(object):
         class_factory = []
         detail_factory = []
         datasource_factory = []
+        if self.classes_dir:
+            sys.path.insert(0, self.classes_dir)
+        else:
+            sys.path.insert(0, "classes")
         logger.debug("site %s init detail cache" % self.name)
         for module in  [item for sublist in [os.listdir(p) for p in sys.path[1], sys.path[0] if os.path.exists(p)] for item in sublist if item[-3:] == ".py" and item.startswith("detail_")]:
             toplevel = __import__(module[:-3], locals(), globals())
@@ -285,4 +283,6 @@ class Site(object):
                 if cl[0] ==  "__ds_ident__":
                     class_factory.append(cl[1])
         Datasource.class_factory = class_factory
+        if self.classes_dir:
+            sys.path.remove(self.classes_dir)
 
