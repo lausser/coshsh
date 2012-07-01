@@ -28,7 +28,7 @@ class Datasource(object):
     my_type = 'datasource'
 
     def __new__(cls, **params):
-        print "hihihi", params
+        print "new datasource", params
         try:
             newcls = cls.get_class(params)
             return newcls.__new__(newcls, params)

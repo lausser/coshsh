@@ -28,6 +28,7 @@ class CoshshTest(unittest.TestCase):
         self.assert_('test1' in self.generator.sites)
         self.assert_(self.generator.sites['test1'].name == 'test1')
         print self.generator.sites['test1'].datasources
+        self.generator.sites['test1'].init_class_cache()
 
     def test_create_datasource(self):
         cfg = self.config.items("datasource_SIMPLESAMPLE")
