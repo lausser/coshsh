@@ -3,6 +3,7 @@ from optparse import OptionParser
 import ConfigParser
 import sys
 import os
+import shutil
 
 sys.path.append("..")
 sys.path.append("../coshsh")
@@ -12,6 +13,7 @@ from datasource import Datasource
 
 class CoshshTest(unittest.TestCase):
     def setUp(self):
+        #shutil.rmtree('var/objects/test1')
         self.config = ConfigParser.ConfigParser()
         self.config.read('etc/coshsh.cfg')
         self.generator = Generator()
@@ -32,8 +34,30 @@ class CoshshTest(unittest.TestCase):
 
     def test_create_datasource(self):
         cfg = self.config.items("datasource_SIMPLESAMPLE")
-        ds = Datasource(**dict(cfg))
-        print ds
+        self.generator.add_site(name='test1', **dict(self.config.items('site_TEST1')))
+        self.generator.sites['test1'].add_datasource(**dict(cfg))
+        print self.generator.sites['test1'].datasources
+
+    def test_custom_create_datasource(self):
+        cfg = self.config.items("datasource_SIMPLESAMPLE")
+        print "add site test2"
+        self.generator.add_site(name='test2', **dict(self.config.items('site_TEST2')))
+        print "add site test2 ds simplesample"
+        self.generator.sites['test2'].add_datasource(**dict(cfg))
+        ds2 = self.generator.sites['test2'].datasources[0]
+        print "add site test3"
+        self.generator.add_site(name='test3', **dict(self.config.items('site_TEST3')))
+        print "add site test3 ds simplesample"
+        self.generator.sites['test3'].add_datasource(**dict(cfg))
+        ds3 = self.generator.sites['test3'].datasources[0]
+        self.assert_(not hasattr(ds2, "only_the_test_simplesample"))
+        self.assert_(hasattr(ds3, "only_the_test_simplesample"))
+
+    def test_create_config(self):
+        self.generator.add_site(name='test3', **dict(self.config.items('site_TEST3')))
+        print self.config.items("datasource_SIMPLESAMPLE")
+        self.generator.sites['test3'].add_datasource(**dict(self.config.items("datasource_SIMPLESAMPLE") + [('name', 'simplesample')]))
+        self.generator.run()
 
 if __name__ == '__main__':
     unittest.main()

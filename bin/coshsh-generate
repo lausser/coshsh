@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'sites', 'defau
 from coshsh.site import Site
 from datasource import Datasource, DatasourceUnavailable
 from coshsh.log import logger
+from coshsh.generator import Generator
 
 
 class GeneratorMessage(object):
@@ -29,64 +30,6 @@ class CriticalMessage(GeneratorMessage):
 
 class OkMessage(GeneratorMessage):
     pass
-
-class Coshsh(object):
-
-    base_dir = os.path.dirname(os.path.dirname(__file__))
-    messages = []
-
-    def __init__(self):
-        self.sites = {}
-        self.datasources = {}
-
-
-    def add_site(self, *args, **kwargs):
-        try:
-            site = Site(**kwargs)
-            for ds in kwargs["datasources"].split(","):
-                if ds in self.datasources: 
-                    try:
-                        self.datasources[ds].open()
-                        self.datasources[ds].set_site(site.name)
-                        site.datasources.append(self.datasources[ds])
-                    except DatasourceUnavailable as e:
-                        pass
-            self.sites[kwargs["name"]] = site
-        except Exception, e:
-            print e
-        pass
-
-
-    def add_datasource(self, *args, **kwargs):
-        try:
-            if kwargs["type"] == "valuemation":
-                from datasource import Valuemation
-                datasource = Valuemation(**kwargs)
-            elif kwargs["type"] == "csv":
-                from datasource import CsvFile
-                datasource = CsvFile(**kwargs)
-            elif kwargs["type"] == "bmwcmdb":
-                from datasource import BmwCmdb
-                datasource = BmwCmdb(**kwargs)
-            else:
-                print "unknown datasource", kwargs
-            self.datasources[kwargs["name"]] = datasource
-        except Exception as e:
-            print "add_datasource", e
-        pass
-
-
-    def run(self):
-        for site in self.sites.values():
-            try:
-                site.cleanup_target_dir()
-            except Exception:
-                logger.info("skipping site %s" % site.name)
-            else:
-                site.prepare_target_dir()
-                site.collect()
-                site.render()
-                site.output()
 
 
 if __name__ == '__main__':
@@ -104,7 +47,7 @@ if __name__ == '__main__':
                       help="Only create a config for <site>")
 
     opts, args = parser.parse_args()
-    generator = Coshsh()
+    generator = Generator()
     if opts.config_file:
         config = ConfigParser.ConfigParser()
         config.read(opts.config_file)

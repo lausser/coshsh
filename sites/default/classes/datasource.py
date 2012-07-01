@@ -26,21 +26,29 @@ class DatasourceNotAvailable(Exception):
 class Datasource(object):
 
     my_type = 'datasource'
+    class_factory = []
 
-    def __new__(cls, **params):
+    def _x_new__(cls, **params):
         print "new datasource", params
         try:
             newcls = cls.get_class(params)
-            return newcls.__new__(newcls, params)
+            if newcls:
+                return newcls(params)
+            else:
+                print "i force a raise"
+                raise DatasourceNotImplemented
         except ImportError as exc:
             logger.info("found no working code for application %s (%s)" % (params.get("type", "null_type"), exc))
             raise ApplicationNotImplemented
         except Exception as exc:
             logger.info("found unknown datasource %s" % (params.get("type", "null_type"),))
+            print exc
+            print "__new__ got", params
             raise DatasourceNotImplemented
 
     @classmethod
     def get_class(cls, params={}):
+        goodclasses = []
         for class_func in cls.class_factory:
             try:
                 newcls = class_func(params)

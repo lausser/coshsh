@@ -27,13 +27,14 @@ class Site(object):
         self.templates_dir = kwargs.get("templates_dir", os.path.join(os.path.dirname(__file__), '../sites/default/templates'))
         self.classes_dir = kwargs.get("classes_dir", os.path.join(os.path.dirname(__file__), '../sites/default/classes'))
         self.filter = kwargs.get("filter")
+        self.default_classes_dir = os.path.join(os.path.dirname(__file__), '../sites/default/classes')
         if self.templates_dir:
             Item.templates_path.insert(0, self.templates_dir)
             Item.reload_template_path()
             logger.debug("Item.templates_path reloaded %s" % Item.templates_path)
-        logger.info("site %s objects_dir %s" % (self.name, self.objects_dir))
-        logger.info("site %s classes_dir %s" % (self.name, self.classes_dir))
-        logger.info("site %s templates_dir %s" % (self.name, self.templates_dir))
+        logger.info("site %s objects_dir %s" % (self.name, os.path.abspath(self.objects_dir)))
+        logger.info("site %s classes_dir %s" % (self.name, os.path.abspath(self.classes_dir)))
+        logger.info("site %s templates_dir %s" % (self.name, os.path.abspath(self.templates_dir)))
 
         self.datasources = []
 
@@ -55,10 +56,10 @@ class Site(object):
                     self.datasource_filters[match.groups()[0].lower()] = match.groups()[1]
         self.static_dir = os.path.join(self.objects_dir, 'static')
         self.dynamic_dir = os.path.join(self.objects_dir, 'dynamic')
+        self.init_class_cache()
 
 
     def prepare_target_dir(self):
-        #self.objects_dir = os.path.join(CSCG.base_dir, 'objects')
         logger.info("site %s dynamic_dir %s" % (self.name, self.dynamic_dir))
         if not os.path.exists(self.dynamic_dir):
             # will not have been removed with a .git inside
@@ -86,11 +87,11 @@ class Site(object):
 
 
     def count_before_objects(self):
-        if os.path.isdir(self.dynamic_dir):
+        try:
             hosts = len([name for name in os.listdir(os.path.join(self.dynamic_dir, 'hosts')) if os.path.isdir(os.path.join(self.dynamic_dir, 'hosts', name))])
             apps = len([app for host in os.listdir(os.path.join(self.dynamic_dir, 'hosts')) if os.path.isdir(os.path.join(self.dynamic_dir, 'hosts', host)) for app in os.listdir(os.path.join(self.dynamic_dir, 'hosts', host)) if app != 'host.cfg'])
             self.old_objects = (hosts, apps)
-        else:
+        except Exception:
             self.old_objects = (0, 0)
 
     def count_after_objects(self):
@@ -102,7 +103,6 @@ class Site(object):
             self.new_objects = (0, 0)
 
     def collect(self):
-        self.init_class_cache()
         for ds in self.datasources:
             filter = self.datasource_filters.get(ds.name)
             hosts, applications, contacts, contactgroups, appdetails, dependencies, bps = ds.read(filter=filter, intermediate_hosts=self.hosts, intermediate_applications=self.applications)
@@ -253,12 +253,13 @@ class Site(object):
         class_factory = []
         detail_factory = []
         datasource_factory = []
-        if self.classes_dir:
+        if self.classes_dir != self.default_classes_dir:
+            sys.path.insert(0, self.default_classes_dir)
             sys.path.insert(0, self.classes_dir)
         else:
-            sys.path.insert(0, "classes")
+            sys.path.insert(0, self.default_classes_dir)
         logger.debug("site %s init detail cache" % self.name)
-        for module in  [item for sublist in [os.listdir(p) for p in sys.path[1], sys.path[0] if os.path.exists(p)] for item in sublist if item[-3:] == ".py" and item.startswith("detail_")]:
+        for module in  [item for sublist in [os.listdir(p) for p in sys.path[1], sys.path[0] if os.path.exists(p) and os.path.isdir(p)] for item in sublist if item[-3:] == ".py" and item.startswith("detail_")]:
             toplevel = __import__(module[:-3], locals(), globals())
             for cl in inspect.getmembers(toplevel, inspect.isfunction):
                 if cl[0] ==  "__detail_ident__":
@@ -267,7 +268,7 @@ class Site(object):
         # find monitoring item files which have the ability
         # to identify themselves with a __mi_ident__ finction
         logger.debug("site %s init class cache" % self.name)
-        for module in  [item for sublist in [os.listdir(p) for p in sys.path[1], sys.path[0] if os.path.exists(p)] for item in sublist if item[-3:] == ".py"]:
+        for module in  [item for sublist in [os.listdir(p) for p in sys.path[1], sys.path[0] if os.path.exists(p) and os.path.isdir(p)] for item in sublist if item[-3:] == ".py"]:
             toplevel = __import__(module[:-3], locals(), globals())
             for cl in inspect.getmembers(toplevel, inspect.isfunction):
                 if cl[0] ==  "__mi_ident__":
@@ -276,13 +277,27 @@ class Site(object):
         # find datasource adapter files which have the ability
         # to identify themselves with a __ds_ident__ finction
         logger.debug("site %s init datasource cache" % self.name)
-        for module in  [item for sublist in [os.listdir(p) for p in sys.path[1], sys.path[0] if os.path.exists(p)] for item in sublist if item[-3:] == ".py"]:
+        for module in  [item for sublist in [os.listdir(p) for p in sys.path[1], sys.path[0] if os.path.exists(p) and os.path.isdir(p)] for item in sublist if item[-3:] == ".py" and item.startswith("datasource_")]:
+            try:
+                # maybe module was already loaded by another site
+                # and another path
+                del sys.modules[module.replace(".py", "")]
+            except Exception as exp:
+                pass
             toplevel = __import__(module[:-3], locals(), globals())
-            print "inspect", module
             for cl in inspect.getmembers(toplevel, inspect.isfunction):
                 if cl[0] ==  "__ds_ident__":
-                    class_factory.append(cl[1])
-        Datasource.class_factory = class_factory
-        if self.classes_dir:
+                    datasource_factory.append(cl[1])
+        Datasource.class_factory = datasource_factory
+        if self.classes_dir != self.default_classes_dir:
             sys.path.remove(self.classes_dir)
+            sys.path.remove(self.default_classes_dir)
+        else:
+            sys.path.remove(self.default_classes_dir)
+
+    def add_datasource(self, **kwargs):
+        newcls = Datasource.get_class(kwargs)
+        if newcls:
+            self.datasources.append(newcls(**kwargs))
+
 

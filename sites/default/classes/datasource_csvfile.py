@@ -15,11 +15,10 @@ from application import Application
 from contactgroup import ContactGroup
 from contact import Contact
 from monitoring_detail import MonitoringDetail
-from shintarator.log import logger
+from coshsh.log import logger
 from util import compare_attr
 
 def __ds_ident__(params={}):
-    print "-----------------ident csv----------------", params
     if compare_attr("type", params, "csv"):
         return CsvFile
 
@@ -39,6 +38,7 @@ class CsvFile(Datasource):
     def __init__(self, **kwargs):
         superclass = super(self.__class__, self)
         superclass.__init__(**kwargs)
+        self.name = kwargs["name"]
         self.dir = kwargs["dir"]
         self.hosts = {}
         self.applications = {}
