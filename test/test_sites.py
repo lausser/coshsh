@@ -55,7 +55,6 @@ class CoshshTest(unittest.TestCase):
 
     def test_create_config(self):
         self.generator.add_site(name='test3', **dict(self.config.items('site_TEST3')))
-        print self.config.items("datasource_SIMPLESAMPLE")
         self.generator.sites['test3'].add_datasource(**dict(self.config.items("datasource_SIMPLESAMPLE") + [('name', 'simplesample')]))
         self.generator.run()
 
