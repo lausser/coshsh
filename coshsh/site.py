@@ -14,9 +14,9 @@ import time
 from subprocess import Popen, PIPE, STDOUT
 from coshsh.log import logger
 from coshsh.item import Item
-from monitoring_detail import MonitoringDetail
-from application import Application
-from datasource import Datasource
+from coshsh.application import Application
+from coshsh.monitoring_detail import MonitoringDetail
+from coshsh.datasource import Datasource
 
 class Site(object):
 
@@ -294,6 +294,7 @@ class Site(object):
             sys.path.remove(self.default_classes_dir)
         else:
             sys.path.remove(self.default_classes_dir)
+        print "tete", Application.class_factory
 
     def add_datasource(self, **kwargs):
         newcls = Datasource.get_class(kwargs)
