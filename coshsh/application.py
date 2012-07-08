@@ -24,6 +24,8 @@ class Application(Item):
     app_template = "app.tpl"
     #class_factory = []
 
+
+    # try __init__ as class factory with self.__class__ = 
     def __new__(cls, params={}):
         #print "Application.__new__", params, len(cls.class_factory)
         try:
