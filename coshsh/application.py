@@ -8,6 +8,7 @@
 import os
 from util import compare_attr, is_attr
 from coshsh.log import logger
+from generator import Generator
 from item import Item
 from templaterule import TemplateRule
 
@@ -21,7 +22,10 @@ class Application(Item):
     id = 1 #0 is reserved for host (primary node for parents)
     my_type = 'application'
     app_template = "app.tpl"
+    #class_factory = []
 
+
+    # try __init__ as class factory with self.__class__ = 
     def __new__(cls, params={}):
         #print "Application.__new__", params, len(cls.class_factory)
         try:
@@ -63,7 +67,9 @@ class Application(Item):
 
     @classmethod
     def get_class(cls, params={}):
+        print Generator.class_factory
         for class_func in cls.class_factory:
+            print "it is class", class_func
             try:
                 newcls = class_func(params)
                 if newcls:
