@@ -10,6 +10,7 @@ sys.path.append("../coshsh")
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'sites', 'default', 'classes'))
 from generator import Generator
 from datasource import Datasource
+from site import Site
 
 class CoshshTest(unittest.TestCase):
     def setUp(self):
@@ -52,6 +53,15 @@ class CoshshTest(unittest.TestCase):
         ds3 = self.generator.sites['test3'].datasources[0]
         self.assert_(not hasattr(ds2, "only_the_test_simplesample"))
         self.assert_(hasattr(ds3, "only_the_test_simplesample"))
+
+    def test_create_datasource_with_myhost(self):
+        dscfg = self.config.items("datasource_SIMPLESAMPLE")
+        sicfg = self.config.items('site_TEST4')
+        site = Site(**dict(sicfg))
+        print site
+        print "add site test4 ds simplesample"
+        self.generator.sites['test4'].add_datasource(**dict(cfg))
+        ds4 = self.generator.sites['test4'].datasources[0]
 
     def test_create_config(self):
         self.generator.add_site(name='test3', **dict(self.config.items('site_TEST3')))
