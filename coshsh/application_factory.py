@@ -6,8 +6,10 @@
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
 import os
+import inspect
 from util import compare_attr, is_attr
 from coshsh.log import logger
+from generator import Generator
 from item import Item
 from templaterule import TemplateRule
 
@@ -16,16 +18,15 @@ class ApplicationNotImplemented(Exception):
     pass
 
 
-class Application(Item):
+class ApplicationFactory(Item):
 
     id = 1 #0 is reserved for host (primary node for parents)
     my_type = 'application'
     app_template = "app.tpl"
-    #class_factory = []
 
 
     # try __init__ as class factory with self.__class__ = 
-    def __new__(cls, params={}):
+    def x__new__(cls, params={}):
         #print "Application.__new__", params, len(cls.class_factory)
         try:
             if compare_attr("name", params, "os"):
@@ -52,8 +53,19 @@ class Application(Item):
         return "%s+%s+%s" % (self.host_name, self.name, self.type)
 
     def __init__(self, params={}):
-        super(Application, self).__init__(params)
-        self.contact_groups = []
+        if not params or 'classpath' in params:
+            try:
+                classpath = params['classpath']
+            except Exception:
+                classpath = [os.path.join(os.path.dirname(__file__), '..', 'sites', 'default', 'classes')]
+            self.class_cache = []
+            self.init_classes(classpath)
+        else:
+            newcls = cls.get_class(params)
+            if not newcls:
+                self.__class__ = newcls
+            super(ApplicationFactory, self).__init__(params)
+            self.contact_groups = []
 
     def create_servicegroups(self):
         pass
@@ -63,6 +75,17 @@ class Application(Item):
 
     def create_templates(self):
         pass
+
+    def init_classes(self, classpath):
+        print "init", classpath
+        for module in  [item for sublist in [os.listdir(p) for p in classpath if os.path.exists(p) and os.path.isdir(p)] for item in sublist if item[-3:] == ".py"]:
+            print "inspect", module
+            toplevel = __import__(module[:-3], locals(), globals())
+            for cl in inspect.getmembers(toplevel, inspect.isfunction):
+                if cl[0] ==  "__mi_ident__":
+                    self.class_cache.append(cl[1])
+                    print "cache", cl[1]
+
 
     @classmethod
     def get_class(cls, params={}):
@@ -76,29 +99,6 @@ class Application(Item):
             except Exception:
                 pass
         logger.debug("found no matching class for this monitoring item %s" % params)
-
-
-class GenericApplication(Application):
-    template_rules = [
-        TemplateRule(needsattr=None, 
-            template="app_generic_default",
-            unique_attr='name', unique_config="app_%s_default"),
-    ]
-
-    def __new__(cls, params={}):
-        return object.__new__(cls)
-
-    def __init__(self, params={}):
-        self.name = params["name"]
-        super(GenericApplication, self).__init__(params)
-
-    def render(self):
-        # Maybe we find some processes, ports, filesystems in the
-        # monitoring_details so we can output generic services
-        if (hasattr(self, "processes") and self.processes) or (hasattr(self, "filesystems") and self.filesystems) or (hasattr(self, "ports") and self.ports):
-            super(GenericApplication, self).render()
-        else:
-            return ()
 
 
 

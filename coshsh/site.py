@@ -11,12 +11,17 @@ import re
 import shutil
 import inspect
 import time
+from jinja2 import FileSystemLoader, Environment, TemplateSyntaxError, TemplateNotFound
 from subprocess import Popen, PIPE, STDOUT
+from coshsh.jinja2_extensions import is_re_match, filter_re_sub, filter_re_escape, filter_service
 from coshsh.log import logger
 from coshsh.item import Item
-from coshsh.application import Application
-from coshsh.monitoring_detail import MonitoringDetail
-from coshsh.datasource import Datasource
+#from coshsh.application_factory import ApplicationFactory
+#from coshsh.monitoring_detail import MonitoringDetail
+from coshsh.datasource_factory import DatasourceFactory
+
+class EmptyObject(object):
+    pass
 
 class Site(object):
 
@@ -24,17 +29,32 @@ class Site(object):
         self.name = kwargs["name"]
         logger.info("site %s init" % self.name)
         self.objects_dir = kwargs["objects_dir"]
-        self.templates_dir = kwargs.get("templates_dir", os.path.join(os.path.dirname(__file__), '../sites/default/templates'))
-        self.classes_dir = kwargs.get("classes_dir", os.path.join(os.path.dirname(__file__), '../sites/default/classes'))
+        self.templates_dir = kwargs.get("templates_dir")
+        self.classes_dir = kwargs.get("classes_dir")
         self.filter = kwargs.get("filter")
-        self.default_classes_dir = os.path.join(os.path.dirname(__file__), '../sites/default/classes')
+
+        self.classes_path = [os.path.join(os.path.dirname(__file__), '../sites/default/classes')]
+        if self.classes_dir:
+            self.classes_path.insert(0, self.classes_dir)
+
+        self.templates_path = [os.path.join(os.path.dirname(__file__), '../sites/default/templates')]
         if self.templates_dir:
-            Item.templates_path.insert(0, self.templates_dir)
-            Item.reload_template_path()
-            logger.debug("Item.templates_path reloaded %s" % Item.templates_path)
+            self.templates_path.insert(0, self.templates_dir)
+            logger.debug("site.templates_path reloaded %s" % ':'.join(self.templates_path))
         logger.info("site %s objects_dir %s" % (self.name, os.path.abspath(self.objects_dir)))
-        logger.info("site %s classes_dir %s" % (self.name, os.path.abspath(self.classes_dir)))
-        logger.info("site %s templates_dir %s" % (self.name, os.path.abspath(self.templates_dir)))
+        logger.info("site %s classes_dir %s" % (self.name, os.path.abspath(self.classes_path[0])))
+        logger.info("site %s templates_dir %s" % (self.name, os.path.abspath(self.templates_path[0])))
+
+        self.jinja2 = EmptyObject()
+        setattr(self.jinja2, 'loader', FileSystemLoader(self.templates_path))
+        setattr(self.jinja2, 'env', Environment(loader=self.jinja2.loader))
+        self.jinja2.env.trim_blocks = True
+        self.jinja2.env.tests['re_match'] = is_re_match
+        self.jinja2.env.filters['re_sub'] = filter_re_sub
+        self.jinja2.env.filters['re_escape'] = filter_re_escape
+        self.jinja2.env.filters['service'] = filter_service
+
+        
 
         self.datasources = []
 
@@ -56,8 +76,18 @@ class Site(object):
                     self.datasource_filters[match.groups()[0].lower()] = match.groups()[1]
         self.static_dir = os.path.join(self.objects_dir, 'static')
         self.dynamic_dir = os.path.join(self.objects_dir, 'dynamic')
-        self.init_class_cache()
+        print "this was the init"
+        self.datasource_factory = DatasourceFactory(classpath=self.classes_path)
+        #self.init_class_cache()
 
+
+    def set_site_sys_path(self):
+        for p in [p for p in self.classes_path if os.path.exists(p) and os.path.isdir(p)]:
+            sys.path.insert(0, p)
+
+    def unset_site_sys_path(self):
+        for p in [p for p in self.classes_path if os.path.exists(p) and os.path.isdir(p)]:
+            del sys.path[-1]
 
     def prepare_target_dir(self):
         logger.info("site %s dynamic_dir %s" % (self.name, self.dynamic_dir))
