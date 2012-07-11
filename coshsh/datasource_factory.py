@@ -7,7 +7,9 @@
 
 import os
 import sys
+import imp
 import inspect
+import time
 from util import compare_attr, is_attr
 from coshsh.log import logger
 from item import Item
@@ -30,7 +32,6 @@ class DatasourceFactory(object):
     my_type = 'datasource'
 
     def __init__(self, **params):
-        print "init is params", params
         if not params or 'classpath' in params:
             try:
                 classpath = params['classpath']
@@ -42,41 +43,56 @@ class DatasourceFactory(object):
             newcls = cls.get_class(params)
             if not newcls:
                 self.__class__ = newcls
-            super(ApplicationFactory, self).__init__(params)
-            self.contact_groups = []
 
     def init_classes(self, classpath):
-        print "init", classpath
-        #self.set_site_sys_path()
         for p in [p for p in classpath if os.path.exists(p) and os.path.isdir(p)]:
-            sys.path.insert(0, p)
-            print "prepend", p
             for module, path in [(item, p) for item in os.listdir(p) if item[-3:] == ".py" and item.startswith('datasource_')]:
-                toplevel = __import__(module[:-3], locals(), globals())
+                try:
+                    path = os.path.abspath(path)
+                    fp, filename, data = imp.find_module(module.replace('.py', ''), [path])
+
+                    toplevel = imp.load_module('', fp, '', ('py', 'r', imp.PY_SOURCE))
+                    for k in sys.modules:
+                        if "cosh" in str(sys.modules[k]):
+                            print "%-40s--->%s" % (k, sys.modules[k])
+                except Exception, e:
+                    print e
+                finally:
+                    if fp:
+                        fp.close()
+
                 for cl in inspect.getmembers(toplevel, inspect.isfunction):
                     if cl[0] ==  "__ds_ident__":
-                        self.class_cache.append([path, cl[1]])
-                        print "cache", path, module, cl[1]
+                        self.class_cache.append([path, module, cl[1]])
+                        print "i cache", path, cl
             
-        for p in [p for p in classpath if os.path.exists(p) and os.path.isdir(p)]:
-            del sys.path[-1]
-
-        for module, path in  [(item, p) for sublist in [os.listdir(p) for p in classpath if os.path.exists(p) and os.path.isdir(p)] for item in sublist if item[-3:] == ".py" and item.startswith('datasource_')]:
-            print "inspect", module
-        if cplen == 1:
-            del sys.path[-1]
-        elif cplen == 2:
-            del sys.path[-1]
-            del sys.path[-1]
-
-
+    def get_class(self, params={}):
+        goodclasses = []
+        for path, module, class_func in self.class_cache:
+            try:
+                print "try....", path, module, class_func
+                time.sleep(2)
+                newcls = class_func(params)
+                if newcls:
+                    print "reload(path)", path, module, newcls
+                    return newcls
+            except Exception, e:
+                print "reload exp", e
+                pass
+        logger.debug("found no matching class for this datasource %s" % params)
 
     def get_datasource(self, **params):
-        print "new datasource", params
         try:
             newcls = self.get_class(params)
             if newcls:
-                return newcls.__new__(newcls, params)
+                print "newcls is", newcls
+                print sys.path
+                for m in sys.modules.keys():
+                    if "datas" in m or "Simple" in m:
+                        print "----->", sys.modules[m]
+                newobj = newcls.__new__(newcls, params)
+                newobj.__init__(**params)
+                return newobj
             else:
                 print "i force a raise"
                 raise DatasourceNotImplemented
@@ -85,22 +101,10 @@ class DatasourceFactory(object):
             raise ApplicationNotImplemented
         except Exception as exc:
             logger.info("found unknown datasource %s" % (params.get("type", "null_type"),))
-            print exc
+            print "exception is", exc
             print "__new__ got", params
             raise DatasourceNotImplemented
 
-    def get_class(self, params={}):
-        goodclasses = []
-        for class_func in self.class_cache:
-            print "i try from cache", class_func, params
-            try:
-                newcls = class_func(params)
-                if newcls:
-                    print "news clas", newcls
-                    return newcls
-            except Exception:
-                pass
-        logger.debug("found no matching class for this datasource %s" % params)
 
 
 

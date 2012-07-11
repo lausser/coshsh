@@ -32,7 +32,7 @@ class MyHost(Host):
 class SimpleSample(Datasource):
     def __init__(self, **kwargs):
         print "i am the init od SimpleSample custom"
-        self.name = kwargs["name"]
+        #self.name = kwargs["name"]
         self.dir = kwargs["dir"]
         self.hosts = {}
         self.applications = {}
@@ -57,5 +57,16 @@ class SimpleSample(Datasource):
             'department': 'test',
         }
         self.hosts['test_host_0'] = MyHost(hostdata)
+        appdata = {
+            'name': 'os',
+            'type': 'Red Hat',
+            'component': '',
+            'version': '6.3',
+            'patchlevel': '',
+            'host_name': 'test_host_0',
+            'check_period': '7x24',
+        }
+        a = Application(appdata)
+        self.applications[a.fingerprint()] = a
         return self.hosts.values(), self.applications.values(), self.contacts.values(), self.contactgroups.values(), self.appdetails, self.dependencies, self.bps
 

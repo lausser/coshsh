@@ -38,11 +38,19 @@ class CoshshTest(unittest.TestCase):
 
     def test_create_site_check_factories(self):
         self.generator.add_site(name='test4', **dict(self.config.items('site_TEST4')))
+        self.generator.sites['test4'].set_site_sys_path()
         print self.generator.sites['test4'].datasource_factory
         cfg = self.config.items("datasource_SIMPLESAMPLE")
+        print sys.path
         ds = self.generator.sites['test4'].datasource_factory.get_datasource(**dict(cfg))
+        self.generator.sites['test4'].unset_site_sys_path()
+        self.assert_(hasattr(ds, 'only_the_test_simplesample'))
         print ds
+        print ds.__dict__
+        print ds.hosts
         print ds.only_the_test_simplesample
+        hosts, applications, contacts, contactgroups, appdetails, dependencies, bps = ds.read()
+        print hosts
 
 
 

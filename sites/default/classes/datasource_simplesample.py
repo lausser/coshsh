@@ -18,13 +18,15 @@ from coshsh.log import logger
 from util import compare_attr
 
 def __ds_ident__(params={}):
+    print "this is orschknorsch"
     if compare_attr("type", params, "simplesample"):
         return SimpleSample
 
 
 class SimpleSample(Datasource):
     def __init__(self, **kwargs):
-        self.name = kwargs["name"]
+        print "init default SimpleSample"
+        #self.name = kwargs["name"]
         self.dir = kwargs["dir"]
         self.hosts = {}
         self.applications = {}

@@ -76,14 +76,13 @@ class Site(object):
                     self.datasource_filters[match.groups()[0].lower()] = match.groups()[1]
         self.static_dir = os.path.join(self.objects_dir, 'static')
         self.dynamic_dir = os.path.join(self.objects_dir, 'dynamic')
-        print "this was the init"
         self.datasource_factory = DatasourceFactory(classpath=self.classes_path)
         #self.init_class_cache()
 
 
     def set_site_sys_path(self):
-        for p in [p for p in self.classes_path if os.path.exists(p) and os.path.isdir(p)]:
-            sys.path.insert(0, p)
+        for p in [p for p in reversed(self.classes_path) if os.path.exists(p) and os.path.isdir(p)]:
+            sys.path.insert(0, os.path.abspath(p))
 
     def unset_site_sys_path(self):
         for p in [p for p in self.classes_path if os.path.exists(p) and os.path.isdir(p)]:
