@@ -6,8 +6,10 @@
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
 import os
+import imp
+import inspect
 from util import compare_attr, is_attr
-from coshsh.log import logger
+from log import logger
 from item import Item
 from templaterule import TemplateRule
 
@@ -21,20 +23,16 @@ class Application(Item):
     id = 1 #0 is reserved for host (primary node for parents)
     my_type = 'application'
     app_template = "app.tpl"
-    #class_factory = []
+    class_factory = []
 
 
     # try __init__ as class factory with self.__class__ = 
     def __new__(cls, params={}):
         #print "Application.__new__", params, len(cls.class_factory)
         try:
-            if compare_attr("name", params, "os"):
-                from operatingsystem import OperatingSystem
-                newcls = OperatingSystem
-            else:
-                newcls = cls.get_class(params)
-                if not newcls:
-                    newcls = GenericApplication
+            newcls = cls.get_class(params)
+            if not newcls:
+                newcls = GenericApplication
             #print "i was Application.__new__ a", newcls.__name__
             return newcls.__new__(newcls, params)
         except ImportError as exc:
@@ -65,8 +63,26 @@ class Application(Item):
         pass
 
     @classmethod
+    def init_classes(cls, classpath):
+        for p in [p for p in reversed(classpath) if os.path.exists(p) and os.path.isdir(p)]:
+            for module, path in [(item, p) for item in os.listdir(p) if item[-3:] == ".py" and (item.startswith('app_') or item.startswith('or_'))]:
+                try:
+                    path = os.path.abspath(path)
+                    fp, filename, data = imp.find_module(module.replace('.py', ''), [path])
+                    toplevel = imp.load_module('', fp, '', ('py', 'r', imp.PY_SOURCE))
+                    for cl in inspect.getmembers(toplevel, inspect.isfunction):
+                        if cl[0] ==  "__ds_ident__":
+                            cls.class_factory.append([path, module, cl[1]])
+                            print "i cache", path, cl
+                except Exception, e:
+                    print e
+                finally:
+                    if fp:
+                        fp.close()
+
+
+    @classmethod
     def get_class(cls, params={}):
-        print Generator.class_factory
         for class_func in cls.class_factory:
             print "it is class", class_func
             try:

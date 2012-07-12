@@ -5,6 +5,9 @@
 # This software is licensed under the
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
+import os
+import imp
+import inspect
 from urlparse import urlparse
 from coshsh.log import logger
 from application import Application
@@ -15,7 +18,7 @@ class MonitoringDetailNotImplemented(Exception):
 
 
 class MonitoringDetail(object):
-    detail_factory = []
+    class_factory = []
 
     def __init__(self, params):
         newcls = self.__class__.get_detail(params)
@@ -40,13 +43,34 @@ class MonitoringDetail(object):
         return "%s+%s+%s" % (self.host_name, self.name, self.type)
 
     @classmethod
-    def get_detail(cls, params={}):
-        for class_func in cls.detail_factory:
+    def init_classes(cls, classpath):
+        for p in [p for p in reversed(classpath) if os.path.exists(p) and os.path.isdir(p)]:
+            for module, path in [(item, p) for item in os.listdir(p) if item[-3:] == ".py" and item.startswith('detail_')]:
+                try:
+                    path = os.path.abspath(path)
+                    fp, filename, data = imp.find_module(module.replace('.py', ''), [path])
+                    toplevel = imp.load_module('', fp, '', ('py', 'r', imp.PY_SOURCE))
+                    for cl in inspect.getmembers(toplevel, inspect.isfunction):
+                        if cl[0] ==  "__detail_ident__":
+                            cls.class_factory.append([path, module, cl[1]])
+                            print "i cache", path, cl
+                except Exception, e:
+                    print e
+                finally:
+                    if fp:
+                        fp.close()
+
+
+    @classmethod
+    def get_class(cls, params={}):
+        for class_func in cls.class_factory:
+            print "it is class", class_func
             try:
                 newcls = class_func(params)
                 if newcls:
                     return newcls
             except Exception:
                 pass
-        logger.debug("found no matching detail for type %s" % params["monitoring_type"])
+        logger.debug("found no matching class for this monitoring item %s" % params)
+
 

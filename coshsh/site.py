@@ -16,14 +16,18 @@ from subprocess import Popen, PIPE, STDOUT
 from coshsh.jinja2_extensions import is_re_match, filter_re_sub, filter_re_escape, filter_service
 from coshsh.log import logger
 from coshsh.item import Item
-#from coshsh.application_factory import ApplicationFactory
-#from coshsh.monitoring_detail import MonitoringDetail
-from coshsh.datasource_factory import DatasourceFactory
+from coshsh.application import Application
+from coshsh.monitoring_detail import MonitoringDetail
+from coshsh.datasource import Datasource
 
 class EmptyObject(object):
     pass
 
 class Site(object):
+
+    def __del__(self):
+        print "i del my site"
+        self.unset_site_sys_path()
 
     def __init__(self, **kwargs):
         self.name = kwargs["name"]
@@ -36,6 +40,7 @@ class Site(object):
         self.classes_path = [os.path.join(os.path.dirname(__file__), '../sites/default/classes')]
         if self.classes_dir:
             self.classes_path.insert(0, self.classes_dir)
+        self.set_site_sys_path()
 
         self.templates_path = [os.path.join(os.path.dirname(__file__), '../sites/default/templates')]
         if self.templates_dir:
@@ -76,8 +81,7 @@ class Site(object):
                     self.datasource_filters[match.groups()[0].lower()] = match.groups()[1]
         self.static_dir = os.path.join(self.objects_dir, 'static')
         self.dynamic_dir = os.path.join(self.objects_dir, 'dynamic')
-        self.datasource_factory = DatasourceFactory(classpath=self.classes_path)
-        #self.init_class_cache()
+        self.init_class_cache()
 
 
     def set_site_sys_path(self):
@@ -279,51 +283,14 @@ class Site(object):
 
 
     def init_class_cache(self):
-        class_factory = []
-        detail_factory = []
-        datasource_factory = []
-        if self.classes_dir != self.default_classes_dir:
-            sys.path.insert(0, self.default_classes_dir)
-            sys.path.insert(0, self.classes_dir)
-        else:
-            sys.path.insert(0, self.default_classes_dir)
-        logger.debug("site %s init detail cache" % self.name)
-        for module in  [item for sublist in [os.listdir(p) for p in sys.path[1], sys.path[0] if os.path.exists(p) and os.path.isdir(p)] for item in sublist if item[-3:] == ".py" and item.startswith("detail_")]:
-            toplevel = __import__(module[:-3], locals(), globals())
-            for cl in inspect.getmembers(toplevel, inspect.isfunction):
-                if cl[0] ==  "__detail_ident__":
-                    detail_factory.append(cl[1])
-        MonitoringDetail.detail_factory = detail_factory
-        # find monitoring item files which have the ability
-        # to identify themselves with a __mi_ident__ finction
-        logger.debug("site %s init class cache" % self.name)
-        for module in  [item for sublist in [os.listdir(p) for p in sys.path[1], sys.path[0] if os.path.exists(p) and os.path.isdir(p)] for item in sublist if item[-3:] == ".py"]:
-            toplevel = __import__(module[:-3], locals(), globals())
-            for cl in inspect.getmembers(toplevel, inspect.isfunction):
-                if cl[0] ==  "__mi_ident__":
-                    class_factory.append(cl[1])
-        Application.class_factory = class_factory
-        # find datasource adapter files which have the ability
-        # to identify themselves with a __ds_ident__ finction
-        logger.debug("site %s init datasource cache" % self.name)
-        for module in  [item for sublist in [os.listdir(p) for p in sys.path[1], sys.path[0] if os.path.exists(p) and os.path.isdir(p)] for item in sublist if item[-3:] == ".py" and item.startswith("datasource_")]:
-            try:
-                # maybe module was already loaded by another site
-                # and another path
-                del sys.modules[module.replace(".py", "")]
-            except Exception as exp:
-                pass
-            toplevel = __import__(module[:-3], locals(), globals())
-            for cl in inspect.getmembers(toplevel, inspect.isfunction):
-                if cl[0] ==  "__ds_ident__":
-                    datasource_factory.append(cl[1])
-        Datasource.class_factory = datasource_factory
-        if self.classes_dir != self.default_classes_dir:
-            sys.path.remove(self.classes_dir)
-            sys.path.remove(self.default_classes_dir)
-        else:
-            sys.path.remove(self.default_classes_dir)
-        print "tete", Application.class_factory
+        logger.debug("init Datasource classes")
+        print "init Datasource classes", Datasource.class_factory
+        Datasource.init_classes(self.classes_path)
+        print "unut Datasource classes", Datasource.class_factory
+        logger.debug("init Application classes")
+        Application.init_classes(self.classes_path)
+        logger.debug("init MonitoringDetail classes")
+        MonitoringDetail.init_classes(self.classes_path)
 
     def add_datasource(self, **kwargs):
         newcls = Datasource.get_class(kwargs)

@@ -45,16 +45,13 @@ class DatasourceFactory(object):
                 self.__class__ = newcls
 
     def init_classes(self, classpath):
-        for p in [p for p in classpath if os.path.exists(p) and os.path.isdir(p)]:
+        for p in [p for p in reversed(classpath) if os.path.exists(p) and os.path.isdir(p)]:
             for module, path in [(item, p) for item in os.listdir(p) if item[-3:] == ".py" and item.startswith('datasource_')]:
                 try:
                     path = os.path.abspath(path)
                     fp, filename, data = imp.find_module(module.replace('.py', ''), [path])
 
                     toplevel = imp.load_module('', fp, '', ('py', 'r', imp.PY_SOURCE))
-                    for k in sys.modules:
-                        if "cosh" in str(sys.modules[k]):
-                            print "%-40s--->%s" % (k, sys.modules[k])
                 except Exception, e:
                     print e
                 finally:
@@ -70,11 +67,8 @@ class DatasourceFactory(object):
         goodclasses = []
         for path, module, class_func in self.class_cache:
             try:
-                print "try....", path, module, class_func
-                time.sleep(2)
                 newcls = class_func(params)
                 if newcls:
-                    print "reload(path)", path, module, newcls
                     return newcls
             except Exception, e:
                 print "reload exp", e
@@ -85,11 +79,6 @@ class DatasourceFactory(object):
         try:
             newcls = self.get_class(params)
             if newcls:
-                print "newcls is", newcls
-                print sys.path
-                for m in sys.modules.keys():
-                    if "datas" in m or "Simple" in m:
-                        print "----->", sys.modules[m]
                 newobj = newcls.__new__(newcls, params)
                 newobj.__init__(**params)
                 return newobj
