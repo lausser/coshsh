@@ -10,7 +10,7 @@ import sys
 import logging
 from logging.handlers import TimedRotatingFileHandler
 
-path = "./shintarator.log"
+path = "./coshsh.log"
 # Open the log and set to rotate once a day
 log_level = logging.DEBUG
 basic_log_handler = TimedRotatingFileHandler(path,'midnight',backupCount=5)
@@ -20,7 +20,6 @@ basic_log_handler.setFormatter(basic_log_formatter)
 logger = logging.getLogger()
 logger.addHandler(basic_log_handler)
 logger.setLevel(log_level)
-local_log = basic_log_handler
 
 console_handler = logging.StreamHandler(sys.stderr)
 console_handler.setLevel(logging.INFO)

@@ -8,10 +8,7 @@
 import os
 import imp
 import inspect
-from util import compare_attr, is_attr
-from coshsh.log import logger
-from item import Item
-from templaterule import TemplateRule
+from log import logger
 
 
 class DatasourceNotImplemented(Exception):
@@ -30,7 +27,7 @@ class Datasource(object):
     my_type = 'datasource'
     class_factory = []
 
-    def __new__(cls, **params):
+    def __new__(cls, params):
         print "new datasource", params
         try:
             newcls = cls.get_class(params)

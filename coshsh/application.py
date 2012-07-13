@@ -65,13 +65,13 @@ class Application(Item):
     @classmethod
     def init_classes(cls, classpath):
         for p in [p for p in reversed(classpath) if os.path.exists(p) and os.path.isdir(p)]:
-            for module, path in [(item, p) for item in os.listdir(p) if item[-3:] == ".py" and (item.startswith('app_') or item.startswith('or_'))]:
+            for module, path in [(item, p) for item in os.listdir(p) if item[-3:] == ".py" and (item.startswith('app_') or item.startswith('os_'))]:
                 try:
                     path = os.path.abspath(path)
                     fp, filename, data = imp.find_module(module.replace('.py', ''), [path])
                     toplevel = imp.load_module('', fp, '', ('py', 'r', imp.PY_SOURCE))
                     for cl in inspect.getmembers(toplevel, inspect.isfunction):
-                        if cl[0] ==  "__ds_ident__":
+                        if cl[0] ==  "__mi_ident__":
                             cls.class_factory.append([path, module, cl[1]])
                             print "i cache", path, cl
                 except Exception, e:
@@ -117,4 +117,10 @@ class GenericApplication(Application):
             return ()
 
 
+class OperatingSystem(Application):
+    def __str__(self):
+        descr = "OS %s (%s)" % (self.__class__.__name__, self.type)
+        if hasattr(self, "host"):
+            descr += " Host %s" % self.host.host_name
+        return descr
 

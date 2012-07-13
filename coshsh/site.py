@@ -13,12 +13,12 @@ import inspect
 import time
 from jinja2 import FileSystemLoader, Environment, TemplateSyntaxError, TemplateNotFound
 from subprocess import Popen, PIPE, STDOUT
-from coshsh.jinja2_extensions import is_re_match, filter_re_sub, filter_re_escape, filter_service
-from coshsh.log import logger
-from coshsh.item import Item
-from coshsh.application import Application
-from coshsh.monitoring_detail import MonitoringDetail
-from coshsh.datasource import Datasource
+from jinja2_extensions import is_re_match, filter_re_sub, filter_re_escape, filter_service
+from log import logger
+from item import Item
+from application import Application
+from monitoring_detail import MonitoringDetail
+from datasource import Datasource
 
 class EmptyObject(object):
     pass
@@ -82,6 +82,10 @@ class Site(object):
         self.static_dir = os.path.join(self.objects_dir, 'static')
         self.dynamic_dir = os.path.join(self.objects_dir, 'dynamic')
         self.init_class_cache()
+        print "this is datasource", Datasource
+        print "this is datasource", Datasource.__class__
+        print "this is datasource", Datasource.__class__.__name__
+        print "this is datasource", Datasource.class_cache
 
 
     def set_site_sys_path(self):
@@ -291,6 +295,7 @@ class Site(object):
         Application.init_classes(self.classes_path)
         logger.debug("init MonitoringDetail classes")
         MonitoringDetail.init_classes(self.classes_path)
+        print "ugauga Datasource classes", Datasource.class_factory
 
     def add_datasource(self, **kwargs):
         newcls = Datasource.get_class(kwargs)

@@ -1,4 +1,4 @@
-from operatingsystem import OperatingSystem
+from application import OperatingSystem
 from templaterule import TemplateRule
 from util import compare_attr, is_attr
 

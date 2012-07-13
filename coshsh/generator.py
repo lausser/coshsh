@@ -2,8 +2,10 @@
 # Copyright (C) : Gerhard Lausser, gerhard.lausser@consol.de
 
 import os
-from coshsh.site import Site
-from coshsh.log import logger
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from site import Site
+from log import logger
 
 
 class Generator(object):
