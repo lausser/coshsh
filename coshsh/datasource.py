@@ -49,6 +49,20 @@ class Datasource(object):
             print "__new__ got", params
             raise DatasourceNotImplemented
 
+    def __init__(self, **params):
+        if self.__class__ == Datasource:
+            print "i am just a wrapper
+            newcls = self.__class__.get_class(params)
+            if newcls:
+                print "i return", newcls, params
+        else:
+            pass
+        # i am a generic datasource
+        # i find a suitable class
+        # i rebless
+        # i call __init__
+        
+
     @classmethod
     def init_classes(cls, classpath):
         for p in [p for p in reversed(classpath) if os.path.exists(p) and os.path.isdir(p)]:
