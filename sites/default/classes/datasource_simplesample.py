@@ -18,15 +18,12 @@ from monitoring_detail import MonitoringDetail
 from log import logger
 
 def __ds_ident__(params={}):
-    print "this is orschknorsch", compare_attr
     if compare_attr("type", params, "simplesample"):
-        print "i match SimpleSample"
         return SimpleSample
 
 
 class SimpleSample(Datasource):
     def __init__(self, **kwargs):
-        print "init default SimpleSample"
         #self.name = kwargs["name"]
         self.dir = kwargs["dir"]
         self.hosts = {}

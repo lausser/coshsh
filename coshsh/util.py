@@ -12,7 +12,6 @@ import copy
 print "<---- util"
 
 def compare_attr(key, params, strings):
-    print "i am in compare"
     if not isinstance(strings, list):
         strings = [strings]
     if key in params:

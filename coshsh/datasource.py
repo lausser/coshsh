@@ -30,31 +30,14 @@ class Datasource(object):
     my_type = 'datasource'
     class_factory = []
 
-    def __new__(cls, **params):
-        print "new datasource", params
-        try:
-            newcls = cls.get_class(params)
-            if newcls:
-                print "i return", newcls, params
-                return newcls(**params)
-            else:
-                print "i force a raise"
-                raise DatasourceNotImplemented
-        except ImportError as exc:
-            logger.info("found no working code for application %s (%s)" % (params.get("type", "null_type"), exc))
-            raise ApplicationNotImplemented
-        except Exception as exc:
-            logger.info("found unknown datasource %s" % (params.get("type", "null_type"),))
-            print exc
-            print "__new__ got", params
-            raise DatasourceNotImplemented
-
     def __init__(self, **params):
         if self.__class__ == Datasource:
-            print "i am just a wrapper
             newcls = self.__class__.get_class(params)
             if newcls:
-                print "i return", newcls, params
+                self.__class__ = newcls
+                self.__init__(**params)
+            else:
+                raise DatasourceNotImplemented
         else:
             pass
         # i am a generic datasource
@@ -69,6 +52,7 @@ class Datasource(object):
         #for p in [p for p in classpath if os.path.exists(p) and os.path.isdir(p)]:
             for module, path in [(item, p) for item in os.listdir(p) if item[-3:] == ".py" and item.startswith('datasource_')]:
                 try:
+                    print "try ds", module, path
                     path = os.path.abspath(path)
                     fp, filename, data = imp.find_module(module.replace('.py', ''), [path])
                     toplevel = imp.load_module('', fp, '', ('py', 'r', imp.PY_SOURCE))
@@ -80,22 +64,21 @@ class Datasource(object):
                 finally:
                     if fp:
                         fp.close()
+        print "init_classes", cls, len(cls.class_factory)
 
 
     @classmethod
     def get_class(cls, params={}):
-        print "i am Datasource get_class", cls, cls.class_factory
+        print "get_class", cls, len(cls.class_factory), cls.class_factory
         for path, module, class_func in cls.class_factory:
             try:
-                print "Datasource.get_class", path, module, class_func
                 newcls = class_func(params)
                 if newcls:
-                    print "ok Datasource", newcls
                     return newcls
             except Exception ,exp:
                 print "Datasource.get_class exception", exp
                 pass
-        logger.debug("found no matching class for this monitoring item %s" % params)
+        logger.debug("found no matching class for this datasource %s" % params)
 
 
 

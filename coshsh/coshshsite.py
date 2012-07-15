@@ -12,6 +12,8 @@ import re
 import shutil
 import inspect
 import time
+#sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+#sys.path.append(os.path.join(os.path.dirname(__file__), '../coshsh'))
 from jinja2 import FileSystemLoader, Environment, TemplateSyntaxError, TemplateNotFound
 from subprocess import Popen, PIPE, STDOUT
 from jinja2_extensions import is_re_match, filter_re_sub, filter_re_escape, filter_service
@@ -19,6 +21,7 @@ from log import logger
 from item import Item
 from application import Application
 from monitoring_detail import MonitoringDetail
+print sys.path
 from datasource import Datasource
 from util import compare_attr
 print "<---site"
@@ -189,12 +192,12 @@ class Site(object):
 
     def render(self):
         for host in self.hosts.values():
-            host.env.loader.searchpath = Item.env.loader.searchpath
+            host.env.loader.searchpath = self.jinja2.env.loader.searchpath
             host.render()
         for app in self.applications.values():
             # because of this __new__ construct the Item.searchpath is
             # not inherited. Needs to be done explicitely
-            app.env.loader.searchpath = Item.env.loader.searchpath
+            app.env.loader.searchpath = self.jinja2.env.loader.searchpath
             app.render()
         for cg in self.contactgroups.values():
             cg.render()
@@ -287,11 +290,17 @@ class Site(object):
 
     def init_class_cache(self):
         logger.debug("init Datasource classes")
+        print "dbg", Datasource, Datasource.__name__, len(Datasource.class_factory)
         Datasource.init_classes(self.classes_path)
+        print "dbb", Datasource, Datasource.__name__, len(Datasource.class_factory)
         logger.debug("init Application classes")
+        print "dbg", Application, Application.__name__, len(Application.class_factory)
         Application.init_classes(self.classes_path)
+        print "dbb", Application, Application.__name__, len(Application.class_factory)
         logger.debug("init MonitoringDetail classes")
+        print "dbg", MonitoringDetail, MonitoringDetail.__name__, len(MonitoringDetail.class_factory)
         MonitoringDetail.init_classes(self.classes_path)
+        print "dbb", MonitoringDetail, MonitoringDetail.__name__, len(MonitoringDetail.class_factory)
         print "class cache done"
 
     def add_datasource(self, **kwargs):

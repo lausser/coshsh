@@ -6,14 +6,12 @@ import ConfigParser
 import logging
 
 
-sys.path.insert(0, "..")
-#sys.path.append("../coshsh")
+sys.path.insert(0, os.path.abspath(".."))
+sys.path.insert(0, os.path.abspath(os.path.join("..", "coshsh")))
 
-from coshsh import Generator
-from coshsh import logger
-from coshsh import Host
-from coshsh import Datasource
-from coshsh import Application
+from generator import Generator
+from datasource import Datasource
+from application import Application
 
 class CoshshTest(unittest.TestCase):
     def setUp(self):
@@ -41,24 +39,48 @@ class CoshshTest(unittest.TestCase):
 
     def test_create_site_check_factories(self):
         self.generator.add_site(name='test4', **dict(self.config.items('site_TEST4')))
-        print "after site built", Datasource.class_factory
+        self.config.set("datasource_SIMPLESAMPLE", "name", "simplesample")
         cfg = self.config.items("datasource_SIMPLESAMPLE")
-        print sys.path
-        print "cfg is", dict(cfg)
         ds = Datasource(**dict(cfg))
         self.assert_(hasattr(ds, 'only_the_test_simplesample'))
-        print "datasource is ok"
-        print ds
-        print ds.__dict__
-        print ds.hosts
-        print ds.only_the_test_simplesample
-        print "now i read"
+        self.config.set("datasource_CSVSAMPLE", "name", "csvsample")
+        cfg = self.config.items("datasource_CSVSAMPLE")
+        ds = Datasource(**dict(cfg))
+        self.assert_(ds.dir == "./etc/sites/test1/data")
+
+    def test_create_site_check_factories_read(self):
+        self.generator.add_site(name='test4', **dict(self.config.items('site_TEST4')))
+        self.config.set("datasource_SIMPLESAMPLE", "name", "simplesample")
+        cfg = self.config.items("datasource_SIMPLESAMPLE")
+        ds = Datasource(**dict(cfg))
+        print "module name", Datasource
+        print "module name", Application
+        self.assert_(hasattr(ds, 'only_the_test_simplesample'))
         hosts, applications, contacts, contactgroups, appdetails, dependencies, bps = ds.read()
         print "now i have read"
         print hosts
+        self.assert_(hosts[0].my_host == True)
+        self.assert_(applications[0].test4_linux == True)
 
 
+    def test_create_site_check_factories_write(self):
+        self.generator.add_site(name='test4', **dict(self.config.items('site_TEST4')))
+        self.config.set("datasource_SIMPLESAMPLE", "name", "simplesample")
+        cfg = self.config.items("datasource_SIMPLESAMPLE")
+        self.generator.sites['test4'].add_datasource(**dict(cfg))
 
+        # remove target dir / create empty
+        self.generator.sites['test4'].count_before_objects()
+        self.generator.sites['test4'].cleanup_target_dir()
+        print "before", self.generator.sites['test4'].old_objects
+
+        self.generator.sites['test4'].prepare_target_dir()
+        # check target
+
+        self.generator.sites['test4'].collect()
+        print self.generator.sites['test4'].applications
+        
+        self.generator.sites['test4'].render()
 
     def xtest_rebless_class(self):
         self.generator.add_site(name='test1', **dict(self.config.items('site_TEST1')))

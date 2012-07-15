@@ -27,7 +27,7 @@ class Application(Item):
 
 
     # try __init__ as class factory with self.__class__ = 
-    def __new__(cls, **params):
+    def _x_new__(cls, **params):
         #print "Application.__new__", params, len(cls.class_factory)
         try:
             newcls = cls.get_class(params)
@@ -46,10 +46,23 @@ class Application(Item):
             print "except is", type(exc), exc
             raise ApplicationNotImplemented
 
+    def __init__(self, params):
+        print "Application init", self.__class__, self.__class__.__name__
+        if self.__class__.__name__ == "Application":
+            newcls = self.__class__.get_class(params)
+            print "i wrap", newcls
+            if newcls:
+                self.__class__ = newcls
+                super(Application, self).__init__(params)
+                self.__init__(params)
+        else:
+            pass
+
+
     def fingerprint(self):
         return "%s+%s+%s" % (self.host_name, self.name, self.type)
 
-    def __init__(self, params={}):
+    def _i_init__(self, params={}):
         super(Application, self).__init__(params)
         self.contact_groups = []
 
@@ -78,13 +91,17 @@ class Application(Item):
                 finally:
                     if fp:
                         fp.close()
+        print ".............fill %s / %s woth %s" % (cls, cls.__name__, cls.class_factory)
 
 
     @classmethod
     def get_class(cls, params={}):
-        for class_func in cls.class_factory:
+        print "getclass from cache", cls, cls.__name__,  cls.class_factory
+        for path, module, class_func in cls.class_factory:
             try:
+                print "get_class trys", path, module, class_func
                 newcls = class_func(params)
+                print "get_class says", newcls
                 if newcls:
                     return newcls
             except Exception:

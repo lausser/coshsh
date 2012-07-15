@@ -5,7 +5,8 @@ print "--->generator"
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from site import Site
+print sys.path
+from coshshsite import Site
 from log import logger
 print "<--generator"
 
@@ -23,6 +24,7 @@ class Generator(object):
             site = Site(**kwargs)
             self.sites[kwargs["name"]] = site
         except Exception, e:
+            logger.info("exception creating a site: %s" % e)
             print e
         pass
 

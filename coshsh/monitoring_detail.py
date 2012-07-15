@@ -69,6 +69,6 @@ class MonitoringDetail(object):
                     return newcls
             except Exception:
                 pass
-        logger.debug("found no matching class for this monitoring item %s" % params)
+        logger.debug("found no matching class for this monitoring detail %s" % params)
 
 

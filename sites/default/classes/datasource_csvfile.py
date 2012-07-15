@@ -15,7 +15,7 @@ from application import Application
 from contactgroup import ContactGroup
 from contact import Contact
 from monitoring_detail import MonitoringDetail
-from coshsh.log import logger
+from log import logger
 from util import compare_attr
 
 def __ds_ident__(params={}):
