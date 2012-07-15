@@ -9,7 +9,7 @@ import os
 import imp
 import inspect
 from urlparse import urlparse
-from coshsh.log import logger
+from log import logger
 from application import Application
 
 
@@ -53,7 +53,6 @@ class MonitoringDetail(object):
                     for cl in inspect.getmembers(toplevel, inspect.isfunction):
                         if cl[0] ==  "__detail_ident__":
                             cls.class_factory.append([path, module, cl[1]])
-                            print "i cache", path, cl
                 except Exception, e:
                     print e
                 finally:
@@ -64,7 +63,6 @@ class MonitoringDetail(object):
     @classmethod
     def get_class(cls, params={}):
         for class_func in cls.class_factory:
-            print "it is class", class_func
             try:
                 newcls = class_func(params)
                 if newcls:

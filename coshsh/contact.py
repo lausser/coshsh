@@ -3,7 +3,7 @@
 import os
 from item import Item
 from templaterule import TemplateRule
-from coshsh.log import logger
+from log import logger
 
 translations = (
     (u'\N{LATIN SMALL LETTER SHARP S}', u'ss'),

@@ -27,7 +27,7 @@ class Application(Item):
 
 
     # try __init__ as class factory with self.__class__ = 
-    def __new__(cls, params={}):
+    def __new__(cls, **params):
         #print "Application.__new__", params, len(cls.class_factory)
         try:
             newcls = cls.get_class(params)
@@ -73,7 +73,6 @@ class Application(Item):
                     for cl in inspect.getmembers(toplevel, inspect.isfunction):
                         if cl[0] ==  "__mi_ident__":
                             cls.class_factory.append([path, module, cl[1]])
-                            print "i cache", path, cl
                 except Exception, e:
                     print e
                 finally:
@@ -84,7 +83,6 @@ class Application(Item):
     @classmethod
     def get_class(cls, params={}):
         for class_func in cls.class_factory:
-            print "it is class", class_func
             try:
                 newcls = class_func(params)
                 if newcls:
@@ -116,11 +114,4 @@ class GenericApplication(Application):
         else:
             return ()
 
-
-class OperatingSystem(Application):
-    def __str__(self):
-        descr = "OS %s (%s)" % (self.__class__.__name__, self.type)
-        if hasattr(self, "host"):
-            descr += " Host %s" % self.host.host_name
-        return descr
 

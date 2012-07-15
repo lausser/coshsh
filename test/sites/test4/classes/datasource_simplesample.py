@@ -21,8 +21,6 @@ def __ds_ident__(params={}):
     print "this is simplesample ident"
     if compare_attr("type", params, "simplesample"):
         print "this is match simplesample ident"
-        print "i return a SimpleSample", SimpleSample
-        print "i return a SimpleSample", SimpleSample.class_only_the_test_simplesample
         return SimpleSample
 
 class MyHost(Host):

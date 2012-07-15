@@ -10,7 +10,7 @@ import re
 import locale
 from jinja2 import FileSystemLoader, Environment, TemplateSyntaxError, TemplateNotFound
 from copy import copy, deepcopy
-from coshsh.log import logger
+from log import logger
 
 
 class Item(object):

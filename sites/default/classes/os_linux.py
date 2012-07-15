@@ -1,4 +1,4 @@
-from application import OperatingSystem
+from application import Application
 from templaterule import TemplateRule
 from util import compare_attr
 
@@ -7,7 +7,7 @@ def __mi_ident__(params={}):
         return Linux
 
 
-class Linux(OperatingSystem):
+class Linux(Application):
     template_rules = [
         TemplateRule(needsattr=None, 
             template="os_linux_default"),

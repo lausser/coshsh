@@ -1,4 +1,4 @@
-from application import OperatingSystem
+from application import Application
 from templaterule import TemplateRule
 from util import compare_attr
 
@@ -6,7 +6,7 @@ def __mi_ident__(params={}):
     if compare_attr("type", params, ".*esx.*"):
         return ESX
 
-class ESX(OperatingSystem):
+class ESX(Application):
     template_rules = [
         TemplateRule( template="os_esx_default", ),
         TemplateRule(needsattr='datastores', template="os_esx_fs", ),

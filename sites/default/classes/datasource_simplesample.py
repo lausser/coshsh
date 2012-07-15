@@ -5,21 +5,22 @@
 # This software is licensed under the
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
-from datasource import Datasource
 import os
 import re
+from util import compare_attr
+from datasource import Datasource
 from copy import copy
 from host import Host
 from application import Application
 from contactgroup import ContactGroup
 from contact import Contact
 from monitoring_detail import MonitoringDetail
-from coshsh.log import logger
-from util import compare_attr
+from log import logger
 
 def __ds_ident__(params={}):
-    print "this is orschknorsch"
+    print "this is orschknorsch", compare_attr
     if compare_attr("type", params, "simplesample"):
+        print "i match SimpleSample"
         return SimpleSample
 
 

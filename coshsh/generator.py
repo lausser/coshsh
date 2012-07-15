@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 # Copyright (C) : Gerhard Lausser, gerhard.lausser@consol.de
 
+print "--->generator"
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from site import Site
 from log import logger
+print "<--generator"
 
 
 class Generator(object):

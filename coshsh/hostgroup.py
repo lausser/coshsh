@@ -1,6 +1,5 @@
-from jinja2 import Template, FileSystemLoader, Environment
 import os
-from coshsh.item import Item
+from item import Item
 from templaterule import TemplateRule
 
 class Hostgroup(Item):

@@ -5,11 +5,14 @@
 # This software is licensed under the
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
+print "---> util"
 import time
 import re
 import copy
+print "<---- util"
 
 def compare_attr(key, params, strings):
+    print "i am in compare"
     if not isinstance(strings, list):
         strings = [strings]
     if key in params:

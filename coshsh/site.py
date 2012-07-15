@@ -5,6 +5,7 @@
 # This software is licensed under the
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
+print "--->site"
 import sys
 import os
 import re
@@ -19,6 +20,8 @@ from item import Item
 from application import Application
 from monitoring_detail import MonitoringDetail
 from datasource import Datasource
+from util import compare_attr
+print "<---site"
 
 class EmptyObject(object):
     pass
@@ -82,10 +85,6 @@ class Site(object):
         self.static_dir = os.path.join(self.objects_dir, 'static')
         self.dynamic_dir = os.path.join(self.objects_dir, 'dynamic')
         self.init_class_cache()
-        print "this is datasource", Datasource
-        print "this is datasource", Datasource.__class__
-        print "this is datasource", Datasource.__class__.__name__
-        print "this is datasource", Datasource.class_cache
 
 
     def set_site_sys_path(self):
@@ -288,14 +287,12 @@ class Site(object):
 
     def init_class_cache(self):
         logger.debug("init Datasource classes")
-        print "init Datasource classes", Datasource.class_factory
         Datasource.init_classes(self.classes_path)
-        print "unut Datasource classes", Datasource.class_factory
         logger.debug("init Application classes")
         Application.init_classes(self.classes_path)
         logger.debug("init MonitoringDetail classes")
         MonitoringDetail.init_classes(self.classes_path)
-        print "ugauga Datasource classes", Datasource.class_factory
+        print "class cache done"
 
     def add_datasource(self, **kwargs):
         newcls = Datasource.get_class(kwargs)

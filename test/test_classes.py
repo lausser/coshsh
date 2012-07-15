@@ -45,7 +45,7 @@ class CoshshTest(unittest.TestCase):
         cfg = self.config.items("datasource_SIMPLESAMPLE")
         print sys.path
         print "cfg is", dict(cfg)
-        ds = Datasource(dict(cfg))
+        ds = Datasource(**dict(cfg))
         self.assert_(hasattr(ds, 'only_the_test_simplesample'))
         print "datasource is ok"
         print ds
