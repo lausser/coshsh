@@ -148,12 +148,12 @@ class Item(object):
             self.service_notification_commands = ",".join(sorted(self.service_notification_commands, cmp=locale.strcoll))
 
 
-    def load_cfg_templates(self):
+    def load_cfg_template_cache(self, template_cache, jinja2):
         if hasattr(self.__class__, "template_rules"):
             for rule in self.template_rules:
                 try:
-                    if not rule.template in Item.template_cache:
-                        Item.template_cache[rule.template] = Item.env.get_template(rule.template + ".tpl")
+                    if not rule.template in template_cache:
+                        template_cache[rule.template] = jinja2.env.get_template(rule.template + ".tpl")
                         logger.info("load template " + rule.template)
                 except TemplateSyntaxError as e:
                     logger.critical("%s template %s has an error in line %d: %s" % (self.__class__.__name__, rule.template, e.lineno, e.message))
@@ -163,20 +163,21 @@ class Item(object):
                     logger.critical("error in template %s (%s,%s)" (rule.template, exp.__class__.__name__, exp))
 
 
-    def render_cfg_template(self, name, output_name, **kwargs):
-        if name in Item.template_cache:
+    def render_cfg_template(self, template_cache, name, output_name, **kwargs):
+        if name in template_cache:
             # transform hostgroups, contacts, etc. from list to string
             self.depythonize()
             try:
-                self.config_files[output_name + ".cfg"] = Item.template_cache[name].render(kwargs)
+                print "render_cfg_template", self
+                self.config_files[output_name + ".cfg"] = template_cache[name].render(kwargs)
             except Exception as exp:
                 logger.critical("render exception in template %s for %s: %s" % (name, self, exp))
             # transform hostgroups, contacts, etc. back to lists
             self.pythonize()
 
 
-    def render(self):
-        self.load_cfg_templates()
+    def render(self, template_cache, jinja2):
+        self.load_cfg_template_cache(template_cache, jinja2)
         for rule in self.template_rules:
             render_this = False
             if not rule.needsattr:
@@ -204,7 +205,7 @@ class Item(object):
 
             if render_this:
                 if rule.unique_config and hasattr(self, rule.unique_attr):
-                    self.render_cfg_template(rule.template, rule.unique_config % getattr(self, rule.unique_attr), **dict([(rule.self_name, self)]))
+                    self.render_cfg_template(template_cache, rule.template, rule.unique_config % getattr(self, rule.unique_attr), **dict([(rule.self_name, self)]))
                 else:
-                    self.render_cfg_template(rule.template, rule.template, **dict([(rule.self_name, self)]))
+                    self.render_cfg_template(template_cache, rule.template, rule.template, **dict([(rule.self_name, self)]))
 

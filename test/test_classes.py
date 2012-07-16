@@ -65,6 +65,7 @@ class CoshshTest(unittest.TestCase):
 
 
     def test_create_site_check_factories_write(self):
+        #os.makedirs("./var/objects/test1")
         self.generator.add_site(name='test4', **dict(self.config.items('site_TEST4')))
         self.config.set("datasource_SIMPLESAMPLE", "name", "simplesample")
         cfg = self.config.items("datasource_SIMPLESAMPLE")
@@ -78,10 +79,24 @@ class CoshshTest(unittest.TestCase):
         self.generator.sites['test4'].prepare_target_dir()
         # check target
 
+        # read the datasources
         self.generator.sites['test4'].collect()
-        print self.generator.sites['test4'].applications
         
+        # for each host, application get the corresponging template files
+        # get the template files and cache them in a struct owned by the site
+        # resolve the templates and attach the result as config_files to host/app
         self.generator.sites['test4'].render()
+        self.assert_(hasattr(self.generator.sites['test4'].hosts['test_host_0'], 'config_files'))
+        self.assert_('host.cfg' in self.generator.sites['test4'].hosts['test_host_0'].config_files)
+
+        # write hosts/apps to the filesystem
+        self.generator.sites['test4'].output()
+        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts"))
+        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0"))
+        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0/os_linux_default.cfg"))
+        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg"))
+        os_windows_default_cfg = open("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg").read()
+        self.assert_('os_windows_default_check_unittest' in os_windows_default_cfg)
 
     def xtest_rebless_class(self):
         self.generator.add_site(name='test1', **dict(self.config.items('site_TEST1')))

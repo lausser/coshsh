@@ -1,3 +1,9 @@
+{{ application|service("os_windows_default_check_unittest") }}
+  host_name                       {{ application.host_name }}
+  use                             os_windows_default
+  check_command                   check_nrpe_arg!60!this_is_part_of_the_coshsh_unittest
+}
+
 {{ application|service("os_windows_default_check_nsclient") }}
   host_name                       {{ application.host_name }}
   use                             os_windows_default

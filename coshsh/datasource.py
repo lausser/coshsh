@@ -72,6 +72,7 @@ class Datasource(object):
         print "get_class", cls, len(cls.class_factory), cls.class_factory
         for path, module, class_func in cls.class_factory:
             try:
+                print "try", path, module, class_func
                 newcls = class_func(params)
                 if newcls:
                     return newcls

@@ -191,22 +191,22 @@ class Site(object):
  
 
     def render(self):
+        template_cache = {}
         for host in self.hosts.values():
-            host.env.loader.searchpath = self.jinja2.env.loader.searchpath
-            host.render()
+            host.render(template_cache, self.jinja2)
         for app in self.applications.values():
             # because of this __new__ construct the Item.searchpath is
             # not inherited. Needs to be done explicitely
-            app.env.loader.searchpath = self.jinja2.env.loader.searchpath
-            app.render()
+            print "aha! ", app
+            app.render(template_cache, self.jinja2)
         for cg in self.contactgroups.values():
-            cg.render()
+            cg.render(template_cache, self.jinja2)
         for c in self.contacts.values():
-            c.render()
+            c.render(template_cache, self.jinja2)
         for hg in self.hostgroups.values():
-            hg.render()
-        if self.classes_dir:
-            Item.reload_template_path()
+            hg.render(template_cache, self.jinja2)
+        #if self.classes_dir:
+        #    Item.reload_template_path()
             
 
 

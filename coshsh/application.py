@@ -53,6 +53,7 @@ class Application(Item):
             print "i wrap", newcls
             if newcls:
                 self.__class__ = newcls
+                self.contact_groups = []
                 super(Application, self).__init__(params)
                 self.__init__(params)
         else:
