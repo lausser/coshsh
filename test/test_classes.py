@@ -61,6 +61,7 @@ class CoshshTest(unittest.TestCase):
         print hosts
         self.assert_(hosts[0].my_host == True)
         self.assert_(applications[0].test4_linux == True)
+        self.assert_(applications[1].test4_windows == True)
 
 
     def test_create_site_check_factories_write(self):

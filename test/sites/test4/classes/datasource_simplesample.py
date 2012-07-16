@@ -60,6 +60,18 @@ class SimpleSample(Datasource):
         print "sisa sees", Application
         a = Application(appdata)
         self.applications[a.fingerprint()] = a
+        appdata = {
+            'name': 'os',
+            'type': 'Windows',
+            'component': '',
+            'version': '2008',
+            'patchlevel': 'R2',
+            'host_name': 'test_host_0',
+            'check_period': '7x24',
+        }
+        print "sisa sees", Application
+        a = Application(appdata)
+        self.applications[a.fingerprint()] = a
         
         return self.hosts.values(), self.applications.values(), self.contacts.values(), self.contactgroups.values(), self.appdetails, self.dependencies, self.bps
 
