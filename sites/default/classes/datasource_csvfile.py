@@ -38,6 +38,7 @@ class CsvFile(Datasource):
     def __init__(self, **kwargs):
         superclass = super(self.__class__, self)
         superclass.__init__(**kwargs)
+        print "joi", kwargs
         self.name = kwargs["name"]
         self.dir = kwargs["dir"]
         self.hosts = {}

@@ -41,6 +41,7 @@ class Site(object):
         self.objects_dir = kwargs["objects_dir"]
         self.templates_dir = kwargs.get("templates_dir")
         self.classes_dir = kwargs.get("classes_dir")
+        self.datasource_names = [ds.lower() for ds in kwargs.get("datasources").split(",")]
         self.filter = kwargs.get("filter")
 
         self.classes_path = [os.path.join(os.path.dirname(__file__), '../sites/default/classes')]

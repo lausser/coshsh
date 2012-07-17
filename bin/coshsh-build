@@ -12,10 +12,10 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'coshsh'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'sites', 'default', 'classes'))
 
-from coshsh.site import Site
-from datasource import Datasource, DatasourceUnavailable
-from coshsh.log import logger
-from coshsh.generator import Generator
+from log import logger
+from generator import Generator
+from coshshsite import Site
+from datasource import Datasource, DatasourceNotAvailable
 
 
 class GeneratorMessage(object):
@@ -49,6 +49,8 @@ if __name__ == '__main__':
     opts, args = parser.parse_args()
     generator = Generator()
     if opts.config_file:
+        site_configs = {}
+        datasource_configs = {}
         config = ConfigParser.ConfigParser()
         config.read(opts.config_file)
         if config._sections == {}:
@@ -56,17 +58,32 @@ if __name__ == '__main__':
             sys.exit(2)
             
         for ds in [section for section in config.sections() if section.startswith('datasource_')]:
-            generator.add_datasource(name=ds.replace("datasource_", "", 1), **dict(config.items(ds)))
+            datasource_configs[ds.replace("datasource_", "", 1).lower()] = config.items(ds)
+        for site in [section for section in config.sections() if section.startswith('site_')]:
+            site_configs[site.replace("site_", "", 1).lower()] = config.items(site)
 
         sites = []
         if opts.default_site:
             sites = [opts.default_site.lower()]
         else:
-            sites = [s.strip().lower() for s in config.get("defaults", "sites").split(",")]
-        for site in [section for section in config.sections() if section.startswith('site_')]:
-            if site.replace("site_", "", 1).lower() in sites:
-                generator.add_site(name=site.replace("site_", "", 1).lower(), **dict(config.items(site)))
-
+            if "defaults" in config.sections() and "sites" in [c[0] for c in config.items("defaults")]:
+                sites = [site.lower() for site in dict(config.items("defaults"))["sites"].split(",")]
+            else:
+                sites = site_configs.keys()
+        print [section for section in config.sections() if section.startswith('site_')]
+        for site in sites:
+            if site in site_configs.keys():
+                generator.add_site(name=site, **dict(site_configs[site]))
+                for ds in generator.sites[site].datasource_names:
+                    if ds in datasource_configs.keys():
+                        print "add ds", ds
+                        generator.sites[site].add_datasource(**dict(datasource_configs[ds]))
+                    else:
+                        parser.error("Datasource %s is unknown" % ds)
+            else:
+                parser.error("Site %s is unknown" % site)
+    else:
+        parser.error("Use option -c/--config")
     if args:
         parser.error("Does not accept any argument. Use option -c/--config")
     if len(generator.datasources) == 0:

@@ -32,11 +32,14 @@ class Datasource(object):
 
     def __init__(self, **params):
         if self.__class__ == Datasource:
+            print "generic ds", params
             newcls = self.__class__.get_class(params)
             if newcls:
+                print "i rebless anon datasource to", newcls, params
                 self.__class__ = newcls
                 self.__init__(**params)
             else:
+                print "i raise DatasourceNotImplemented"
                 raise DatasourceNotImplemented
         else:
             pass
@@ -69,11 +72,12 @@ class Datasource(object):
 
     @classmethod
     def get_class(cls, params={}):
-        print "get_class", cls, len(cls.class_factory), cls.class_factory
+        print "get_classhoho", cls, len(cls.class_factory), cls.class_factory
         for path, module, class_func in cls.class_factory:
             try:
                 print "try", path, module, class_func
                 newcls = class_func(params)
+                print "try said new class", newcls
                 if newcls:
                     return newcls
             except Exception ,exp:
