@@ -58,9 +58,9 @@ if __name__ == '__main__':
             sys.exit(2)
             
         for ds in [section for section in config.sections() if section.startswith('datasource_')]:
-            datasource_configs[ds.replace("datasource_", "", 1).lower()] = config.items(ds)
+            datasource_configs[ds.replace("datasource_", "", 1).lower()] = config.items(ds) + [('name', ds.replace("datasource_", "", 1).lower())]
         for site in [section for section in config.sections() if section.startswith('site_')]:
-            site_configs[site.replace("site_", "", 1).lower()] = config.items(site)
+            site_configs[site.replace("site_", "", 1).lower()] = config.items(site) + [('name', site.replace("site_", "", 1).lower())]
 
         sites = []
         if opts.default_site:
@@ -70,13 +70,11 @@ if __name__ == '__main__':
                 sites = [site.lower() for site in dict(config.items("defaults"))["sites"].split(",")]
             else:
                 sites = site_configs.keys()
-        print [section for section in config.sections() if section.startswith('site_')]
         for site in sites:
             if site in site_configs.keys():
-                generator.add_site(name=site, **dict(site_configs[site]))
+                generator.add_site(**dict(site_configs[site]))
                 for ds in generator.sites[site].datasource_names:
                     if ds in datasource_configs.keys():
-                        print "add ds", ds
                         generator.sites[site].add_datasource(**dict(datasource_configs[ds]))
                     else:
                         parser.error("Datasource %s is unknown" % ds)
@@ -86,8 +84,8 @@ if __name__ == '__main__':
         parser.error("Use option -c/--config")
     if args:
         parser.error("Does not accept any argument. Use option -c/--config")
-    if len(generator.datasources) == 0:
-       parser.error("None of the configured datasources was found")
+    #if len(generator.datasources) == 0:
+    #   parser.error("None of the configured datasources was found")
 
     # nagios_dir config option sets an alternative target
     # and may be used to replace Coshsh.base_dir

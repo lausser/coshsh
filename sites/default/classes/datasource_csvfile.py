@@ -5,7 +5,7 @@
 # This software is licensed under the
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
-from datasource import Datasource
+from datasource import Datasource, DatasourceNotAvailable
 import csv
 import os
 import re
@@ -38,7 +38,6 @@ class CsvFile(Datasource):
     def __init__(self, **kwargs):
         superclass = super(self.__class__, self)
         superclass.__init__(**kwargs)
-        print "joi", kwargs
         self.name = kwargs["name"]
         self.dir = kwargs["dir"]
         self.hosts = {}
@@ -50,29 +49,39 @@ class CsvFile(Datasource):
         self.bps = {}
 
 
+    def open(self):
+        logger.info('open datasource %s' % self.name)
+        if not os.path.exists(self.dir):
+            logger.error('csv dir %s does not exist' % self.dir)
+            raise DatasourceNotAvailable
+
     def read(self, filter=None, intermediate_hosts=[], intermediate_applications=[]):
 
-        logger.info('read hosts from %s' % os.path.join(self.dir, self.name+'_hosts.csv'))
         try:
             hostreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_hosts.csv'))))
+            logger.info('read hosts from %s' % os.path.join(self.dir, self.name+'_hosts.csv'))
         except Exception:
             hostreader = []
         # host_name,address,type,os,hardware,virtual,notification_period,location,department
         for row in hostreader:
             row["templates"] = ["generic-host"]
+            for attr in [k for k in row.keys() if k in ['type', 'os', 'hardware', 'virtual']]:
+                row[attr] = row[attr].lower()
             h = Host(row)
             self.hosts[h.host_name] = h
 
         intermediate_hosts = dict(intermediate_hosts.items() + self.hosts.items())
 
-        logger.info('read applications from %s' % os.path.join(self.dir, self.name+'_applications.csv'))
         try:
             appreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_applications.csv'))))
+            logger.info('read applications from %s' % os.path.join(self.dir, self.name+'_applications.csv'))
         except Exception:
             appreader = []
         resolvedrows = []
         # name,type,component,version,host_name,check_period
         for row in appreader:
+            for attr in [k for k in row.keys() if k in ['name', 'type', 'component', 'version']]:
+                row[attr] = row[attr].lower()
             if '[' in row['host_name'] or '*' in row['host_name']:
                 # hostnames can be regular expressions
                 matching_hosts = [h for h in intermediate_hosts.keys() if re.match('^('+row['host_name']+')', h)]
@@ -92,9 +101,9 @@ class CsvFile(Datasource):
 
         intermediate_applications = dict(intermediate_applications.items() + self.applications.items())
 
-        logger.info('read appdetails from %s' % os.path.join(self.dir, self.name+'_applicationdetails.csv'))
         try:
             appdetailreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_applicationdetails.csv'))))
+            logger.info('read appdetails from %s' % os.path.join(self.dir, self.name+'_applicationdetails.csv'))
         except Exception:
             appdetailreader = []
         resolvedrows = []
@@ -109,21 +118,21 @@ class CsvFile(Datasource):
             else:
                 resolvedrows.append(copy(row))
         for row in resolvedrows:
+            for attr in [k for k in row.keys() if k in ['application_name', 'application_type', 'component', 'version']]:
+                row[attr] = row[attr].lower()
             application_id = "%s+%s+%s" % (row["host_name"], row["application_name"], row["application_type"])
             detail = MonitoringDetail(row)
             if application_id in intermediate_applications:
                 intermediate_applications[application_id].monitoring_details.append(detail)
             elif row["host_name"] in intermediate_hosts:
                 intermediate_hosts[row["host_name"]].monitoring_details.append(detail)
-                print "der host, der scheeene host"
             else:
-                print "no such application", row["host_name"], row["application_name"], row["application_type"]
-                print self.hosts.keys()
+                logger.info("found a detail %s for an unknown application %s" % (detail, application_id))
                 raise
         
-        logger.info('read contactgroups from %s' % os.path.join(self.dir, self.name+'_contactgroups.csv'))
         try:
             contactgroupreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_contactgroups.csv'))))
+            logger.info('read contactgroups from %s' % os.path.join(self.dir, self.name+'_contactgroups.csv'))
         except Exception:
             contactgroupreader = []
         resolvedrows = []
@@ -158,9 +167,9 @@ class CsvFile(Datasource):
                     logger.error('no such application %s for contactgroup %s' % (application_id, row['groups']))
 
         
-        logger.info('read contacts from %s' % os.path.join(self.dir, self.name+'_contacts.csv'))
         try:
             contactreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_contacts.csv'))))
+            logger.info('read contacts from %s' % os.path.join(self.dir, self.name+'_contacts.csv'))
         except Exception:
             contactreader = []
         # name,type,address,userid,notification_period,groups

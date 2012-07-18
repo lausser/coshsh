@@ -24,38 +24,31 @@ class Application(Item):
     my_type = 'application'
     app_template = "app.tpl"
     class_factory = []
+    lower_columns = ['name', 'type', 'component', 'version', 'patchlevel', 'host_name']
 
-
-    # try __init__ as class factory with self.__class__ = 
-    def _x_new__(cls, **params):
-        #print "Application.__new__", params, len(cls.class_factory)
-        try:
-            newcls = cls.get_class(params)
-            if not newcls:
-                newcls = GenericApplication
-            #print "i was Application.__new__ a", newcls.__name__
-            return newcls.__new__(newcls, params)
-        except ImportError as exc:
-            logger.info("found no working code for application %s (%s)" % (params.get("type", "null_type"), exc))
-            raise ApplicationNotImplemented
-        except ApplicationNotImplemented as exc:
-            # was already logged in the lower class
-            pass
-        except Exception as exc:
-            logger.info("found unknown application %s" % (params.get("type", "null_type"),))
-            print "except is", type(exc), exc
-            raise ApplicationNotImplemented
 
     def __init__(self, params):
-        print "Application init", self.__class__, self.__class__.__name__
+        #print "Application init", self.__class__, self.__class__.__name__, len(self.__class__.class_factory)
         if self.__class__.__name__ == "Application":
+            for c in self.__class__.lower_columns:
+                try:
+                    params[c] = params[c].lower()
+                except Exception:
+                    if c in params:
+                        params[c] = None
             newcls = self.__class__.get_class(params)
-            print "i wrap", newcls
             if newcls:
                 self.__class__ = newcls
                 self.contact_groups = []
                 super(Application, self).__init__(params)
                 self.__init__(params)
+            else:
+                print "this will be Generic", params
+                self.__class__ = GenericApplication
+                self.contact_groups = []
+                super(Application, self).__init__(params)
+                self.__init__(params)
+                #raise ApplicationNotImplemented
         else:
             pass
 
@@ -92,22 +85,23 @@ class Application(Item):
                 finally:
                     if fp:
                         fp.close()
-        print ".............fill %s / %s woth %s" % (cls, cls.__name__, cls.class_factory)
+        #print ".............fill %s / %s woth %s" % (cls, cls.__name__, cls.class_factory)
 
 
     @classmethod
     def get_class(cls, params={}):
-        print "getclass from cache", cls, cls.__name__,  cls.class_factory
+        #print "getclass from cache", cls, cls.__name__,  cls.class_factory
         for path, module, class_func in cls.class_factory:
             try:
-                print "get_class trys", path, module, class_func
+                #print "get_class trys", path, module, class_func
                 newcls = class_func(params)
-                print "get_class says", newcls
+                #print "get_class says", newcls
                 if newcls:
                     return newcls
             except Exception:
                 pass
         logger.debug("found no matching class for this monitoring item %s" % params)
+        return None
 
 
 class GenericApplication(Application):
@@ -117,18 +111,18 @@ class GenericApplication(Application):
             unique_attr='name', unique_config="app_%s_default"),
     ]
 
-    def __new__(cls, params={}):
+    def x__new__(cls, params={}):
         return object.__new__(cls)
 
     def __init__(self, params={}):
         self.name = params["name"]
         super(GenericApplication, self).__init__(params)
 
-    def render(self):
+    def render(self, template_cache, jinja2):
         # Maybe we find some processes, ports, filesystems in the
         # monitoring_details so we can output generic services
         if (hasattr(self, "processes") and self.processes) or (hasattr(self, "filesystems") and self.filesystems) or (hasattr(self, "ports") and self.ports):
-            super(GenericApplication, self).render()
+            super(GenericApplication, self).render(template_cache, jinja2)
         else:
             return ()
 

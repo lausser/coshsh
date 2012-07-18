@@ -5,7 +5,6 @@
 # This software is licensed under the
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
-print "--->site"
 import sys
 import os
 import re
@@ -21,10 +20,8 @@ from log import logger
 from item import Item
 from application import Application
 from monitoring_detail import MonitoringDetail
-print sys.path
 from datasource import Datasource
 from util import compare_attr
-print "<---site"
 
 class EmptyObject(object):
     pass
@@ -32,8 +29,9 @@ class EmptyObject(object):
 class Site(object):
 
     def __del__(self):
-        print "i del my site"
-        self.unset_site_sys_path()
+        pass
+        # sys.path is invisible here, so this will fail
+        #self.unset_site_sys_path()
 
     def __init__(self, **kwargs):
         self.name = kwargs["name"]
@@ -96,8 +94,9 @@ class Site(object):
             sys.path.insert(0, os.path.abspath(p))
 
     def unset_site_sys_path(self):
+ 
         for p in [p for p in self.classes_path if os.path.exists(p) and os.path.isdir(p)]:
-            del sys.path[-1]
+            sys.path.pop(0)
 
     def prepare_target_dir(self):
         logger.info("site %s dynamic_dir %s" % (self.name, self.dynamic_dir))
@@ -143,11 +142,25 @@ class Site(object):
             self.new_objects = (0, 0)
 
     def collect(self):
+        data_valid = True
         for ds in self.datasources:
+            try:
+                ds.open()
+            except Exception:
+                data_valid = False
+                logger.critical("datasource bad %s" % ds.name)
             filter = self.datasource_filters.get(ds.name)
-            hosts, applications, contacts, contactgroups, appdetails, dependencies, bps = ds.read(filter=filter, intermediate_hosts=self.hosts, intermediate_applications=self.applications)
+            try:
+                hosts, applications, contacts, contactgroups, appdetails, dependencies, bps = ds.read(filter=filter, intermediate_hosts=self.hosts, intermediate_applications=self.applications)
+            except Exception:
+                data_valid = False
+                logger.critical("datasource bad data %s" % ds.name)
+            ds.close()
             logger.info("site %s read from datasource %s %d hosts, %d applications, %d details, %d contacts, %d dependencies, %d business processes" % (self.name, ds.name, len(hosts), len(applications), len(appdetails), len(contacts), len(dependencies), len(bps)))
             
+            if not data_valid:
+                logger.info("aborting collection phase")
+                return
             for host in hosts:
                 self.hosts[host.host_name] = host
             for app in applications:
@@ -198,7 +211,6 @@ class Site(object):
         for app in self.applications.values():
             # because of this __new__ construct the Item.searchpath is
             # not inherited. Needs to be done explicitely
-            print "aha! ", app
             app.render(template_cache, self.jinja2)
         for cg in self.contactgroups.values():
             cg.render(template_cache, self.jinja2)
@@ -212,7 +224,6 @@ class Site(object):
 
 
     def output(self):
-        print self.old_objects
         delta_hosts, delta_services = 0, 0
         for hostgroup in self.hostgroups.values():
             hostgroup.write_config(self.dynamic_dir)
@@ -291,22 +302,17 @@ class Site(object):
 
     def init_class_cache(self):
         logger.debug("init Datasource classes")
-        print "dbg", Datasource, Datasource.__name__, len(Datasource.class_factory)
         Datasource.init_classes(self.classes_path)
-        print "dbb", Datasource, Datasource.__name__, len(Datasource.class_factory)
         logger.debug("init Application classes")
-        print "dbg", Application, Application.__name__, len(Application.class_factory)
         Application.init_classes(self.classes_path)
-        print "dbb", Application, Application.__name__, len(Application.class_factory)
         logger.debug("init MonitoringDetail classes")
-        print "dbg", MonitoringDetail, MonitoringDetail.__name__, len(MonitoringDetail.class_factory)
         MonitoringDetail.init_classes(self.classes_path)
-        print "dbb", MonitoringDetail, MonitoringDetail.__name__, len(MonitoringDetail.class_factory)
-        print "class cache done"
 
     def add_datasource(self, **kwargs):
+        #print "add a datasource", kwargs
         newcls = Datasource.get_class(kwargs)
         if newcls:
-            self.datasources.append(newcls(**kwargs))
+            datasource = newcls(**kwargs)
+            self.datasources.append(datasource)
 
 

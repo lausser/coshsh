@@ -11,9 +11,16 @@ class Host(Item):
             self_name="host",
         ),
     ]
+    lower_columns = ['host_name', 'address', 'type', 'os', 'hardware', 'virtual', 'location', 'department']
 
 
     def __init__(self, params={}):
+        for c in self.__class__.lower_columns:
+            try:
+                params[c] = params[c].lower()
+            except Exception:
+                if c in params:
+                    params[c] = None
         self.hostgroups = []
         self.contacts = []
         self.contact_groups = []

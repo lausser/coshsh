@@ -15,3 +15,5 @@ class MonitoringDetailLoginSNMPV2(MonitoringDetail):
         self.monitoring_type = params["monitoring_type"]
         self.community = params.get("monitoring_0", "public")
 
+    def __str__(self):
+        return "SNMP v2/1 community: %s" % (self.community)

@@ -168,7 +168,6 @@ class Item(object):
             # transform hostgroups, contacts, etc. from list to string
             self.depythonize()
             try:
-                print "render_cfg_template", self
                 self.config_files[output_name + ".cfg"] = template_cache[name].render(kwargs)
             except Exception as exp:
                 logger.critical("render exception in template %s for %s: %s" % (name, self, exp))

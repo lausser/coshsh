@@ -34,6 +34,10 @@ class SimpleSample(Datasource):
         self.dependencies = {}
         self.bps = {}
 
+    def open(self):
+        logger.info('open datasource %s' % self.name)
+        return True
+
     def read(self, filter=None, intermediate_hosts=[], intermediate_applications=[]):
         logger.info('read items from simplesample')
         return self.hosts.values(), self.applications.values(), self.contacts.values(), self.contactgroups.values(), self.appdetails, self.dependencies, self.bps

@@ -1,6 +1,6 @@
 from monitoring_detail import MonitoringDetail
 
-def __detail_ident__(params={}):
+def __detail_ident__(params={}): 
     if params["monitoring_type"] == "PROCESS":
         return MonitoringDetailProcess
 

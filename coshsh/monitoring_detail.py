@@ -19,25 +19,26 @@ class MonitoringDetailNotImplemented(Exception):
 
 class MonitoringDetail(object):
     class_factory = []
+    lower_columns = ['host_name', 'application_name', 'application_type']
 
     def __init__(self, params):
-        newcls = self.__class__.get_detail(params)
-        if not newcls:
-            logger.info("monitoring detail of type %s for host %s / appl %s had a problem" % (params["monitoring_type"], params["host_name"], params["application_name"]))
-            raise MonitoringDetailNotImplemented
-        self.__class__ = newcls
-        newcls.__init__(self, params)
-
-    def x__new__(cls, params):
-        if params == None:
-            params = {}
-        newcls = cls.get_detail(params)
-        if not newcls:
-            logger.info("monitoring detail of type %s for host %s / appl %s had a problem" % (params["monitoring_type"], params["host_name"], params["application_name"]))
-            raise MonitoringDetailNotImplemented
-        print "newcls", newcls
-        return newcls(params)
-        return newcls.__new__(newcls, params)
+        #print "Detail init", self.__class__, self.__class__.__name__, len(self.__class__.class_factory)
+        if self.__class__.__name__ == "MonitoringDetail":
+            for c in self.__class__.lower_columns:
+                try:
+                    params[c] = params[c].lower()
+                except Exception:
+                    if c in params:
+                        params[c] = None
+            newcls = self.__class__.get_class(params)
+            if newcls:
+                self.__class__ = newcls
+                self.__init__(params)
+            else:
+                logger.info("monitoring detail of type %s for host %s / appl %s had a problem" % (params["monitoring_type"], params["host_name"], params["application_name"]))
+                raise MonitoringDetailNotImplemented
+        else:
+            pass
 
     def fingerprint(self):
         return "%s+%s+%s" % (self.host_name, self.name, self.type)
@@ -62,13 +63,17 @@ class MonitoringDetail(object):
 
     @classmethod
     def get_class(cls, params={}):
-        for class_func in cls.class_factory:
+        #print "getclass from cache", cls, cls.__name__, len(cls.class_factory)
+        for path, module, class_func in cls.class_factory:
             try:
+                #print "get_class trys", path, module, class_func
                 newcls = class_func(params)
+                #print "get_class says", newcls
                 if newcls:
                     return newcls
             except Exception:
                 pass
         logger.debug("found no matching class for this monitoring detail %s" % params)
+        return None
 
 
