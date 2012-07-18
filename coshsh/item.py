@@ -197,7 +197,6 @@ class Item(object):
                 #     isattr="cluster_solaris_veritas.*",
                 #     template="os_solaris_cluster_veritas")
                 render_this = True
-                print "render", self
                 
             elif hasattr(self, rule.needsattr) and isinstance (getattr(self, rule.needsattr), list):
                 pass
