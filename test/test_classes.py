@@ -1,6 +1,8 @@
 import unittest
 import os
 import sys
+import shutil
+import string
 from optparse import OptionParser
 import ConfigParser
 import logging
@@ -14,20 +16,29 @@ from datasource import Datasource
 from application import Application
 
 class CoshshTest(unittest.TestCase):
+    def print_header(self):
+        print "#" * 80 + "\n" + "#" + " " * 78 + "#"
+        print "#" + string.center(self.id(), 78) + "#"
+        print "#" + " " * 78 + "#\n" + "#" * 80 + "\n"
+
     def setUp(self):
+        os.makedirs("./var/objects/test1")
         self.config = ConfigParser.ConfigParser()
         self.config.read('etc/coshsh.cfg')
         self.generator = Generator()
 
-    def xtest_create_site_check_paths(self):
+    def tearDown(self):
+        shutil.rmtree("./var/objects/test1", True)
+        print 
+
+    def test_create_site_check_paths(self):
+        self.print_header()
         self.generator.add_site(name='test4', **dict(self.config.items('site_TEST4')))
         self.assert_(os.path.abspath(self.generator.sites['test4'].dynamic_dir) == os.path.abspath('./var/objects/test1/dynamic'))
         self.assert_(os.path.abspath(self.generator.sites['test4'].classes_path[0]) == os.path.abspath('./sites/test4/classes'))
-        self.assert_(os.path.abspath(self.generator.sites['test4'].templates_path[0]) == os.path.abspath('../sites/default/templates'))
-        self.assert_(os.path.abspath(self.generator.sites['test4'].jinja2.loader.searchpath[0]) == os.path.abspath('../sites/default/templates'))
+        self.assert_(os.path.abspath(self.generator.sites['test4'].templates_path[0]) == os.path.abspath('sites/test4/templates'))
+        self.assert_(os.path.abspath(self.generator.sites['test4'].jinja2.loader.searchpath[0]) == os.path.abspath('sites/test4/templates'))
   
-        print self.generator.sites['test4'].jinja2.loader.searchpath
-
         self.generator.add_site(name='test5', **dict(self.config.items('site_TEST5')))
         self.assert_(os.path.abspath(self.generator.sites['test5'].classes_path[0]) == os.path.abspath('./sites/test5/classes'))
         self.assert_(os.path.abspath(self.generator.sites['test5'].templates_path[0]) == os.path.abspath('./sites/test5/templates'))
@@ -38,6 +49,7 @@ class CoshshTest(unittest.TestCase):
         self.assert_('service' in self.generator.sites['test5'].jinja2.env.filters)
 
     def test_create_site_check_factories(self):
+        self.print_header()
         self.generator.add_site(name='test4', **dict(self.config.items('site_TEST4')))
         self.config.set("datasource_SIMPLESAMPLE", "name", "simplesample")
         cfg = self.config.items("datasource_SIMPLESAMPLE")
@@ -49,23 +61,20 @@ class CoshshTest(unittest.TestCase):
         self.assert_(ds.dir == "./etc/sites/test1/data")
 
     def test_create_site_check_factories_read(self):
+        self.print_header()
         self.generator.add_site(name='test4', **dict(self.config.items('site_TEST4')))
         self.config.set("datasource_SIMPLESAMPLE", "name", "simplesample")
         cfg = self.config.items("datasource_SIMPLESAMPLE")
         ds = Datasource(**dict(cfg))
-        print "module name", Datasource
-        print "module name", Application
         self.assert_(hasattr(ds, 'only_the_test_simplesample'))
         hosts, applications, contacts, contactgroups, appdetails, dependencies, bps = ds.read()
-        print "now i have read"
-        print hosts
         self.assert_(hosts[0].my_host == True)
         self.assert_(applications[0].test4_linux == True)
         self.assert_(applications[1].test4_windows == True)
 
 
     def test_create_site_check_factories_write(self):
-        #os.makedirs("./var/objects/test1")
+        self.print_header()
         self.generator.add_site(name='test4', **dict(self.config.items('site_TEST4')))
         self.config.set("datasource_SIMPLESAMPLE", "name", "simplesample")
         cfg = self.config.items("datasource_SIMPLESAMPLE")
@@ -74,7 +83,6 @@ class CoshshTest(unittest.TestCase):
         # remove target dir / create empty
         self.generator.sites['test4'].count_before_objects()
         self.generator.sites['test4'].cleanup_target_dir()
-        print "before", self.generator.sites['test4'].old_objects
 
         self.generator.sites['test4'].prepare_target_dir()
         # check target
@@ -99,6 +107,7 @@ class CoshshTest(unittest.TestCase):
         self.assert_('os_windows_default_check_unittest' in os_windows_default_cfg)
 
     def xtest_rebless_class(self):
+        self.print_header()
         self.generator.add_site(name='test1', **dict(self.config.items('site_TEST1')))
 
         af = ApplicationFactory()

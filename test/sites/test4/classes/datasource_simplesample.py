@@ -32,7 +32,6 @@ class SimpleSample(Datasource):
         self.dependencies = {}
         self.bps = {}
         self.only_the_test_simplesample = True
-        print "ds sees", Application
 
     def read(self, filter=None, intermediate_hosts=[], intermediate_applications=[]):
         logger.info('read items from simplesample')
@@ -57,7 +56,6 @@ class SimpleSample(Datasource):
             'host_name': 'test_host_0',
             'check_period': '7x24',
         }
-        print "sisa sees", Application
         a = Application(appdata)
         self.applications[a.fingerprint()] = a
         appdata = {
@@ -69,7 +67,6 @@ class SimpleSample(Datasource):
             'host_name': 'test_host_0',
             'check_period': '7x24',
         }
-        print "sisa sees", Application
         a = Application(appdata)
         self.applications[a.fingerprint()] = a
         

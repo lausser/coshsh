@@ -152,11 +152,11 @@ class Site(object):
             filter = self.datasource_filters.get(ds.name)
             try:
                 hosts, applications, contacts, contactgroups, appdetails, dependencies, bps = ds.read(filter=filter, intermediate_hosts=self.hosts, intermediate_applications=self.applications)
+                logger.info("site %s read from datasource %s %d hosts, %d applications, %d details, %d contacts, %d dependencies, %d business processes" % (self.name, ds.name, len(hosts), len(applications), len(appdetails), len(contacts), len(dependencies), len(bps)))
             except Exception:
                 data_valid = False
-                logger.critical("datasource bad data %s" % ds.name)
+                logger.critical("datasource %s returns bad data" % ds.name)
             ds.close()
-            logger.info("site %s read from datasource %s %d hosts, %d applications, %d details, %d contacts, %d dependencies, %d business processes" % (self.name, ds.name, len(hosts), len(applications), len(appdetails), len(contacts), len(dependencies), len(bps)))
             
             if not data_valid:
                 logger.info("aborting collection phase")
