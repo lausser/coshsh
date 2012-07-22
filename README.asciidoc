@@ -1,0 +1,29 @@
+coshsh Config-Generator for Shinken / Nagios /Icinga
+====================================================
+
+What is coshsh
+--------------
+
+http://coshsh.org is a framework which produces configuration files.
+
+Features
+--------
+
+Download
+--------
+
+Support
+-------
+ * Professional support and consulting is available via http://www.consol.de/open-source-monitoring/support/[www.consol.de]
+
+Changelog
+---------
+The changelog is available on
+https://github.com/lausser/coshsh/blob/master/Changes[github].
+
+How does it work
+----------------
+coshsh reads one or many datasources (which can be files, databases, ldap...) and transforms their contents into host/service/contact-configuration files.
+
+
+
