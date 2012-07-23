@@ -34,7 +34,7 @@ class Generator(object):
                 logger.info("skipping site %s" % site.name)
             else:
                 site.prepare_target_dir()
-                site.collect()
-                site.render()
-                site.output()
+                if site.collect():
+                    site.render()
+                    site.output()
 

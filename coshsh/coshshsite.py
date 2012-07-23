@@ -20,7 +20,7 @@ from log import logger
 from item import Item
 from application import Application
 from monitoring_detail import MonitoringDetail
-from datasource import Datasource
+from datasource import Datasource, DatasourceCorrupt, DatasourceNotReady
 from util import compare_attr
 
 class EmptyObject(object):
@@ -94,7 +94,6 @@ class Site(object):
             sys.path.insert(0, os.path.abspath(p))
 
     def unset_site_sys_path(self):
- 
         for p in [p for p in self.classes_path if os.path.exists(p) and os.path.isdir(p)]:
             sys.path.pop(0)
 
@@ -153,14 +152,17 @@ class Site(object):
             try:
                 hosts, applications, contacts, contactgroups, appdetails, dependencies, bps = ds.read(filter=filter, intermediate_hosts=self.hosts, intermediate_applications=self.applications)
                 logger.info("site %s read from datasource %s %d hosts, %d applications, %d details, %d contacts, %d dependencies, %d business processes" % (self.name, ds.name, len(hosts), len(applications), len(appdetails), len(contacts), len(dependencies), len(bps)))
+            except DatasourceNotReady:
+                data_valid = False
+                logger.info("datasource %s is busy" % ds.name)
             except Exception:
                 data_valid = False
                 logger.critical("datasource %s returns bad data" % ds.name)
             ds.close()
             
             if not data_valid:
-                logger.info("aborting collection phase")
-                return
+                logger.info("aborting collection phase") 
+                return False
             for host in hosts:
                 self.hosts[host.host_name] = host
             for app in applications:
@@ -202,6 +204,8 @@ class Site(object):
             self.hostgroups[hostgroup_name] = Hostgroup({ "hostgroup_name" : hostgroup_name, "members" : members})
             self.hostgroups[hostgroup_name].create_templates()
             self.hostgroups[hostgroup_name].create_contacts()
+
+        return True
  
 
     def render(self):
@@ -301,12 +305,12 @@ class Site(object):
 
 
     def init_class_cache(self):
-        logger.debug("init Datasource classes")
         Datasource.init_classes(self.classes_path)
-        logger.debug("init Application classes")
+        logger.debug("init Datasource classes (%d)" % len(Datasource.class_factory))
         Application.init_classes(self.classes_path)
-        logger.debug("init MonitoringDetail classes")
+        logger.debug("init Application classes (%d)" % len(Application.class_factory))
         MonitoringDetail.init_classes(self.classes_path)
+        logger.debug("init MonitoringDetail classes (%d)" % len(MonitoringDetail.class_factory))
 
     def add_datasource(self, **kwargs):
         #print "add a datasource", kwargs
