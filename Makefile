@@ -1,6 +1,13 @@
+DOS2UNIX=$(shell which dos2unix || which fromdos)
 
 clean:
 	find . -name \*.pyc -exec rm {} \;
 
 pack:
 	tar --exclude .git -zcvf coshsh.tgz .
+
+doc:
+	cp -p README.asciidoc docs/README && cd docs && asciidoc --unsafe -a toc -a toclevels=2 -a max-width=800 README
+	chmod 644 docs/README.html
+	$(DOS2UNIX) docs/README.html
+	$(RM) -f docs/README
