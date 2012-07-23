@@ -22,6 +22,9 @@ class DatasourceNotReady(Exception):
 class DatasourceNotAvailable(Exception):
     pass
 
+class DatasourceCorrupt(Exception):
+    pass
+
 
 class Datasource(object):
 
@@ -38,6 +41,8 @@ class Datasource(object):
                 self.__class__ = newcls
                 self.__init__(**params)
             else:
+                print "scheise", params
+                logger.critical('datasource for %s is not implemented' % params)
                 #print "i raise DatasourceNotImplemented"
                 raise DatasourceNotImplemented
         else:
