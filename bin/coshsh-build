@@ -8,11 +8,13 @@ import os
 import shutil
 
 
+sys.dont_write_bytecode
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'coshsh'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'sites', 'default', 'classes'))
 
 from log import logger
+from logging import INFO, DEBUG
 from generator import Generator
 from coshshsite import Site
 from datasource import Datasource, DatasourceNotAvailable
@@ -45,6 +47,11 @@ if __name__ == '__main__':
     parser.add_option('--site', action='store',
                       dest="default_site",
                       help="Only create a config for <site>")
+    parser.add_option('--debug', action='store_const',
+                      const="debug",
+                      default="info",
+                      dest="default_log_level",
+                      help="Output additional messages on stdout")
 
     opts, args = parser.parse_args()
     generator = Generator()
@@ -63,6 +70,16 @@ if __name__ == '__main__':
             site_configs[site.replace("site_", "", 1).lower()] = config.items(site) + [('name', site.replace("site_", "", 1).lower())]
 
         sites = []
+        if opts.default_log_level:
+            if opts.default_log_level.lower() == "debug":
+                logger.handlers[1].setLevel(DEBUG)
+            else:
+                logger.handlers[1].setLevel(INFO)
+        elif "defaults" in config.sections() and "log_level" in [c[0] for c in config.items("defaults")]:
+            if config.items("defaults")["log_level"].lower() == "debug":
+                logger.handlers[1].setLevel(DEBUG)
+            else:
+                logger.handlers[1].setLevel(INFO)
         if opts.default_site:
             sites = [opts.default_site.lower()]
         else:

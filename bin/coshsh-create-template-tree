@@ -8,12 +8,14 @@ import os
 import shutil
 
 
+sys.dont_write_bytecode
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'shintarator'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'classes'))
-from shintarator.site import Site
-from datasource import Datasource,DatasourceUnavailable
-from shintarator.log import logger
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'coshsh'))
+
+from log import logger
+from generator import Generator
+from coshshsite import Site
+from datasource import Datasource, DatasourceNotAvailable
 
 
 class GeneratorMessage(object):

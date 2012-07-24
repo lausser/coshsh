@@ -12,19 +12,15 @@ from logging.handlers import TimedRotatingFileHandler
 
 path = "./coshsh.log"
 # Open the log and set to rotate once a day
-log_level = logging.DEBUG
 basic_log_handler = TimedRotatingFileHandler(path,'midnight',backupCount=5)
-basic_log_handler.setLevel(log_level)
-basic_log_formatter = logging.Formatter("%(asctime)s %(levelname)s - %(message)s")
-basic_log_handler.setFormatter(basic_log_formatter)
-logger = logging.getLogger()
-#logger.addHandler(basic_log_handler)
-logger.setLevel(log_level)
-
+basic_log_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s - %(message)s"))
+basic_log_handler.setLevel(logging.DEBUG)
 console_handler = logging.StreamHandler(sys.stderr)
-#console_handler.setLevel(logging.INFO)
-formatter = logging.Formatter("%(asctime)s %(levelname)s - %(message)s")
-console_handler.setFormatter(formatter)
+console_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s - %(message)s"))
+console_handler.setLevel(logging.INFO)
+logger = logging.getLogger()
+logger.addHandler(basic_log_handler)
 logger.addHandler(console_handler)
+logger.setLevel(logging.DEBUG)
 
 
