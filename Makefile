@@ -2,6 +2,7 @@ DOS2UNIX=$(shell which dos2unix || which fromdos)
 
 clean:
 	find . -name \*.pyc -exec rm {} \;
+	rm coshsh.tgz
 
 pack:
 	tar --exclude .git -zcvf coshsh.tgz .
