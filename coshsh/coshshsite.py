@@ -44,12 +44,14 @@ class Site(object):
 
         self.classes_path = [os.path.join(os.path.dirname(__file__), '../sites/default/classes')]
         if self.classes_dir:
-            self.classes_path.insert(0, self.classes_dir)
+            for path in reversed([p.strip() for p in self.classes_dir.split(',')]):
+                self.classes_path.insert(0, path)
         self.set_site_sys_path()
 
         self.templates_path = [os.path.join(os.path.dirname(__file__), '../sites/default/templates')]
         if self.templates_dir:
-            self.templates_path.insert(0, self.templates_dir)
+            for path in reversed([p.strip() for p in self.templates_dir.split(',')]):
+                self.templates_path.insert(0, path)
             logger.debug("site.templates_path reloaded %s" % ':'.join(self.templates_path))
         logger.info("site %s objects_dir %s" % (self.name, os.path.abspath(self.objects_dir)))
         logger.info("site %s classes_dir %s" % (self.name, os.path.abspath(self.classes_path[0])))
