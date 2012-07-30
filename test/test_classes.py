@@ -8,6 +8,7 @@ import ConfigParser
 import logging
 
 
+sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.abspath(".."))
 sys.path.insert(0, os.path.abspath(os.path.join("..", "coshsh")))
 
@@ -31,26 +32,26 @@ class CoshshTest(unittest.TestCase):
         shutil.rmtree("./var/objects/test1", True)
         print 
 
-    def test_create_site_check_paths(self):
+    def test_create_recipe_check_paths(self):
         self.print_header()
-        self.generator.add_site(name='test4', **dict(self.config.items('site_TEST4')))
-        self.assert_(os.path.abspath(self.generator.sites['test4'].dynamic_dir) == os.path.abspath('./var/objects/test1/dynamic'))
-        self.assert_(os.path.abspath(self.generator.sites['test4'].classes_path[0]) == os.path.abspath('./sites/test4/classes'))
-        self.assert_(os.path.abspath(self.generator.sites['test4'].templates_path[0]) == os.path.abspath('sites/test4/templates'))
-        self.assert_(os.path.abspath(self.generator.sites['test4'].jinja2.loader.searchpath[0]) == os.path.abspath('sites/test4/templates'))
+        self.generator.add_recipe(name='test4', **dict(self.config.items('recipe_TEST4')))
+        self.assert_(os.path.abspath(self.generator.recipes['test4'].dynamic_dir) == os.path.abspath('./var/objects/test1/dynamic'))
+        self.assert_(os.path.abspath(self.generator.recipes['test4'].classes_path[0]) == os.path.abspath('./recipes/test4/classes'))
+        self.assert_(os.path.abspath(self.generator.recipes['test4'].templates_path[0]) == os.path.abspath('recipes/test4/templates'))
+        self.assert_(os.path.abspath(self.generator.recipes['test4'].jinja2.loader.searchpath[0]) == os.path.abspath('recipes/test4/templates'))
   
-        self.generator.add_site(name='test5', **dict(self.config.items('site_TEST5')))
-        self.assert_(os.path.abspath(self.generator.sites['test5'].classes_path[0]) == os.path.abspath('./sites/test5/classes'))
-        self.assert_(os.path.abspath(self.generator.sites['test5'].templates_path[0]) == os.path.abspath('./sites/test5/templates'))
-        self.assert_(os.path.abspath(self.generator.sites['test5'].jinja2.loader.searchpath[0]) == os.path.abspath('./sites/test5/templates'))
+        self.generator.add_recipe(name='test5', **dict(self.config.items('recipe_TEST5')))
+        self.assert_(os.path.abspath(self.generator.recipes['test5'].classes_path[0]) == os.path.abspath('./recipes/test5/classes'))
+        self.assert_(os.path.abspath(self.generator.recipes['test5'].templates_path[0]) == os.path.abspath('./recipes/test5/templates'))
+        self.assert_(os.path.abspath(self.generator.recipes['test5'].jinja2.loader.searchpath[0]) == os.path.abspath('./recipes/test5/templates'))
   
         # did the jinja2 object get the self-written filters?
-        self.assert_('re_match' in self.generator.sites['test5'].jinja2.env.tests)
-        self.assert_('service' in self.generator.sites['test5'].jinja2.env.filters)
+        self.assert_('re_match' in self.generator.recipes['test5'].jinja2.env.tests)
+        self.assert_('service' in self.generator.recipes['test5'].jinja2.env.filters)
 
-    def test_create_site_check_factories(self):
+    def test_create_recipe_check_factories(self):
         self.print_header()
-        self.generator.add_site(name='test4', **dict(self.config.items('site_TEST4')))
+        self.generator.add_recipe(name='test4', **dict(self.config.items('recipe_TEST4')))
         self.config.set("datasource_SIMPLESAMPLE", "name", "simplesample")
         cfg = self.config.items("datasource_SIMPLESAMPLE")
         ds = Datasource(**dict(cfg))
@@ -58,11 +59,11 @@ class CoshshTest(unittest.TestCase):
         self.config.set("datasource_CSVSAMPLE", "name", "csvsample")
         cfg = self.config.items("datasource_CSVSAMPLE")
         ds = Datasource(**dict(cfg))
-        self.assert_(ds.dir == "./etc/sites/test1/data")
+        self.assert_(ds.dir == "./etc/recipes/test1/data")
 
-    def test_create_site_check_factories_read(self):
+    def test_create_recipe_check_factories_read(self):
         self.print_header()
-        self.generator.add_site(name='test4', **dict(self.config.items('site_TEST4')))
+        self.generator.add_recipe(name='test4', **dict(self.config.items('recipe_TEST4')))
         self.config.set("datasource_SIMPLESAMPLE", "name", "simplesample")
         cfg = self.config.items("datasource_SIMPLESAMPLE")
         ds = Datasource(**dict(cfg))
@@ -73,32 +74,32 @@ class CoshshTest(unittest.TestCase):
         self.assert_(applications[1].test4_windows == True)
 
 
-    def test_create_site_check_factories_write(self):
+    def test_create_recipe_check_factories_write(self):
         self.print_header()
-        self.generator.add_site(name='test4', **dict(self.config.items('site_TEST4')))
+        self.generator.add_recipe(name='test4', **dict(self.config.items('recipe_TEST4')))
         self.config.set("datasource_SIMPLESAMPLE", "name", "simplesample")
         cfg = self.config.items("datasource_SIMPLESAMPLE")
-        self.generator.sites['test4'].add_datasource(**dict(cfg))
+        self.generator.recipes['test4'].add_datasource(**dict(cfg))
 
         # remove target dir / create empty
-        self.generator.sites['test4'].count_before_objects()
-        self.generator.sites['test4'].cleanup_target_dir()
+        self.generator.recipes['test4'].count_before_objects()
+        self.generator.recipes['test4'].cleanup_target_dir()
 
-        self.generator.sites['test4'].prepare_target_dir()
+        self.generator.recipes['test4'].prepare_target_dir()
         # check target
 
         # read the datasources
-        self.generator.sites['test4'].collect()
+        self.generator.recipes['test4'].collect()
         
         # for each host, application get the corresponging template files
-        # get the template files and cache them in a struct owned by the site
+        # get the template files and cache them in a struct owned by the recipe
         # resolve the templates and attach the result as config_files to host/app
-        self.generator.sites['test4'].render()
-        self.assert_(hasattr(self.generator.sites['test4'].hosts['test_host_0'], 'config_files'))
-        self.assert_('host.cfg' in self.generator.sites['test4'].hosts['test_host_0'].config_files)
+        self.generator.recipes['test4'].render()
+        self.assert_(hasattr(self.generator.recipes['test4'].hosts['test_host_0'], 'config_files'))
+        self.assert_('host.cfg' in self.generator.recipes['test4'].hosts['test_host_0'].config_files)
 
         # write hosts/apps to the filesystem
-        self.generator.sites['test4'].output()
+        self.generator.recipes['test4'].output()
         self.assert_(os.path.exists("var/objects/test1/dynamic/hosts"))
         self.assert_(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0"))
         self.assert_(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0/os_linux_default.cfg"))
@@ -108,11 +109,11 @@ class CoshshTest(unittest.TestCase):
 
     def xtest_rebless_class(self):
         self.print_header()
-        self.generator.add_site(name='test1', **dict(self.config.items('site_TEST1')))
+        self.generator.add_recipe(name='test1', **dict(self.config.items('recipe_TEST1')))
 
         af = ApplicationFactory()
         print af.class_cache
-        self.generator.sites['test1'].init_class_cache()
+        self.generator.recipes['test1'].init_class_cache()
         print "tete", Application.class_factory
         row = ['gms1', 'gearman-server', '', '', '', 'nagioscop001', '7x24']
         final_row = { }

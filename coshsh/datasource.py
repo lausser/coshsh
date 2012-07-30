@@ -86,7 +86,6 @@ class Datasource(object):
             try:
                 #print "try", path, module, class_func
                 newcls = class_func(params)
-                #print "try said new class", newcls
                 if newcls:
                     return newcls
             except Exception ,exp:

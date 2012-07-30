@@ -26,36 +26,36 @@ from util import compare_attr
 class EmptyObject(object):
     pass
 
-class Site(object):
+class Recipe(object):
 
     def __del__(self):
         pass
         # sys.path is invisible here, so this will fail
-        #self.unset_site_sys_path()
+        #self.unset_recipe_sys_path()
 
     def __init__(self, **kwargs):
         self.name = kwargs["name"]
-        logger.info("site %s init" % self.name)
+        logger.info("recipe %s init" % self.name)
         self.objects_dir = kwargs["objects_dir"]
         self.templates_dir = kwargs.get("templates_dir")
         self.classes_dir = kwargs.get("classes_dir")
         self.datasource_names = [ds.lower() for ds in kwargs.get("datasources").split(",")]
         self.filter = kwargs.get("filter")
 
-        self.classes_path = [os.path.join(os.path.dirname(__file__), '../sites/default/classes')]
+        self.classes_path = [os.path.join(os.path.dirname(__file__), '../recipes/default/classes')]
         if self.classes_dir:
             for path in reversed([p.strip() for p in self.classes_dir.split(',')]):
                 self.classes_path.insert(0, path)
-        self.set_site_sys_path()
+        self.set_recipe_sys_path()
 
-        self.templates_path = [os.path.join(os.path.dirname(__file__), '../sites/default/templates')]
+        self.templates_path = [os.path.join(os.path.dirname(__file__), '../recipes/default/templates')]
         if self.templates_dir:
             for path in reversed([p.strip() for p in self.templates_dir.split(',')]):
                 self.templates_path.insert(0, path)
-            logger.debug("site.templates_path reloaded %s" % ':'.join(self.templates_path))
-        logger.info("site %s objects_dir %s" % (self.name, os.path.abspath(self.objects_dir)))
-        logger.info("site %s classes_dir %s" % (self.name, os.path.abspath(self.classes_path[0])))
-        logger.info("site %s templates_dir %s" % (self.name, os.path.abspath(self.templates_path[0])))
+            logger.debug("recipe.templates_path reloaded %s" % ':'.join(self.templates_path))
+        logger.info("recipe %s objects_dir %s" % (self.name, os.path.abspath(self.objects_dir)))
+        logger.info("recipe %s classes_dir %s" % (self.name, os.path.abspath(self.classes_path[0])))
+        logger.info("recipe %s templates_dir %s" % (self.name, os.path.abspath(self.templates_path[0])))
 
         self.jinja2 = EmptyObject()
         setattr(self.jinja2, 'loader', FileSystemLoader(self.templates_path))
@@ -91,16 +91,16 @@ class Site(object):
         self.init_class_cache()
 
 
-    def set_site_sys_path(self):
+    def set_recipe_sys_path(self):
         for p in [p for p in reversed(self.classes_path) if os.path.exists(p) and os.path.isdir(p)]:
             sys.path.insert(0, os.path.abspath(p))
 
-    def unset_site_sys_path(self):
+    def unset_recipe_sys_path(self):
         for p in [p for p in self.classes_path if os.path.exists(p) and os.path.isdir(p)]:
             sys.path.pop(0)
 
     def prepare_target_dir(self):
-        logger.info("site %s dynamic_dir %s" % (self.name, self.dynamic_dir))
+        logger.info("recipe %s dynamic_dir %s" % (self.name, self.dynamic_dir))
         if not os.path.exists(self.dynamic_dir):
             # will not have been removed with a .git inside
             os.mkdir(self.dynamic_dir)
@@ -113,17 +113,17 @@ class Site(object):
             try:
                 if os.path.exists(self.dynamic_dir + "/.git"):
                     for subdir in [sd for sd in os.listdir(self.dynamic_dir) if sd != ".git"]:
-                        logger.info("site %s remove dynamic_dir %s" % (self.name, self.dynamic_dir + "/" + subdir))
+                        logger.info("recipe %s remove dynamic_dir %s" % (self.name, self.dynamic_dir + "/" + subdir))
                         shutil.rmtree(self.dynamic_dir + "/" + subdir)
                 else:
-                    logger.info("site %s remove dynamic_dir %s" % (self.name, self.dynamic_dir))
+                    logger.info("recipe %s remove dynamic_dir %s" % (self.name, self.dynamic_dir))
                     shutil.rmtree(self.dynamic_dir)
             except Exception as e:
-                logger.info("site %s has problems with dynamic_dir %s" % (self.name, self.dynamic_dir))
+                logger.info("recipe %s has problems with dynamic_dir %s" % (self.name, self.dynamic_dir))
                 logger.info(e)
                 raise e
         else:
-            logger.info("site %s dynamic_dir %s does not exist" % (self.name, self.dynamic_dir))
+            logger.info("recipe %s dynamic_dir %s does not exist" % (self.name, self.dynamic_dir))
 
 
     def count_before_objects(self):
@@ -153,7 +153,7 @@ class Site(object):
             filter = self.datasource_filters.get(ds.name)
             try:
                 hosts, applications, contacts, contactgroups, appdetails, dependencies, bps = ds.read(filter=filter, intermediate_hosts=self.hosts, intermediate_applications=self.applications)
-                logger.info("site %s read from datasource %s %d hosts, %d applications, %d details, %d contacts, %d dependencies, %d business processes" % (self.name, ds.name, len(hosts), len(applications), len(appdetails), len(contacts), len(dependencies), len(bps)))
+                logger.info("recipe %s read from datasource %s %d hosts, %d applications, %d details, %d contacts, %d dependencies, %d business processes" % (self.name, ds.name, len(hosts), len(applications), len(appdetails), len(contacts), len(dependencies), len(bps)))
             except DatasourceNotReady:
                 data_valid = False
                 logger.info("datasource %s is busy" % ds.name)

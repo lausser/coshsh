@@ -11,12 +11,12 @@ import shutil
 sys.dont_write_bytecode = True
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'coshsh'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'sites', 'default', 'classes'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'recipes', 'default', 'classes'))
 
 from log import logger
 from logging import INFO, DEBUG
 from generator import Generator
-from coshshsite import Site
+from recipe import Recipe
 from datasource import Datasource, DatasourceNotAvailable
 
 
@@ -44,9 +44,9 @@ if __name__ == '__main__':
     parser.add_option('--config', action='store',
                       dest="config_file",
                       help='Config file')
-    parser.add_option('--site', action='store',
-                      dest="default_site",
-                      help="Only create a config for <site>")
+    parser.add_option('--recipe', action='store',
+                      dest="default_recipe",
+                      help="Only create a config for <recipe>")
     parser.add_option('--debug', action='store_const',
                       const="debug",
                       default="info",
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     opts, args = parser.parse_args()
     generator = Generator()
     if opts.config_file:
-        site_configs = {}
+        recipe_configs = {}
         datasource_configs = {}
         config = ConfigParser.ConfigParser()
         config.read(opts.config_file)
@@ -66,10 +66,10 @@ if __name__ == '__main__':
             
         for ds in [section for section in config.sections() if section.startswith('datasource_')]:
             datasource_configs[ds.replace("datasource_", "", 1).lower()] = config.items(ds) + [('name', ds.replace("datasource_", "", 1).lower())]
-        for site in [section for section in config.sections() if section.startswith('site_')]:
-            site_configs[site.replace("site_", "", 1).lower()] = config.items(site) + [('name', site.replace("site_", "", 1).lower())]
+        for recipe in [section for section in config.sections() if section.startswith('recipe_')]:
+            recipe_configs[recipe.replace("recipe_", "", 1).lower()] = config.items(recipe) + [('name', recipe.replace("recipe_", "", 1).lower())]
 
-        sites = []
+        recipes = []
         if opts.default_log_level:
             if opts.default_log_level.lower() == "debug":
                 logger.handlers[1].setLevel(DEBUG)
@@ -80,23 +80,23 @@ if __name__ == '__main__':
                 logger.handlers[1].setLevel(DEBUG)
             else:
                 logger.handlers[1].setLevel(INFO)
-        if opts.default_site:
-            sites = [opts.default_site.lower()]
+        if opts.default_recipe:
+            recipes = [opts.default_recipe.lower()]
         else:
-            if "defaults" in config.sections() and "sites" in [c[0] for c in config.items("defaults")]:
-                sites = [site.lower() for site in dict(config.items("defaults"))["sites"].split(",")]
+            if "defaults" in config.sections() and "recipes" in [c[0] for c in config.items("defaults")]:
+                recipes = [recipe.lower() for recipe in dict(config.items("defaults"))["recipes"].split(",")]
             else:
-                sites = site_configs.keys()
-        for site in sites:
-            if site in site_configs.keys():
-                generator.add_site(**dict(site_configs[site]))
-                for ds in generator.sites[site].datasource_names:
+                recipes = recipe_configs.keys()
+        for recipe in recipes:
+            if recipe in recipe_configs.keys():
+                generator.add_recipe(**dict(recipe_configs[recipe]))
+                for ds in generator.recipes[recipe].datasource_names:
                     if ds in datasource_configs.keys():
-                        generator.sites[site].add_datasource(**dict(datasource_configs[ds]))
+                        generator.recipes[recipe].add_datasource(**dict(datasource_configs[ds]))
                     else:
                         parser.error("Datasource %s is unknown" % ds)
             else:
-                parser.error("Site %s is unknown" % site)
+                parser.error("Recipe %s is unknown" % recipe)
     else:
         parser.error("Use option -c/--config")
     if args:

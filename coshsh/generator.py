@@ -3,7 +3,7 @@
 
 import os
 import sys
-from coshshsite import Site
+from recipe import Recipe
 from log import logger
 
 
@@ -13,28 +13,28 @@ class Generator(object):
     messages = []
 
     def __init__(self):
-        self.sites = {}
+        self.recipes = {}
 
-    def add_site(self, *args, **kwargs):
+    def add_recipe(self, *args, **kwargs):
         try:
-            site = Site(**kwargs)
-            self.sites[kwargs["name"]] = site
+            recipe = Recipe(**kwargs)
+            self.recipes[kwargs["name"]] = recipe
         except Exception, e:
-            logger.info("exception creating a site: %s" % e)
+            logger.info("exception creating a recipe: %s" % e)
             print e
         pass
 
     def run(self):
-        for site in self.sites.values():
+        for recipe in self.recipes.values():
             try:
-                site.count_before_objects()
-                site.cleanup_target_dir()
+                recipe.count_before_objects()
+                recipe.cleanup_target_dir()
             except Exception, e:
                 print e
-                logger.info("skipping site %s" % site.name)
+                logger.info("skipping recipe %s" % recipe.name)
             else:
-                site.prepare_target_dir()
-                if site.collect():
-                    site.render()
-                    site.output()
+                recipe.prepare_target_dir()
+                if recipe.collect():
+                    recipe.render()
+                    recipe.output()
 
