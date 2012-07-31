@@ -74,6 +74,19 @@ class CoshshTest(unittest.TestCase):
         self.assert_(applications[1].test4_windows == True)
 
 
+    def test_create_recipe_check_3factories_read(self):
+        self.print_header()
+        self.generator.add_recipe(name='test4a', **dict(self.config.items('recipe_TEST4A')))
+        self.config.set("datasource_SIMPLESAMPLE", "name", "simplesample")
+        cfg = self.config.items("datasource_SIMPLESAMPLE")
+        ds = Datasource(**dict(cfg))
+        self.assert_(hasattr(ds, 'only_the_test_simplesample'))
+        hosts, applications, contacts, contactgroups, appdetails, dependencies, bps = ds.read()
+        self.assert_(hosts[0].my_host == True)
+        self.assert_(applications[0].mycorp_linux == True)
+        self.assert_(applications[1].test4_windows == True)
+
+
     def test_create_recipe_check_factories_write(self):
         self.print_header()
         self.generator.add_recipe(name='test4', **dict(self.config.items('recipe_TEST4')))

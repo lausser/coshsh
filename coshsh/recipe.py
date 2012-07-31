@@ -54,8 +54,8 @@ class Recipe(object):
                 self.templates_path.insert(0, path)
             logger.debug("recipe.templates_path reloaded %s" % ':'.join(self.templates_path))
         logger.info("recipe %s objects_dir %s" % (self.name, os.path.abspath(self.objects_dir)))
-        logger.info("recipe %s classes_dir %s" % (self.name, os.path.abspath(self.classes_path[0])))
-        logger.info("recipe %s templates_dir %s" % (self.name, os.path.abspath(self.templates_path[0])))
+        logger.info("recipe %s classes_dir %s" % (self.name, ','.join([os.path.abspath(p) for p in self.classes_path])))
+        logger.info("recipe %s templates_dir %s" % (self.name, ','.join([os.path.abspath(p) for p in self.templates_path])))
 
         self.jinja2 = EmptyObject()
         setattr(self.jinja2, 'loader', FileSystemLoader(self.templates_path))
