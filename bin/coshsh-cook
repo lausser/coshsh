@@ -9,9 +9,15 @@ import shutil
 
 
 sys.dont_write_bytecode = True
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'coshsh'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'recipes', 'default', 'classes'))
+if 'COSHSH_HOME' in os.environ:
+    coshsh_home = os.environ['COSHSH_HOME']
+else:
+    coshsh_home = os.path.join(os.path.dirname(__file__), '..', 'coshsh')
+    print "my home is", coshsh_home
+
+#sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(coshsh_home)
+print sys.path
 
 from log import logger
 from logging import INFO, DEBUG
@@ -39,14 +45,14 @@ if __name__ == '__main__':
 
 
     parser = OptionParser(
-        "%prog [options] --config configfile [--config additional_config_file]",
+        "%prog [options] --cookbook cookbookfile [--recipe recipe]",
         version="%prog " + VERSION)
-    parser.add_option('--config', action='store',
-                      dest="config_file",
+    parser.add_option('--cookbook', action='store',
+                      dest="cookbook_file",
                       help='Config file')
     parser.add_option('--recipe', action='store',
                       dest="default_recipe",
-                      help="Only create a config for <recipe>")
+                      help="Cook a configuration following <recipe>")
     parser.add_option('--debug', action='store_const',
                       const="debug",
                       default="info",
@@ -55,19 +61,19 @@ if __name__ == '__main__':
 
     opts, args = parser.parse_args()
     generator = Generator()
-    if opts.config_file:
+    if opts.cookbook_file:
         recipe_configs = {}
         datasource_configs = {}
-        config = ConfigParser.ConfigParser()
-        config.read(opts.config_file)
-        if config._sections == {}:
-            print "Bad or missing config file : %s " % opts.config_file
+        cookbook = ConfigParser.ConfigParser()
+        cookbook.read(opts.cookbook_file)
+        if cookbook._sections == {}:
+            print "Bad or missing cookbook file : %s " % opts.cookbook_file
             sys.exit(2)
             
-        for ds in [section for section in config.sections() if section.startswith('datasource_')]:
-            datasource_configs[ds.replace("datasource_", "", 1).lower()] = config.items(ds) + [('name', ds.replace("datasource_", "", 1).lower())]
-        for recipe in [section for section in config.sections() if section.startswith('recipe_')]:
-            recipe_configs[recipe.replace("recipe_", "", 1).lower()] = config.items(recipe) + [('name', recipe.replace("recipe_", "", 1).lower())]
+        for ds in [section for section in cookbook.sections() if section.startswith('datasource_')]:
+            datasource_configs[ds.replace("datasource_", "", 1).lower()] = cookbook.items(ds) + [('name', ds.replace("datasource_", "", 1).lower())]
+        for recipe in [section for section in cookbook.sections() if section.startswith('recipe_')]:
+            recipe_configs[recipe.replace("recipe_", "", 1).lower()] = cookbook.items(recipe) + [('name', recipe.replace("recipe_", "", 1).lower())]
 
         recipes = []
         if opts.default_log_level:
@@ -75,16 +81,16 @@ if __name__ == '__main__':
                 logger.handlers[1].setLevel(DEBUG)
             else:
                 logger.handlers[1].setLevel(INFO)
-        elif "defaults" in config.sections() and "log_level" in [c[0] for c in config.items("defaults")]:
-            if config.items("defaults")["log_level"].lower() == "debug":
+        elif "defaults" in cookbook.sections() and "log_level" in [c[0] for c in cookbook.items("defaults")]:
+            if cookbook.items("defaults")["log_level"].lower() == "debug":
                 logger.handlers[1].setLevel(DEBUG)
             else:
                 logger.handlers[1].setLevel(INFO)
         if opts.default_recipe:
             recipes = [opts.default_recipe.lower()]
         else:
-            if "defaults" in config.sections() and "recipes" in [c[0] for c in config.items("defaults")]:
-                recipes = [recipe.lower() for recipe in dict(config.items("defaults"))["recipes"].split(",")]
+            if "defaults" in cookbook.sections() and "recipes" in [c[0] for c in cookbook.items("defaults")]:
+                recipes = [recipe.lower() for recipe in dict(cookbook.items("defaults"))["recipes"].split(",")]
             else:
                 recipes = recipe_configs.keys()
         for recipe in recipes:
@@ -98,13 +104,13 @@ if __name__ == '__main__':
             else:
                 parser.error("Recipe %s is unknown" % recipe)
     else:
-        parser.error("Use option -c/--config")
+        parser.error("Use option -c/--cookbook")
     if args:
-        parser.error("Does not accept any argument. Use option -c/--config")
+        parser.error("Does not accept any argument. Use option -c/--cookbook")
     #if len(generator.datasources) == 0:
-    #   parser.error("None of the configured datasources was found")
+    #   parser.error("None of the cookbookured datasources was found")
 
-    # nagios_dir config option sets an alternative target
+    # nagios_dir cookbook option sets an alternative target
     # and may be used to replace Coshsh.base_dir
     generator.run()
 
