@@ -1,0 +1,114 @@
+#!/usr/bin/env python
+# Copyright (C) : Gerhard Lausser, gerhard.lausser@consol.de
+
+from optparse import OptionParser
+import ConfigParser
+import sys
+import os
+import shutil
+
+
+sys.dont_write_bytecode = True
+if 'COSHSH_HOME' in os.environ:
+    coshsh_home = os.environ['COSHSH_HOME']
+else:
+    coshsh_home = os.path.join(os.path.dirname(__file__), '..', 'coshsh')
+
+#sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(coshsh_home)
+
+from log import logger
+from logging import INFO, DEBUG
+from generator import Generator
+from recipe import Recipe
+from datasource import Datasource, DatasourceNotAvailable
+
+
+class GeneratorMessage(object):
+    def __init__(self, message):
+        self.message = message
+
+class WarningMessage(GeneratorMessage):
+    pass
+
+class CriticalMessage(GeneratorMessage):
+    pass
+
+class OkMessage(GeneratorMessage):
+    pass
+
+
+if __name__ == '__main__':
+    VERSION = "1.0"
+
+
+    parser = OptionParser(
+        "%prog [options] --cookbook cookbookfile [--recipe recipe]",
+        version="%prog " + VERSION)
+    parser.add_option('--cookbook', action='store',
+                      dest="cookbook_file",
+                      help='Config file')
+    parser.add_option('--recipe', action='store',
+                      dest="default_recipe",
+                      help="Cook a configuration following <recipe>")
+    parser.add_option('--debug', action='store_const',
+                      const="debug",
+                      default="info",
+                      dest="default_log_level",
+                      help="Output additional messages on stdout")
+
+    opts, args = parser.parse_args()
+    generator = Generator()
+    if opts.cookbook_file:
+        recipe_configs = {}
+        datasource_configs = {}
+        cookbook = ConfigParser.ConfigParser()
+        cookbook.read(opts.cookbook_file)
+        if cookbook._sections == {}:
+            print "Bad or missing cookbook file : %s " % opts.cookbook_file
+            sys.exit(2)
+            
+        for ds in [section for section in cookbook.sections() if section.startswith('datasource_')]:
+            datasource_configs[ds.replace("datasource_", "", 1).lower()] = cookbook.items(ds) + [('name', ds.replace("datasource_", "", 1).lower())]
+        for recipe in [section for section in cookbook.sections() if section.startswith('recipe_')]:
+            recipe_configs[recipe.replace("recipe_", "", 1).lower()] = cookbook.items(recipe) + [('name', recipe.replace("recipe_", "", 1).lower())]
+
+        recipes = []
+        if opts.default_log_level:
+            if opts.default_log_level.lower() == "debug":
+                logger.handlers[1].setLevel(DEBUG)
+            else:
+                logger.handlers[1].setLevel(INFO)
+        elif "defaults" in cookbook.sections() and "log_level" in [c[0] for c in cookbook.items("defaults")]:
+            if cookbook.items("defaults")["log_level"].lower() == "debug":
+                logger.handlers[1].setLevel(DEBUG)
+            else:
+                logger.handlers[1].setLevel(INFO)
+        if opts.default_recipe:
+            recipes = [opts.default_recipe.lower()]
+        else:
+            if "defaults" in cookbook.sections() and "recipes" in [c[0] for c in cookbook.items("defaults")]:
+                recipes = [recipe.lower() for recipe in dict(cookbook.items("defaults"))["recipes"].split(",")]
+            else:
+                recipes = recipe_configs.keys()
+        for recipe in recipes:
+            if recipe in recipe_configs.keys():
+                generator.add_recipe(**dict(recipe_configs[recipe]))
+                for ds in generator.recipes[recipe].datasource_names:
+                    if ds in datasource_configs.keys():
+                        generator.recipes[recipe].add_datasource(**dict(datasource_configs[ds]))
+                    else:
+                        parser.error("Datasource %s is unknown" % ds)
+            else:
+                parser.error("Recipe %s is unknown" % recipe)
+    else:
+        parser.error("Use option -c/--cookbook")
+    if args:
+        parser.error("Does not accept any argument. Use option -c/--cookbook")
+    #if len(generator.datasources) == 0:
+    #   parser.error("None of the cookbookured datasources was found")
+
+    # nagios_dir cookbook option sets an alternative target
+    # and may be used to replace Coshsh.base_dir
+    generator.run()
+
