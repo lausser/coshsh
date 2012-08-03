@@ -6,7 +6,11 @@ clean:
 	rm -f coshsh.tgz
 
 pack:
-	tar --exclude .git --exclude test --exclude coshsh.tgz -zcvf coshsh.tgz .
+	tar --exclude .git \
+		--exclude test \
+		--exclude coshsh.tgz \
+		--exclude coshsh.log \
+		-zcvf coshsh.tgz .
 
 doc:
 	cp -p README.asciidoc docs/README && cd docs && asciidoc --unsafe -a toc -a toclevels=2 -a max-width=800 README

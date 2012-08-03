@@ -147,9 +147,9 @@ class Recipe(object):
         for ds in self.datasources:
             try:
                 ds.open()
-            except Exception:
+            except Exception, exp:
                 data_valid = False
-                logger.critical("datasource bad %s" % ds.name)
+                logger.critical("datasource bad %s (%s)" % (ds.name, exp))
             filter = self.datasource_filters.get(ds.name)
             try:
                 hosts, applications, contacts, contactgroups, appdetails, dependencies, bps = ds.read(filter=filter, intermediate_hosts=self.hosts, intermediate_applications=self.applications)
@@ -157,9 +157,9 @@ class Recipe(object):
             except DatasourceNotReady:
                 data_valid = False
                 logger.info("datasource %s is busy" % ds.name)
-            except Exception:
+            except Exception, exp:
                 data_valid = False
-                logger.critical("datasource %s returns bad data" % ds.name)
+                logger.critical("datasource %s returns bad data (%s)" % (ds.name, exp))
             ds.close()
             
             if not data_valid:

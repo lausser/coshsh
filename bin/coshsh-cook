@@ -13,11 +13,9 @@ if 'COSHSH_HOME' in os.environ:
     coshsh_home = os.environ['COSHSH_HOME']
 else:
     coshsh_home = os.path.join(os.path.dirname(__file__), '..', 'coshsh')
-    print "my home is", coshsh_home
 
 #sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(coshsh_home)
-print sys.path
 
 from log import logger
 from logging import INFO, DEBUG

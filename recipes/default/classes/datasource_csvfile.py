@@ -96,6 +96,7 @@ class CsvFile(Datasource):
                     row["virtual"] = intermediate_hosts[row["host_name"]].virtual
                 except KeyError:
                     logger.error('host %s not found for application %s' % (row["host_name"], row["name"]))
+            print "create", row
             a = Application(row)
             self.applications["%s+%s+%s" % (a.host_name, a.name, a.type)] = a
 

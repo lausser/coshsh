@@ -3,7 +3,7 @@ from templaterule import TemplateRule
 from util import compare_attr
 
 def __mi_ident__(params={}):
-    if compare_attr("type", params, ".*red\s*hat.*|.*sles.*|.*linux.*|.*limux.*|.*debian.*|.*ubuntu.*|.*centos.*"):
+    if compare_attr("type", params, ".*red\s*hat.*|.*rhel.*|.*sles.*|.*linux.*|.*limux.*|.*debian.*|.*ubuntu.*|.*centos.*"):
         return Linux
 
 
