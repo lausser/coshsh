@@ -42,6 +42,7 @@ class CoshshTest(unittest.TestCase):
         ds = Datasource(**dict(cfg))
         hosts, applications, contacts, contactgroups, appdetails, dependencies, bps = ds.read()
         applications[0].resolve_monitoring_details()
+        applications[1].resolve_monitoring_details()
         # swap threshold via KEYVALUES detail
         self.assert_(applications[0].swap_warning == "15%")
         self.assert_(applications[0].swap_critical == "8%")
@@ -53,6 +54,9 @@ class CoshshTest(unittest.TestCase):
         self.assert_(applications[1].swap_critical == "15%")
         # neither class detail nor csv detail
         self.assert_(not hasattr(applications[1], "cron_warning"))
+        self.assert_(hasattr(applications[1], "thresholds"))
+        self.assert_(hasattr(applications[1].thresholds, "cron_warning"))
+        self.assert_(applications[1].thresholds.cron_warning == "31")
    
 
 

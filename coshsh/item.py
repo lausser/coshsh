@@ -13,6 +13,10 @@ from copy import copy, deepcopy
 from log import logger
 
 
+class EmptyObject(object):
+    pass
+
+
 class Item(object):
     template_cache = {}
 
@@ -68,7 +72,15 @@ class Item(object):
                 if detail.__class__.property_type == dict:
                     for key in detail.dictionary:
                         if key:
-                            setattr(self, key, detail.dictionary[key])
+                            if ":" in key:
+                                dictname, key = key.split(":")
+                                try:
+                                    setattr(getattr(self, dictname), key, detail.dictionary[dictname + ":" + key])
+                                except Exception:
+                                    setattr(self, dictname, EmptyObject())
+                                    setattr(getattr(self, dictname), key, detail.dictionary[dictname + ":" + key])
+                            else:
+                                setattr(self, key, detail.dictionary[key])
                 else:
                     setattr(self, detail.attribute, detail.value)
             else:
