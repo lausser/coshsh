@@ -42,13 +42,17 @@ class CoshshTest(unittest.TestCase):
         ds = Datasource(**dict(cfg))
         hosts, applications, contacts, contactgroups, appdetails, dependencies, bps = ds.read()
         applications[0].resolve_monitoring_details()
+        # swap threshold via KEYVALUES detail
         self.assert_(applications[0].swap_warning == "15%")
         self.assert_(applications[0].swap_critical == "8%")
+        # cron threshold via KEYVALUES detail
         self.assert_(applications[0].cron_warning == "30")
         self.assert_(applications[0].cron_critical == "100")
+        # swap threshold via class os_linux
         self.assert_(applications[1].swap_warning == "5%")
         self.assert_(applications[1].swap_critical == "15%")
-        self.assert_(applications[1].cron_warning == "30")
+        # neither class detail nor csv detail
+        self.assert_(not hasattr(applications[1], "cron_warning"))
    
 
 
