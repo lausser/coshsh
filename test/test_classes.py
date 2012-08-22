@@ -59,7 +59,7 @@ class CoshshTest(unittest.TestCase):
         self.config.set("datasource_CSVSAMPLE", "name", "csvsample")
         cfg = self.config.items("datasource_CSVSAMPLE")
         ds = Datasource(**dict(cfg))
-        self.assert_(ds.dir == "./etc/recipes/test1/data")
+        self.assert_(ds.dir == "./recipes/test1/data")
 
     def test_create_recipe_check_factories_read(self):
         self.print_header()

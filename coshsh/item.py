@@ -65,7 +65,12 @@ class Item(object):
         for detail in details:
             property = detail.__class__.property
             if property == "generic":
-                setattr(self, detail.attribute, detail.value)
+                if detail.__class__.property_type == dict:
+                    for key in detail.dictionary:
+                        if key:
+                            setattr(self, key, detail.dictionary[key])
+                else:
+                    setattr(self, detail.attribute, detail.value)
             else:
                 if detail.__class__.property_type == list:
                     if not hasattr(self, property):

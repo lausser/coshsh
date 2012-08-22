@@ -55,12 +55,13 @@ class CsvFile(Datasource):
             logger.error('csv dir %s does not exist' % self.dir)
             raise DatasourceNotAvailable
 
-    def read(self, filter=None, intermediate_hosts=[], intermediate_applications=[]):
+    def read(self, filter=None, intermediate_hosts={}, intermediate_applications={}):
 
         try:
             hostreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_hosts.csv'))))
             logger.info('read hosts from %s' % os.path.join(self.dir, self.name+'_hosts.csv'))
-        except Exception:
+        except Exception, exp:
+            print "except", exp
             hostreader = []
         # host_name,address,type,os,hardware,virtual,notification_period,location,department
         for row in hostreader:
@@ -96,7 +97,6 @@ class CsvFile(Datasource):
                     row["virtual"] = intermediate_hosts[row["host_name"]].virtual
                 except KeyError:
                     logger.error('host %s not found for application %s' % (row["host_name"], row["name"]))
-            print "create", row
             a = Application(row)
             self.applications["%s+%s+%s" % (a.host_name, a.name, a.type)] = a
 
