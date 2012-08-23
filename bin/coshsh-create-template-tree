@@ -14,7 +14,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'coshsh'))
 
 from log import logger
 from generator import Generator
-from coshshsite import Site
+from recipe import Recipe
 from datasource import Datasource, DatasourceNotAvailable
 
 
@@ -37,28 +37,28 @@ class CSCG(object):
     messages = []
 
     def __init__(self):
-        self.sites = {}
+        self.recipes = {}
         self.datasources = {}
 
 
-    def add_site(self, *args, **kwargs):
+    def add_recipe(self, *args, **kwargs):
         try:
-            site = Site(**kwargs)
-            self.sites[kwargs["name"]] = site
+            recipe = Site(**kwargs)
+            self.recipes[kwargs["name"]] = recipe
         except Exception, e:
             print e
         pass
 
 
     def run(self, template):
-        for site in self.sites.values():
-            #site.collect()
-            basedir = site.objects_dir + "/static/service_templates"
-            if os.path.exists(site.objects_dir):
-                if not os.path.exists(site.objects_dir + "/static"):
-                    os.mkdir(site.objects_dir + "/static")
-                if not os.path.exists(site.objects_dir + "/static/service_templates"):
-                    os.mkdir(site.objects_dir + "/static/service_templates")
+        for recipe in self.recipes.values():
+            #recipe.collect()
+            basedir = recipe.objects_dir + "/static/service_templates"
+            if os.path.exists(recipe.objects_dir):
+                if not os.path.exists(recipe.objects_dir + "/static"):
+                    os.mkdir(recipe.objects_dir + "/static")
+                if not os.path.exists(recipe.objects_dir + "/static/service_templates"):
+                    os.mkdir(recipe.objects_dir + "/static/service_templates")
 
             while template.find("_") != -1:
                 template, sep, tail = template.rpartition("_")
@@ -78,42 +78,62 @@ if __name__ == '__main__':
 
 
     parser = OptionParser(
-        "%prog [options] --config configfile [--config additional_config_file]",
+        "%prog [options] --cookbook cookbookfile [--recipe recipe]",
         version="%prog " + VERSION)
-    parser.add_option('--config', action='store',
-                      dest="config_file",
+    parser.add_option('--cookbook', action='store',
+                      dest="cookbook_file",
                       help='Config file')
-    parser.add_option('--site', action='store',
-                      dest="default_site",
-                      help="Only create a config for <site>")
+    parser.add_option('--recipe', action='store',
+                      dest="default_recipe",
+                      help="Only create a cookbook for <recipe>")
     parser.add_option('--template', action='store',
                       dest="template_name",
                       help="Build a template hierarchy for this service profile")
 
     opts, args = parser.parse_args()
-    generator = CSCG()
-    if opts.config_file:
-        config = ConfigParser.ConfigParser()
-        config.read(opts.config_file)
-        if config._sections == {}:
-            print "Bad or missing config file : %s " % opts.config_file
+    generator = Generator()
+    if opts.cookbook_file:
+        cookbook = ConfigParser.ConfigParser()
+        cookbook.read(opts.cookbook_file)
+        if cookbook._sections == {}:
+            print "Bad or missing cookbook file : %s " % opts.cookbook_file
             sys.exit(2)
             
-        sites = []
+        recipes = []
         if not opts.template_name:
             parser.error("Which template hierarchy should i create? Use --template")
-        if opts.default_site:
-            sites = [opts.default_site.lower()]
+        if opts.default_recipe:
+            recipes = [opts.default_recipe.lower()]
         else:
-            sites = [s.strip().lower() for s in config.get("defaults", "sites").split(",")]
-        for site in [section for section in config.sections() if section.startswith('site_')]:
-            if site.replace("site_", "", 1).lower() in sites:
-                generator.add_site(name=site.replace("site_", "", 1), **dict(config.items(site)))
-
+            recipes = [s.strip().lower() for s in cookbook.get("defaults", "recipes").split(",")]
+        print "recipes is", recipes
+        for recipe in [section for section in cookbook.sections() if section.startswith('recipe_')]:
+            if recipe.replace("recipe_", "", 1).lower() in recipes:
+                generator.add_recipe(name=recipe.replace("recipe_", "", 1), **dict(cookbook.items(recipe)))
+    else:
+        parser.error("Please use option -c/--cookbook")
     if args:
-        parser.error("Does not accept any argument. Use option -c/--config")
+        parser.error("Does not accept any argument. Use option -c/--cookbook")
 
-    # nagios_dir config option sets an alternative target
-    # and may be used to replace CSCG.base_dir
-    generator.run(opts.template_name)
+    for recipe in generator.recipes.values():
+        #recipe.collect()
+        basedir = recipe.objects_dir + "/static/service_templates"
+        if os.path.exists(recipe.objects_dir):
+            if not os.path.exists(recipe.objects_dir + "/static"):
+                os.mkdir(recipe.objects_dir + "/static")
+            if not os.path.exists(recipe.objects_dir + "/static/service_templates"):
+                os.mkdir(recipe.objects_dir + "/static/service_templates")
+
+        template = opts.template_name
+        while template.find("_") != -1:
+            template, sep, tail = template.rpartition("_")
+            output = "define service {\n  name %s\n  use %s\n  register 0\n}\n" % (template + sep + tail, template)
+            template_file = os.path.join(basedir, template + sep + tail + ".cfg")
+            if not os.path.exists(template_file):
+                logger.info("create %s" % template_file)
+                with open(template_file, "w") as f:
+                    f.write(output)
+            else:
+                logger.info("confirm %s" % template_file)
+
 
