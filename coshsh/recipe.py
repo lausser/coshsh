@@ -20,7 +20,7 @@ from log import logger
 from item import Item
 from application import Application
 from monitoring_detail import MonitoringDetail
-from datasource import Datasource, DatasourceCorrupt, DatasourceNotReady
+from datasource import Datasource, DatasourceCorrupt, DatasourceNotReady, DatasourceNotAvailable
 from util import compare_attr
 
 class EmptyObject(object):
@@ -145,22 +145,21 @@ class Recipe(object):
     def collect(self):
         data_valid = True
         for ds in self.datasources:
-            try:
-                ds.open()
-            except Exception, exp:
-                data_valid = False
-                logger.critical("datasource bad %s (%s)" % (ds.name, exp))
             filter = self.datasource_filters.get(ds.name)
             try:
+                ds.open()
                 hosts, applications, contacts, contactgroups, appdetails, dependencies, bps = ds.read(filter=filter, intermediate_hosts=self.hosts, intermediate_applications=self.applications)
                 logger.info("recipe %s read from datasource %s %d hosts, %d applications, %d details, %d contacts, %d dependencies, %d business processes" % (self.name, ds.name, len(hosts), len(applications), len(appdetails), len(contacts), len(dependencies), len(bps)))
+                ds.close()
             except DatasourceNotReady:
                 data_valid = False
                 logger.info("datasource %s is busy" % ds.name)
+            except DatasourceNotAvailable:
+                data_valid = False
+                logger.info("datasource %s is not available" % ds.name)
             except Exception, exp:
                 data_valid = False
                 logger.critical("datasource %s returns bad data (%s)" % (ds.name, exp))
-            ds.close()
             
             if not data_valid:
                 logger.info("aborting collection phase") 
