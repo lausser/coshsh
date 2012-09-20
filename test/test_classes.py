@@ -23,13 +23,14 @@ class CoshshTest(unittest.TestCase):
         print "#" + " " * 78 + "#\n" + "#" * 80 + "\n"
 
     def setUp(self):
+        shutil.rmtree("./var/objects/test1", True)
         os.makedirs("./var/objects/test1")
         self.config = ConfigParser.ConfigParser()
         self.config.read('etc/coshsh.cfg')
         self.generator = Generator()
 
     def tearDown(self):
-        shutil.rmtree("./var/objects/test1", True)
+        #shutil.rmtree("./var/objects/test1", True)
         print 
 
     def test_create_recipe_check_paths(self):

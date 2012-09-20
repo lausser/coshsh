@@ -35,14 +35,7 @@
 {% endif %}
 }
 
-<<<<<<< HEAD
 {% if application.host.virtual == "ps" %}
-=======
-{#
-  virtuelle Server bekommen ihre Uhrzeit vom Hostsystem
-#}
-{% if application.host.virtual == "PS" %}
->>>>>>> 42ab7ac1828a520a7ee7940f988927ff95b99714
 {{ application|service("os_linux_default_check_ntp") }}
   use                             os_linux_default
   host_name                       {{ application.host_name }}
@@ -50,39 +43,11 @@
   retry_interval                  10
   check_command                   check_by_ssh!60!$USER10$/local/lib/nagios/plugins/check_ntp_health
 }
-<<<<<<< HEAD
 {% else %}
-
-=======
-
-
-{{ application|service("os_linux_default_check_interfaces") }}
-  host_name                       {{ application.host_name }}
-  use                             os_linux_default
-  check_command                   check_by_ssh!60!$USER10$/lib/nagios/plugins/check_interfaces
-}
-
-{{ application|service("os_linux_default_check_hardware") }}
-  host_name                       {{ application.host_name }}
-  use                             os_linux_default
-  normal_check_interval           15
-{% if application.host.hardware == "FJS" %}
-  check_command                   check_local!check_fujitsu_primergy.pl -H $HOSTADDRESS$ -C $_SNMPCOMMUNITY$ -v 2
-  _SNMPCOMMUNITY                  {{ application.host.snmpcommunity }}
-{% endif %}
-}
-{% endif %}
-
-{#
->>>>>>> 42ab7ac1828a520a7ee7940f988927ff95b99714
 {{ application|service("os_linux_default_check_uptime") }}
   host_name                       {{ application.host_name }}
   use                             os_linux_default
   check_command                   check_by_ssh!60!$USER10$/lib/nagios/plugins/check_uptime 30        
 }
-<<<<<<< HEAD
 {% endif %}
-=======
-#}
->>>>>>> 42ab7ac1828a520a7ee7940f988927ff95b99714
 
