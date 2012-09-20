@@ -56,7 +56,6 @@ class CsvFile(Datasource):
             raise DatasourceNotAvailable
 
     def read(self, filter=None, intermediate_hosts={}, intermediate_applications={}):
-
         try:
             hostreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_hosts.csv'))))
             logger.info('read hosts from %s' % os.path.join(self.dir, self.name+'_hosts.csv'))

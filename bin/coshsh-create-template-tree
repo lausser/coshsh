@@ -37,6 +37,7 @@ class CSCG(object):
     messages = []
 
     def __init__(self):
+<<<<<<< HEAD
         self.recipes = {}
         self.datasources = {}
 
@@ -45,12 +46,23 @@ class CSCG(object):
         try:
             recipe = Site(**kwargs)
             self.recipes[kwargs["name"]] = recipe
+=======
+        self.sites = {}
+        self.datasources = {}
+
+
+    def add_site(self, *args, **kwargs):
+        try:
+            site = Site(**kwargs)
+            self.sites[kwargs["name"]] = site
+>>>>>>> 42ab7ac1828a520a7ee7940f988927ff95b99714
         except Exception, e:
             print e
         pass
 
 
     def run(self, template):
+<<<<<<< HEAD
         for recipe in self.recipes.values():
             #recipe.collect()
             basedir = recipe.objects_dir + "/static/service_templates"
@@ -59,6 +71,16 @@ class CSCG(object):
                     os.mkdir(recipe.objects_dir + "/static")
                 if not os.path.exists(recipe.objects_dir + "/static/service_templates"):
                     os.mkdir(recipe.objects_dir + "/static/service_templates")
+=======
+        for site in self.sites.values():
+            #site.collect()
+            basedir = site.objects_dir + "/static/service_templates"
+            if os.path.exists(site.objects_dir):
+                if not os.path.exists(site.objects_dir + "/static"):
+                    os.mkdir(site.objects_dir + "/static")
+                if not os.path.exists(site.objects_dir + "/static/service_templates"):
+                    os.mkdir(site.objects_dir + "/static/service_templates")
+>>>>>>> 42ab7ac1828a520a7ee7940f988927ff95b99714
 
             while template.find("_") != -1:
                 template, sep, tail = template.rpartition("_")
@@ -78,6 +100,7 @@ if __name__ == '__main__':
 
 
     parser = OptionParser(
+<<<<<<< HEAD
         "%prog [options] --cookbook cookbookfile [--recipe recipe]",
         version="%prog " + VERSION)
     parser.add_option('--cookbook', action='store',
@@ -86,11 +109,22 @@ if __name__ == '__main__':
     parser.add_option('--recipe', action='store',
                       dest="default_recipe",
                       help="Only create a cookbook for <recipe>")
+=======
+        "%prog [options] --config configfile [--config additional_config_file]",
+        version="%prog " + VERSION)
+    parser.add_option('--config', action='store',
+                      dest="config_file",
+                      help='Config file')
+    parser.add_option('--site', action='store',
+                      dest="default_site",
+                      help="Only create a config for <site>")
+>>>>>>> 42ab7ac1828a520a7ee7940f988927ff95b99714
     parser.add_option('--template', action='store',
                       dest="template_name",
                       help="Build a template hierarchy for this service profile")
 
     opts, args = parser.parse_args()
+<<<<<<< HEAD
     generator = Generator()
     if opts.cookbook_file:
         cookbook = ConfigParser.ConfigParser()
@@ -136,4 +170,31 @@ if __name__ == '__main__':
             else:
                 logger.info("confirm %s" % template_file)
 
+=======
+    generator = CSCG()
+    if opts.config_file:
+        config = ConfigParser.ConfigParser()
+        config.read(opts.config_file)
+        if config._sections == {}:
+            print "Bad or missing config file : %s " % opts.config_file
+            sys.exit(2)
+            
+        sites = []
+        if not opts.template_name:
+            parser.error("Which template hierarchy should i create? Use --template")
+        if opts.default_site:
+            sites = [opts.default_site.lower()]
+        else:
+            sites = [s.strip().lower() for s in config.get("defaults", "sites").split(",")]
+        for site in [section for section in config.sections() if section.startswith('site_')]:
+            if site.replace("site_", "", 1).lower() in sites:
+                generator.add_site(name=site.replace("site_", "", 1), **dict(config.items(site)))
+
+    if args:
+        parser.error("Does not accept any argument. Use option -c/--config")
+
+    # nagios_dir config option sets an alternative target
+    # and may be used to replace CSCG.base_dir
+    generator.run(opts.template_name)
+>>>>>>> 42ab7ac1828a520a7ee7940f988927ff95b99714
 
