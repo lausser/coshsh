@@ -8,6 +8,7 @@
 import time
 import re
 import copy
+import os
 
 def compare_attr(key, params, strings):
     if not isinstance(strings, list):
