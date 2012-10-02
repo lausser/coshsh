@@ -34,8 +34,6 @@ class Datasource(object):
 
     def __init__(self, **params):
         #print "datasourceinit with", self.__class__
-        for key in params.iterkeys():
-            params[key] = re.sub('%.*?%', substenv, params[key])
         if self.__class__ == Datasource:
             #print "generic ds", params
             newcls = self.__class__.get_class(params)

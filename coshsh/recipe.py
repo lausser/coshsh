@@ -317,6 +317,8 @@ class Recipe(object):
 
     def add_datasource(self, **kwargs):
         #print "add a datasource", kwargs
+        for key in kwargs.iterkeys():
+            kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
         newcls = Datasource.get_class(kwargs)
         if newcls:
             datasource = newcls(**kwargs)
