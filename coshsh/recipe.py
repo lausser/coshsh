@@ -21,10 +21,12 @@ from item import Item
 from application import Application
 from monitoring_detail import MonitoringDetail
 from datasource import Datasource, DatasourceCorrupt, DatasourceNotReady, DatasourceNotAvailable
-from util import compare_attr
+from util import compare_attr, substenv
+
 
 class EmptyObject(object):
     pass
+
 
 class Recipe(object):
 
@@ -42,12 +44,13 @@ class Recipe(object):
         self.datasource_names = [ds.lower() for ds in kwargs.get("datasources").split(",")]
         self.filter = kwargs.get("filter")
 
+        for key in kwargs.iterkeys():
+            kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
         self.classes_path = [os.path.join(os.path.dirname(__file__), '../recipes/default/classes')]
         if self.classes_dir:
             for path in reversed([p.strip() for p in self.classes_dir.split(',')]):
                 self.classes_path.insert(0, path)
         self.set_recipe_sys_path()
-
         self.templates_path = [os.path.join(os.path.dirname(__file__), '../recipes/default/templates')]
         if self.templates_dir:
             for path in reversed([p.strip() for p in self.templates_dir.split(',')]):

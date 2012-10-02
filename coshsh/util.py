@@ -34,4 +34,9 @@ def cleanout(dirty_string, delete_chars="", delete_words=[]):
         dirty_string = dirty_string.replace(dirt, "")
     return dirty_string.strip()
 
+def substenv(matchobj):
+    if matchobj.group(0).replace('%', '') in os.environ.keys():
+        return os.environ[matchobj.group(0).replace('%', '')]
+    else:
+        return matchobj.group(0)
 
