@@ -4,7 +4,7 @@ define host {
 {% endif %}
     host_name                       {{ host.host_name }}
     address                         {{ host.address }}
-    alias                           {{ host.host_name }}
+    alias                           {{ host.alias }}
 {% if host.hostgroups %}
     hostgroups                      {{ host.hostgroups }}
 {% endif %}
