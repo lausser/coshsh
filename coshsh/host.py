@@ -26,7 +26,7 @@ class Host(Item):
         self.contact_groups = []
         self.ports = [22] # can be changed with a PORT detail
         super(Host, self).__init__(params)
-        self.alias = getattr(self, alias, self.host_name)
+        self.alias = getattr(self, 'alias', self.host_name)
         
 
     def is_correct(self):
