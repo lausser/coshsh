@@ -6,6 +6,7 @@
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
 import os
+import re
 import imp
 import inspect
 from log import logger

@@ -36,6 +36,8 @@ class Recipe(object):
         #self.unset_recipe_sys_path()
 
     def __init__(self, **kwargs):
+        for key in kwargs.iterkeys():
+            kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
         self.name = kwargs["name"]
         logger.info("recipe %s init" % self.name)
         self.objects_dir = kwargs["objects_dir"]
@@ -44,8 +46,6 @@ class Recipe(object):
         self.datasource_names = [ds.lower() for ds in kwargs.get("datasources").split(",")]
         self.filter = kwargs.get("filter")
 
-        for key in kwargs.iterkeys():
-            kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
         self.classes_path = [os.path.join(os.path.dirname(__file__), '../recipes/default/classes')]
         if self.classes_dir:
             for path in reversed([p.strip() for p in self.classes_dir.split(',')]):

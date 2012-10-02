@@ -62,6 +62,17 @@ class CoshshTest(unittest.TestCase):
         ds = Datasource(**dict(cfg))
         self.assert_(ds.dir == "./recipes/test1/data")
 
+    def test_create_recipe_check_factories_env(self):
+        self.print_header()
+        os.environ['COSHSHDIR'] = '/opt/coshsh'
+        os.environ['ZISSSSSSCHDIR'] = '/opt/zisch'
+        self.generator.add_recipe(name='test7', **dict(self.config.items('recipe_TEST7')))
+        self.config.set("datasource_ENVDIRDS", "name", "envdirds")
+        cfg = self.config.items("datasource_ENVDIRDS")
+        ds = Datasource(**dict(cfg))
+        self.assert_(ds.dir == "/opt/coshsh/recipes/test7/data")
+        self.assert_(self.generator.recipes['test7'].classes_path[0:2] == ['/opt/coshsh/recipes/test7/classes', '/opt/zisch/tmp'])
+
     def test_create_recipe_check_factories_read(self):
         self.print_header()
         self.generator.add_recipe(name='test4', **dict(self.config.items('recipe_TEST4')))
