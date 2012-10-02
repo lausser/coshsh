@@ -138,6 +138,8 @@ class Item(object):
             self.servicegroups = self.servicegroups.split(',')
         if hasattr(self, "members"):
             self.members = self.members.split(',')
+        if hasattr(self, "parents"):
+            self.parents = self.parents.split(',')
         if hasattr(self, "host_notification_commands"):
             self.host_notification_commands = self.host_notification_commands.split(',')
         if hasattr(self, "service_notification_commands"):
@@ -159,6 +161,8 @@ class Item(object):
             self.servicegroups = ",".join(sorted(self.servicegroups, cmp=locale.strcoll))
         if hasattr(self, "members"):
             self.members = ",".join(sorted(self.members, cmp=locale.strcoll))
+        if hasattr(self, "parents"):
+            self.parents = ",".join(sorted(self.parents, cmp=locale.strcoll))
         if hasattr(self, "host_notification_commands"):
             self.host_notification_commands = ",".join(sorted(self.host_notification_commands, cmp=locale.strcoll))
         if hasattr(self, "service_notification_commands"):
