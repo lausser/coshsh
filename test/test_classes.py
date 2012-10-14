@@ -138,9 +138,14 @@ class CoshshTest(unittest.TestCase):
         self.config.set("datasource_HANDSH", "name", "handshake")
         cfg = self.config.items("datasource_HANDSH")
         ds = Datasource(**dict(cfg))
+        try:
+            hosts, applications, contacts, contactgroups, appdetails, dependencies, bps = ds.read()
+        except Exception, exp:
+            pass
+        self.assert_(exp.__class__.__name__ == "DatasourceNotCurrent")
         cfg = self.config.items("datasource_HANDSH")
-        ds = Datasource(**dict(cfg))
-        self.assert_(ds.dir == "./recipes/test1/data")
+        self.generator.recipes['test8'].add_datasource(**dict(cfg))
+        self.generator.recipes['test8'].collect()
 
     def xtest_rebless_class(self):
         self.print_header()

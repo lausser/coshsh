@@ -20,7 +20,7 @@ from log import logger
 from item import Item
 from application import Application
 from monitoring_detail import MonitoringDetail
-from datasource import Datasource, DatasourceCorrupt, DatasourceNotReady, DatasourceNotAvailable
+from datasource import Datasource, DatasourceCorrupt, DatasourceNotReady, DatasourceNotAvailable, DatasourceNotCurrent
 from util import compare_attr, substenv
 
 
@@ -154,6 +154,9 @@ class Recipe(object):
                 hosts, applications, contacts, contactgroups, appdetails, dependencies, bps = ds.read(filter=filter, intermediate_hosts=self.hosts, intermediate_applications=self.applications)
                 logger.info("recipe %s read from datasource %s %d hosts, %d applications, %d details, %d contacts, %d dependencies, %d business processes" % (self.name, ds.name, len(hosts), len(applications), len(appdetails), len(contacts), len(dependencies), len(bps)))
                 ds.close()
+            except DatasourceNotCurrent:
+                data_valid = False
+                logger.info("datasource %s is is not current" % ds.name)
             except DatasourceNotReady:
                 data_valid = False
                 logger.info("datasource %s is busy" % ds.name)
