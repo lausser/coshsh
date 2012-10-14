@@ -35,6 +35,7 @@ The only thing he knows is name, address and model of his new server and the app
 
 For example, your datasource is a database table with a column names "type". If you want to handle a value of "windows" or "windows 2008" all you need is a class file for it:
 
+[source]
 --------------------------------------
 from application import Application
 from templaterule import TemplateRule
@@ -57,6 +58,7 @@ class Windows(Application):
 The class file will be automatically registered to coshsh. Now whenever a record of type "windows" comes out of your datasource, an object of class Windows is created. (Inside coshsh. You actually won't notice it and you don't have to know about it)
 The only thing you need to know is the relationship between an application's class and some template files. Like this one here:
 
+[source]
 --------------------------------------
 {{ application|service("os_windows_default_check_nsclient") }}
   host_name                       {{ application.host_name }}
