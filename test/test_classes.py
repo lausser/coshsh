@@ -132,6 +132,16 @@ class CoshshTest(unittest.TestCase):
         os_windows_default_cfg = open("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg").read()
         self.assert_('os_windows_default_check_unittest' in os_windows_default_cfg)
 
+    def test_ds_handshake(self):
+        self.print_header()
+        self.generator.add_recipe(name='test8', **dict(self.config.items('recipe_TEST8')))
+        self.config.set("datasource_HANDSH", "name", "handshake")
+        cfg = self.config.items("datasource_HANDSH")
+        ds = Datasource(**dict(cfg))
+        cfg = self.config.items("datasource_HANDSH")
+        ds = Datasource(**dict(cfg))
+        self.assert_(ds.dir == "./recipes/test1/data")
+
     def xtest_rebless_class(self):
         self.print_header()
         self.generator.add_recipe(name='test1', **dict(self.config.items('recipe_TEST1')))
