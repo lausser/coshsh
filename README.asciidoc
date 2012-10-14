@@ -27,11 +27,6 @@ https://github.com/lausser/coshsh/blob/master/Changes[github].
 
 How does it work
 ----------------
-<<<<<<< HEAD
 coshsh reads one or many datasources (which can be files, databases, ldap...) and transforms their contents into host/service/contact-configuration files. Host- and service-definitions are created by filling placeholders in template-files.
-=======
-coshsh reads one or many datasources (which can be files, databases, ldap...) and transforms their contents into host/service/contact-configuration files.
->>>>>>> 42ab7ac1828a520a7ee7940f988927ff95b99714
-
 
 
