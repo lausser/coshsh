@@ -1,7 +1,7 @@
 {{ application|service("os_linux_default_check_ssh") }}
   host_name                       {{ application.host_name }}
   use                             os_linux_default
-  check_command                   check_ssh!60!22
+  check_command                   check_ssh_connect!60!22
 }
 
 {#
