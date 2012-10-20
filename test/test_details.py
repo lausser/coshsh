@@ -16,6 +16,8 @@ from log import logger
 from generator import Generator
 from datasource import Datasource
 from application import Application
+from monitoring_detail import MonitoringDetail
+
 
 class CoshshTest(unittest.TestCase):
     def print_header(self):
@@ -57,7 +59,27 @@ class CoshshTest(unittest.TestCase):
         self.assert_(hasattr(applications[1], "thresholds"))
         self.assert_(hasattr(applications[1].thresholds, "cron_warning"))
         self.assert_(applications[1].thresholds.cron_warning == "31")
-   
+
+
+    def test_detail_url(self):
+        self.print_header()
+        oracle = Application({'name': 'test', 'type': 'generic'})
+        url = MonitoringDetail({'application_name': 'test',
+            'application_type': 'generic',
+            'monitoring_type': 'URL',
+            'monitoring_0': 'oracle://dbadm:pass@dbsrv:1522/svc',
+        })
+        oracle.monitoring_details.append(url)
+        oracle.resolve_monitoring_details()
+        self.assert_(len(oracle.urls) == 1)
+        # consol app_db_oracle class will call wemustrepeat() to create
+        # a fake LOGIN-detail, so there is a oracle.username
+        self.assert_(oracle.urls[0].username == 'dbadm')
+        self.assert_(oracle.urls[0].password == 'pass')
+        self.assert_(oracle.urls[0].hostname == 'dbsrv')
+        self.assert_(oracle.urls[0].port == 1522)
+        # will be without the / in the consol app_db_oracle class
+        self.assert_(oracle.urls[0].path == '/svc')
 
 
 if __name__ == '__main__':
