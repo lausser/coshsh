@@ -13,9 +13,17 @@ class MonitoringDetailKeyvalues(MonitoringDetail):
 
     def __init__(self, params):
         self.monitoring_type = params["monitoring_type"]
-        self.dictionary = {
-            params["monitoring_0"]: params["monitoring_1"],
-            params["monitoring_2"]: params["monitoring_3"],
-            params["monitoring_4"]: params["monitoring_5"],
-        }
+        self.dictionary = { }
+        try:
+            self.dictionary[params["monitoring_0"]] = params["monitoring_1"]
+        except Exception:
+            pass
+        try:
+            self.dictionary[params["monitoring_2"]] = params["monitoring_3"]
+        except Exception:
+            pass
+        try:
+            self.dictionary[params["monitoring_4"]] = params["monitoring_5"]
+        except Exception:
+            pass
 

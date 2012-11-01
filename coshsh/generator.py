@@ -5,6 +5,7 @@ import os
 import sys
 from recipe import Recipe
 from log import logger
+from util import odict
 
 
 class Generator(object):
@@ -13,7 +14,7 @@ class Generator(object):
     messages = []
 
     def __init__(self):
-        self.recipes = {}
+        self.recipes = odict()
 
     def add_recipe(self, *args, **kwargs):
         try:
@@ -28,13 +29,14 @@ class Generator(object):
         for recipe in self.recipes.values():
             try:
                 recipe.count_before_objects()
-                recipe.cleanup_target_dir()
+                #recipe.cleanup_target_dir()
             except Exception, e:
                 print e
                 logger.info("skipping recipe %s" % recipe.name)
             else:
-                recipe.prepare_target_dir()
                 if recipe.collect():
+                    recipe.cleanup_target_dir()
+                    recipe.prepare_target_dir()
                     recipe.render()
                     recipe.output()
 

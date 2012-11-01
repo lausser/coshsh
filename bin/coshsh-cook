@@ -85,7 +85,7 @@ if __name__ == '__main__':
             else:
                 logger.handlers[1].setLevel(INFO)
         if opts.default_recipe:
-            recipes = [opts.default_recipe.lower()]
+            recipes = [r.lower() for r in opts.default_recipe.split(",")]
         else:
             if "defaults" in cookbook.sections() and "recipes" in [c[0] for c in cookbook.items("defaults")]:
                 recipes = [recipe.lower() for recipe in dict(cookbook.items("defaults"))["recipes"].split(",")]

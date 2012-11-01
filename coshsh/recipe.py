@@ -43,6 +43,7 @@ class Recipe(object):
         self.objects_dir = kwargs["objects_dir"]
         self.templates_dir = kwargs.get("templates_dir")
         self.classes_dir = kwargs.get("classes_dir")
+        self.max_delta = kwargs.get("max_delta", 999999)
         self.datasource_names = [ds.lower() for ds in kwargs.get("datasources").split(",")]
         self.filter = kwargs.get("filter")
 
@@ -104,11 +105,16 @@ class Recipe(object):
 
     def prepare_target_dir(self):
         logger.info("recipe %s dynamic_dir %s" % (self.name, self.dynamic_dir))
-        if not os.path.exists(self.dynamic_dir):
-            # will not have been removed with a .git inside
+        try:
             os.mkdir(self.dynamic_dir)
-        os.mkdir(os.path.join(self.dynamic_dir, 'hosts'))
-        os.mkdir(os.path.join(self.dynamic_dir, 'hostgroups'))
+        except Exception:
+            # will not have been removed with a .git inside
+            pass
+        try:
+            os.mkdir(os.path.join(self.dynamic_dir, 'hosts'))
+            os.mkdir(os.path.join(self.dynamic_dir, 'hostgroups'))
+        except Exception:
+            pass
 
 
     def cleanup_target_dir(self):
@@ -258,7 +264,7 @@ class Recipe(object):
 
         logger.info("number of files before: %d hosts, %d applications" % self.old_objects)
         logger.info("number of files after:  %d hosts, %d applications" % self.new_objects)
-        if delta_hosts > 10 or delta_services > 10:
+        if self.max_delta and (delta_hosts > self.max_delta or delta_services > self.max_delta):
             print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
             print "number of hosts changed by %.2f percent" % delta_hosts
             print "number of applications changed by %.2f percent" % delta_services
@@ -320,7 +326,6 @@ class Recipe(object):
         logger.debug("init MonitoringDetail classes (%d)" % len(MonitoringDetail.class_factory))
 
     def add_datasource(self, **kwargs):
-        #print "add a datasource", kwargs
         for key in kwargs.iterkeys():
             kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
         newcls = Datasource.get_class(kwargs)
