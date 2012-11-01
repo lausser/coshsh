@@ -31,6 +31,8 @@ class CoshshTest(unittest.TestCase):
         self.config = ConfigParser.ConfigParser()
         self.config.read('etc/coshsh.cfg')
         self.generator = Generator()
+        self.generator.add_recipe(name='test6', **dict(self.config.items('recipe_TEST6')))
+        self.config.set("datasource_CSVDETAILS", "name", "test6")
 
     def tearDown(self):
         shutil.rmtree("./var/objects/test6", True)
@@ -38,8 +40,6 @@ class CoshshTest(unittest.TestCase):
 
     def test_detail_keyvalues(self):
         self.print_header()
-        self.generator.add_recipe(name='test6', **dict(self.config.items('recipe_TEST6')))
-        self.config.set("datasource_CSVDETAILS", "name", "test6")
         cfg = self.config.items("datasource_CSVDETAILS")
         ds = Datasource(**dict(cfg))
         hosts, applications, contacts, contactgroups, appdetails, dependencies, bps = ds.read()
@@ -62,8 +62,14 @@ class CoshshTest(unittest.TestCase):
 
     def test_detail_url(self):
         self.print_header()
-        oracle = Application({'name': 'test', 'type': 'generic'})
-        url = MonitoringDetail({'application_name': 'test',
+        oracle = Application({
+            'host_name': 'test',
+            'name': 'test',
+            'type': 'generic',
+        })
+        url = MonitoringDetail({
+            'host_name': 'test',
+            'application_name': 'test',
             'application_type': 'generic',
             'monitoring_type': 'URL',
             'monitoring_0': 'oracle://dbadm:pass@dbsrv:1522/svc',
