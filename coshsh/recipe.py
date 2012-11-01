@@ -130,6 +130,7 @@ class Recipe(object):
 
 
     def count_before_objects(self):
+        # if os.path.isdir(self.dynamic_dir) and os.path.exists(os.path.join(self.dynamic_dir, 'hosts')):
         try:
             hosts = len([name for name in os.listdir(os.path.join(self.dynamic_dir, 'hosts')) if os.path.isdir(os.path.join(self.dynamic_dir, 'hosts', name))])
             apps = len([app for host in os.listdir(os.path.join(self.dynamic_dir, 'hosts')) if os.path.isdir(os.path.join(self.dynamic_dir, 'hosts', host)) for app in os.listdir(os.path.join(self.dynamic_dir, 'hosts', host)) if app != 'host.cfg'])

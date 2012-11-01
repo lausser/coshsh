@@ -60,7 +60,6 @@ class CoshshTest(unittest.TestCase):
         self.assert_(hasattr(applications[1].thresholds, "cron_warning"))
         self.assert_(applications[1].thresholds.cron_warning == "31")
 
-
     def test_detail_url(self):
         self.print_header()
         oracle = Application({'name': 'test', 'type': 'generic'})
@@ -81,6 +80,27 @@ class CoshshTest(unittest.TestCase):
         # will be without the / in the consol app_db_oracle class
         self.assert_(oracle.urls[0].path == '/svc')
 
+    def test_detail_ram(self):
+        Application.init_classes([
+            os.path.join(os.path.dirname(__file__), 'recipes/test6/classes'),
+            os.path.join(os.path.dirname(__file__), '../recipes/default/classes')])
+        MonitoringDetail.init_classes([
+            os.path.join(os.path.dirname(__file__), 'recipes/test6/classes'),
+            os.path.join(os.path.dirname(__file__), '../recipes/default/classes')])
+        self.print_header()
+        opsys = Application({'name': 'os', 'type': 'red hat 6.1'})
+        ram = MonitoringDetail({'application_name': 'os',
+            'application_type': 'red hat 6.1',
+            'monitoring_type': 'RAM',
+            'monitoring_0': '80',
+            'monitoring_1': '90',
+        })
+        opsys.monitoring_details.append(ram)
+        for m in opsys.monitoring_details:
+            print "detail", m
+        opsys.resolve_monitoring_details()
+        self.assert_(hasattr(opsys, 'ram'))
+        self.assert_(opsys.ram.warning == '80')
 
 if __name__ == '__main__':
     unittest.main()
