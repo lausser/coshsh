@@ -46,6 +46,7 @@ class Recipe(object):
         self.max_delta = kwargs.get("max_delta", 999999)
         self.datasource_names = [ds.lower() for ds in kwargs.get("datasources").split(",")]
         self.filter = kwargs.get("filter")
+        self.my_jinja2_extensions = kwargs.get("my_jinja2_extensions", None)
 
         self.classes_path = [os.path.join(os.path.dirname(__file__), '../recipes/default/classes')]
         if self.classes_dir:
@@ -70,8 +71,14 @@ class Recipe(object):
         self.jinja2.env.filters['re_escape'] = filter_re_escape
         self.jinja2.env.filters['service'] = filter_service
 
-        
-
+        if self.my_jinja2_extensions:
+            for extension in [e.strip() for e in self.my_jinja2_extensions.split(",")]:
+                imported = getattr(__import__("my_jinja2_extensions", fromlist=[extension]), extension)
+                if extension.startswith("is_"):
+                    self.jinja2.env.tests[extension.replace("is_", "")] = imported
+                elif extension.startswith("filter_"):
+                    self.jinja2.env.filters[extension.replace("filter_", "")] = imported
+            
         self.datasources = []
 
         self.hosts = {}
