@@ -19,7 +19,7 @@ class MonitoringDetailNotImplemented(Exception):
 
 class MonitoringDetail(object):
     class_factory = []
-    lower_columns = ['host_name', 'application_name', 'application_type']
+    lower_columns = ['application_name', 'application_type']
 
     def __init__(self, params):
         #print "Detail init", self.__class__, self.__class__.__name__, len(self.__class__.class_factory)

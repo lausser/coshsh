@@ -11,7 +11,7 @@ class Host(Item):
             self_name="host",
         ),
     ]
-    lower_columns = ['host_name', 'address', 'type', 'os', 'hardware', 'virtual', 'location', 'department']
+    lower_columns = ['address', 'type', 'os', 'hardware', 'virtual', 'location', 'department']
 
 
     def __init__(self, params={}):

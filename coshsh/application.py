@@ -24,7 +24,7 @@ class Application(Item):
     my_type = 'application'
     app_template = "app.tpl"
     class_factory = []
-    lower_columns = ['name', 'type', 'component', 'version', 'patchlevel', 'host_name']
+    lower_columns = ['name', 'type', 'component', 'version', 'patchlevel']
 
 
     def __init__(self, params):
