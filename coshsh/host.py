@@ -24,6 +24,7 @@ class Host(Item):
         self.hostgroups = []
         self.contacts = []
         self.contact_groups = []
+        self.templates = []
         self.ports = [22] # can be changed with a PORT detail
         super(Host, self).__init__(params)
         self.alias = getattr(self, 'alias', self.host_name)
