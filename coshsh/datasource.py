@@ -54,6 +54,14 @@ class Datasource(object):
                 raise DatasourceNotImplemented
         else:
             setattr(self, 'name', params["name"])
+            self.hosts = {}
+            self.applications = {}
+            self.appdetails = {}
+            self.contacts = {}
+            self.contactgroups = {}
+            self.timeperiods = {}
+            self.dependencies = {}
+            self.bps = {}
             pass
         # i am a generic datasource
         # i find a suitable class
