@@ -43,7 +43,12 @@ class Recipe(object):
         self.objects_dir = kwargs["objects_dir"]
         self.templates_dir = kwargs.get("templates_dir")
         self.classes_dir = kwargs.get("classes_dir")
-        self.max_delta = kwargs.get("max_delta", 999999)
+        self.max_delta = kwargs.get("max_delta", ())
+        if isinstance(self.max_delta, str):
+            if ":" in self.max_delta:
+                self.max_delta = tuple(map(int, self.max_delta.split(":")))
+            else:
+                self.max_delta = tuple(map(int, (self.max_delta, self.max_delta)))
         self.datasource_names = [ds.lower() for ds in kwargs.get("datasources").split(",")]
         self.filter = kwargs.get("filter")
         self.my_jinja2_extensions = kwargs.get("my_jinja2_extensions", None)
@@ -271,7 +276,7 @@ class Recipe(object):
 
         logger.info("number of files before: %d hosts, %d applications" % self.old_objects)
         logger.info("number of files after:  %d hosts, %d applications" % self.new_objects)
-        if self.max_delta and (delta_hosts > self.max_delta or delta_services > self.max_delta):
+        if self.max_delta and (delta_hosts > self.max_delta[0] or delta_services > self.max_delta[1]):
             print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
             print "number of hosts changed by %.2f percent" % delta_hosts
             print "number of applications changed by %.2f percent" % delta_services
