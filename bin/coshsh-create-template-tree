@@ -6,7 +6,8 @@ import ConfigParser
 import sys
 import os
 import shutil
-
+from subprocess import Popen, PIPE, STDOUT
+import time
 
 sys.dont_write_bytecode = True
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -30,47 +31,6 @@ class CriticalMessage(GeneratorMessage):
 
 class OkMessage(GeneratorMessage):
     pass
-
-class CSCG(object):
-
-    base_dir = os.path.dirname(os.path.dirname(__file__))
-    messages = []
-
-    def __init__(self):
-        self.recipes = {}
-        self.datasources = {}
-
-
-    def add_recipe(self, *args, **kwargs):
-        try:
-            recipe = Site(**kwargs)
-            self.recipes[kwargs["name"]] = recipe
-        except Exception, e:
-            print e
-        pass
-
-
-    def run(self, template):
-        for recipe in self.recipes.values():
-            #recipe.collect()
-            basedir = recipe.objects_dir + "/static/service_templates"
-            if os.path.exists(recipe.objects_dir):
-                if not os.path.exists(recipe.objects_dir + "/static"):
-                    os.mkdir(recipe.objects_dir + "/static")
-                if not os.path.exists(recipe.objects_dir + "/static/service_templates"):
-                    os.mkdir(recipe.objects_dir + "/static/service_templates")
-
-            while template.find("_") != -1:
-                template, sep, tail = template.rpartition("_")
-                output = "define service {\n  name %s\n  use %s\n  register 0\n}\n" % (template + sep + tail, template)
-                template_file = os.path.join(basedir, template + sep + tail + ".cfg")
-                if not os.path.exists(template_file):
-                    logger.info("create %s" % template_file)
-                    with open(template_file, "w") as f:
-                        f.write(output)
-                else:
-                    logger.info("confirm %s" % template_file)
-
 
 
 if __name__ == '__main__':
@@ -125,6 +85,7 @@ if __name__ == '__main__':
                 os.mkdir(recipe.objects_dir + "/static/service_templates")
 
         template = opts.template_name
+        created = False
         while template.find("_") != -1:
             template, sep, tail = template.rpartition("_")
             output = "define service {\n  name %s\n  use %s\n  register 0\n}\n" % (template + sep + tail, template)
@@ -133,6 +94,19 @@ if __name__ == '__main__':
                 logger.info("create %s" % template_file)
                 with open(template_file, "w") as f:
                     f.write(output)
+                    created = True
             else:
                 logger.info("confirm %s" % template_file)
+        if created and os.path.exists(recipe.objects_dir + '/static/.git'):
+            save_dir = os.getcwd()
+            os.chdir(recipe.objects_dir + '/static')
+            process = Popen(["git", "add", "."], stdout=PIPE, stderr=STDOUT)
+            output, unused_err = process.communicate()
+            retcode = process.poll()
+            commitmsg = time.strftime("%Y-%m-%d-%H-%M-%S") + " create template %s" % (template, )
+            process = Popen(["git", "commit", "-a", "-m", commitmsg], stdout=PIPE, stderr=STDOUT)
+            output, unused_err = process.communicate()
+            retcode = process.poll()
+            print output
+            os.chdir(save_dir)
 
