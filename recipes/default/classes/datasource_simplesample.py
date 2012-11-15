@@ -25,7 +25,7 @@ def __ds_ident__(params={}):
 class SimpleSample(Datasource):
     def __init__(self, **kwargs):
         #self.name = kwargs["name"]
-        self.dir = kwargs["dir"]
+        self.dir = kwargs.get("dir", "/tmp")
         self.hosts = {}
         self.applications = {}
         self.appdetails = {}
