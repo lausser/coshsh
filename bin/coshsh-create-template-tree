@@ -65,7 +65,10 @@ if __name__ == '__main__':
         if opts.default_recipe:
             recipes = [opts.default_recipe.lower()]
         else:
-            recipes = [s.strip().lower() for s in cookbook.get("defaults", "recipes").split(",")]
+            try:
+                recipes = [s.strip().lower() for s in cookbook.get("defaults", "recipes").split(",")]
+            except Exception:
+                recipes = []
         print "recipes is", recipes
         for recipe in [section for section in cookbook.sections() if section.startswith('recipe_')]:
             if recipe.replace("recipe_", "", 1).lower() in recipes:
