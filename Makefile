@@ -7,6 +7,12 @@ clean:
 
 pack:
 	tar --exclude .git \
+		--exclude Changelog \
+		--exclude Makefile \
+		--exclude README \
+		--exclude README.asciidoc \
+		--exclude README.de.asciidoc \
+		--exclude TODO \
 		--exclude test \
 		--exclude coshsh.tgz \
 		--exclude coshsh.log \
