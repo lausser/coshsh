@@ -200,27 +200,30 @@ class Item(object):
         self.load_cfg_template_cache(template_cache, jinja2)
         for rule in self.template_rules:
             render_this = False
-            if not rule.needsattr:
-                # TemplateRule(template="os_solaris_default")
-                render_this = True
-
-            elif (hasattr(self, rule.needsattr) and rule.isattr == None):
-                # TemplateRule(needsattr=None,template="os_solaris_default")
-                render_this = True
-
-            elif hasattr(self, rule.needsattr) and not isinstance (getattr(self, rule.needsattr), list) and ((getattr(self, rule.needsattr) == rule.isattr) or re.match(rule.isattr, getattr(self, rule.needsattr))):
-                # TemplateRule(needsattr="cluster", isattr="veritas",
-                #     template="os_solaris_cluster_veritas")
-                render_this = True
-
-            elif hasattr(self, rule.needsattr) and isinstance (getattr(self, rule.needsattr), list) and [elem for elem in getattr(self, rule.needsattr) if (elem == rule.isattr or re.match(rule.isattr, elem))]:
-                # TemplateRule(needsattr="hostgroups",
-                #     isattr="cluster_solaris_veritas.*",
-                #     template="os_solaris_cluster_veritas")
-                render_this = True
-                
-            elif hasattr(self, rule.needsattr) and isinstance (getattr(self, rule.needsattr), list):
-                pass
+            try:
+                if not rule.needsattr:
+                    # TemplateRule(template="os_solaris_default")
+                    render_this = True
+    
+                elif (hasattr(self, rule.needsattr) and rule.isattr == None):
+                    # TemplateRule(needsattr=None,template="os_solaris_default")
+                    render_this = True
+    
+                elif hasattr(self, rule.needsattr) and not isinstance (getattr(self, rule.needsattr), list) and ((getattr(self, rule.needsattr) == rule.isattr) or re.match(rule.isattr, getattr(self, rule.needsattr))):
+                    # TemplateRule(needsattr="cluster", isattr="veritas",
+                    #     template="os_solaris_cluster_veritas")
+                    render_this = True
+    
+                elif hasattr(self, rule.needsattr) and isinstance (getattr(self, rule.needsattr), list) and [elem for elem in getattr(self, rule.needsattr) if (elem == rule.isattr or re.match(rule.isattr, elem))]:
+                    # TemplateRule(needsattr="hostgroups",
+                    #     isattr="cluster_solaris_veritas.*",
+                    #     template="os_solaris_cluster_veritas")
+                    render_this = True
+                    
+                elif hasattr(self, rule.needsattr) and isinstance (getattr(self, rule.needsattr), list):
+                    pass
+            except Exception:
+                logger.critical("error in %s template rules. please check %s" % (self.__class__.__name__, rule))
 
             if render_this:
                 if rule.unique_config and hasattr(self, rule.unique_attr):
