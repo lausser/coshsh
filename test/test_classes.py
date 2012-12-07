@@ -36,7 +36,6 @@ class CoshshTest(unittest.TestCase):
     def test_create_recipe_check_paths(self):
         self.print_header()
         self.generator.add_recipe(name='test4', **dict(self.config.items('recipe_TEST4')))
-        self.assert_(os.path.abspath(self.generator.recipes['test4'].dynamic_dir) == os.path.abspath('./var/objects/test1/dynamic'))
         self.assert_(os.path.abspath(self.generator.recipes['test4'].classes_path[0]) == os.path.abspath('./recipes/test4/classes'))
         self.assert_(os.path.abspath(self.generator.recipes['test4'].templates_path[0]) == os.path.abspath('recipes/test4/templates'))
         self.assert_(os.path.abspath(self.generator.recipes['test4'].jinja2.loader.searchpath[0]) == os.path.abspath('recipes/test4/templates'))
@@ -98,7 +97,6 @@ class CoshshTest(unittest.TestCase):
         self.assert_(applications[0].mycorp_linux == True)
         self.assert_(applications[1].test4_windows == True)
 
-
     def test_create_recipe_check_factories_write(self):
         self.print_header()
         self.generator.add_recipe(name='test4', **dict(self.config.items('recipe_TEST4')))
@@ -115,8 +113,46 @@ class CoshshTest(unittest.TestCase):
 
         # read the datasources
         self.generator.recipes['test4'].collect()
+
+        # for each host, application get the corresponding template files
+        # get the template files and cache them in a struct owned by the recipe
+        # resolve the templates and attach the result as config_files to host/app
+        self.generator.recipes['test4'].render()
+        self.assert_(hasattr(self.generator.recipes['test4'].hosts['test_host_0'], 'config_files'))
+        self.assert_('host.cfg' in self.generator.recipes['test4'].hosts['test_host_0'].config_files)
+
+        # write hosts/apps to the filesystem
+        self.generator.recipes['test4'].output()
+        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts"))
+        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0"))
+        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0/os_linux_default.cfg"))
+        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg"))
+        os_windows_default_cfg = open("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg").read()
+        self.assert_('os_windows_default_check_unittest' in os_windows_default_cfg)
+
+
+    def test_create_recipe_check_factories_write2(self):
+        self.print_header()
+        self.generator.add_recipe(name='test4', **dict(self.config.items('recipe_TEST4B')))
+        self.config.set("datasource_SIMPLESAMPLE", "name", "simplesample")
+        cfg = self.config.items("datasource_SIMPLESAMPLE")
+        self.generator.recipes['test4'].add_datasource(**dict(cfg))
+        self.config.set("datarecipient_SIMPLESAMPLE2", "name", "simplesample")
+        cfg = self.config.items("datarecipient_SIMPLESAMPLE2")
+        self.generator.recipes['test4'].add_datarecipient(**dict(cfg))
+
+
+        # remove target dir / create empty
+        self.generator.recipes['test4'].count_before_objects()
+        self.generator.recipes['test4'].cleanup_target_dir()
+
+        self.generator.recipes['test4'].prepare_target_dir()
+        # check target
+
+        # read the datasources
+        self.generator.recipes['test4'].collect()
         
-        # for each host, application get the corresponging template files
+        # for each host, application get the corresponding template files
         # get the template files and cache them in a struct owned by the recipe
         # resolve the templates and attach the result as config_files to host/app
         self.generator.recipes['test4'].render()
@@ -145,7 +181,8 @@ class CoshshTest(unittest.TestCase):
         self.assert_(exp.__class__.__name__ == "DatasourceNotCurrent")
         cfg = self.config.items("datasource_HANDSH")
         self.generator.recipes['test8'].add_datasource(**dict(cfg))
-        self.generator.recipes['test8'].collect()
+        coll_success = self.generator.recipes['test8'].collect()
+        self.assert_(coll_success == False)
 
     def xtest_rebless_class(self):
         self.print_header()

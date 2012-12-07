@@ -24,12 +24,3 @@ class ContactGroup(Item):
     def __str__(self):
         return "contactgroup %s" % self.contactgroup_name
 
-
-    def write_config(self, target_dir):
-        my_target_dir = os.path.join(target_dir, "contactgroups")
-        if not os.path.exists(my_target_dir):
-            os.mkdir(my_target_dir)
-        for file in self.config_files:
-            content = self.config_files[file]
-            with open(os.path.join(my_target_dir, file), "w") as f:
-                f.write(content)

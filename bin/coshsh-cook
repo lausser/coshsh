@@ -62,12 +62,15 @@ if __name__ == '__main__':
     if opts.cookbook_file:
         recipe_configs = {}
         datasource_configs = {}
+        datarecipient_configs = {}
         cookbook = ConfigParser.ConfigParser()
         cookbook.read(opts.cookbook_file)
         if cookbook._sections == {}:
             print "Bad or missing cookbook file : %s " % opts.cookbook_file
             sys.exit(2)
             
+        for ds in [section for section in cookbook.sections() if section.startswith('datarecipient_')]:
+            datarecipient_configs[ds.replace("datarecipient_", "", 1).lower()] = cookbook.items(ds) + [('name', ds.replace("datarecipient_", "", 1).lower())]
         for ds in [section for section in cookbook.sections() if section.startswith('datasource_')]:
             datasource_configs[ds.replace("datasource_", "", 1).lower()] = cookbook.items(ds) + [('name', ds.replace("datasource_", "", 1).lower())]
         for recipe in [section for section in cookbook.sections() if section.startswith('recipe_')]:
@@ -99,6 +102,15 @@ if __name__ == '__main__':
                         generator.recipes[recipe].add_datasource(**dict(datasource_configs[ds]))
                     else:
                         parser.error("Datasource %s is unknown" % ds)
+                for dr in generator.recipes[recipe].datarecipient_names:
+                    print "dr is", dr
+                    if dr == "datarecipient_coshsh_default":
+                        # implicitely added by recipe.__init__
+                        pass
+                    elif dr in datarecipient_configs.keys():
+                        generator.recipes[recipe].add_datarecipient(**dict(datarecipient_configs[dr]))
+                    else:
+                        parser.error("Datarecipient %s is unknown" % dr)
             else:
                 parser.error("Recipe %s is unknown" % recipe)
     else:

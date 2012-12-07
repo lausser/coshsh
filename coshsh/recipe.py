@@ -8,7 +8,6 @@
 import sys
 import os
 import re
-import shutil
 import inspect
 import time
 #sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -21,6 +20,7 @@ from item import Item
 from application import Application
 from monitoring_detail import MonitoringDetail
 from datasource import Datasource, DatasourceCorrupt, DatasourceNotReady, DatasourceNotAvailable, DatasourceNotCurrent
+from datarecipient import Datarecipient, DatarecipientCorrupt, DatarecipientNotReady, DatarecipientNotAvailable, DatarecipientNotCurrent
 from util import compare_attr, substenv
 
 
@@ -40,7 +40,6 @@ class Recipe(object):
             kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
         self.name = kwargs["name"]
         logger.info("recipe %s init" % self.name)
-        self.objects_dir = kwargs["objects_dir"]
         self.templates_dir = kwargs.get("templates_dir")
         self.classes_dir = kwargs.get("classes_dir")
         self.max_delta = kwargs.get("max_delta", ())
@@ -49,8 +48,6 @@ class Recipe(object):
                 self.max_delta = tuple(map(int, self.max_delta.split(":")))
             else:
                 self.max_delta = tuple(map(int, (self.max_delta, self.max_delta)))
-        self.datasource_names = [ds.lower() for ds in kwargs.get("datasources").split(",")]
-        self.filter = kwargs.get("filter")
         self.my_jinja2_extensions = kwargs.get("my_jinja2_extensions", None)
 
         self.classes_path = [os.path.join(os.path.dirname(__file__), '../recipes/default/classes')]
@@ -63,7 +60,6 @@ class Recipe(object):
             for path in reversed([p.strip() for p in self.templates_dir.split(',')]):
                 self.templates_path.insert(0, path)
             logger.debug("recipe.templates_path reloaded %s" % ':'.join(self.templates_path))
-        logger.info("recipe %s objects_dir %s" % (self.name, os.path.abspath(self.objects_dir)))
         logger.info("recipe %s classes_dir %s" % (self.name, ','.join([os.path.abspath(p) for p in self.classes_path])))
         logger.info("recipe %s templates_dir %s" % (self.name, ','.join([os.path.abspath(p) for p in self.templates_path])))
 
@@ -85,8 +81,10 @@ class Recipe(object):
                     self.jinja2.env.filters[extension.replace("filter_", "")] = imported
             
         self.datasources = []
+        self.datarecipients = []
 
         self.hosts = {}
+        self.hostgroups = {}
         self.applications = {}
         self.appdetails = {}
         self.contacts = {}
@@ -94,18 +92,32 @@ class Recipe(object):
         self.dependencies = {}
         self.bps = {}
 
-        self.hostgroups = {}
+        self.old_objects = (0, 0)
+        self.new_objects = (0, 0)
 
         self.datasource_filters = {}
+        self.filter = kwargs.get("filter")
         if kwargs.get("filter"):
             for rule in kwargs.get("filter").split(','):
                 match = re.match(r'(\w+)\((.*)\)', rule)
                 if match:
                     self.datasource_filters[match.groups()[0].lower()] = match.groups()[1]
-        self.static_dir = os.path.join(self.objects_dir, 'static')
-        self.dynamic_dir = os.path.join(self.objects_dir, 'dynamic')
         self.init_class_cache()
 
+        if kwargs.get("datasources"):
+            self.datasource_names = [ds.lower() for ds in kwargs.get("datasources").split(",")]
+        else:
+            self.datasource_names = []
+        if kwargs.get("objects_dir") and not kwargs.get("datarecipients"):
+            self.objects_dir = kwargs["objects_dir"]
+            logger.info("recipe %s objects_dir %s" % (self.name, os.path.abspath(self.objects_dir)))
+            self.datarecipient_names = ["datarecipient_coshsh_default"]
+            self.add_datarecipient(**dict([('type', 'datarecipient_coshsh_default'), ('name', 'datarecipient_coshsh_default'), ('objects_dir', self.objects_dir), ('max_delta', self.max_delta)]))
+        elif kwargs.get("objects_dir") and kwargs.get("datarecipients"):
+            logger.warn("recipe %s delete parameter objects_dir (use datarecipients instead)" % (self.name, ))
+            self.datarecipient_names = [ds.lower() for ds in kwargs.get("datarecipients").split(",")]
+        else:
+            self.datarecipient_names = [ds.lower() for ds in kwargs.get("datarecipients").split(",")]
 
     def set_recipe_sys_path(self):
         for p in [p for p in reversed(self.classes_path) if os.path.exists(p) and os.path.isdir(p)]:
@@ -114,55 +126,6 @@ class Recipe(object):
     def unset_recipe_sys_path(self):
         for p in [p for p in self.classes_path if os.path.exists(p) and os.path.isdir(p)]:
             sys.path.pop(0)
-
-    def prepare_target_dir(self):
-        logger.info("recipe %s dynamic_dir %s" % (self.name, self.dynamic_dir))
-        try:
-            os.mkdir(self.dynamic_dir)
-        except Exception:
-            # will not have been removed with a .git inside
-            pass
-        try:
-            os.mkdir(os.path.join(self.dynamic_dir, 'hosts'))
-            os.mkdir(os.path.join(self.dynamic_dir, 'hostgroups'))
-        except Exception:
-            pass
-
-
-    def cleanup_target_dir(self):
-        if os.path.isdir(self.dynamic_dir):
-            try:
-                if os.path.exists(self.dynamic_dir + "/.git"):
-                    for subdir in [sd for sd in os.listdir(self.dynamic_dir) if sd != ".git"]:
-                        logger.info("recipe %s remove dynamic_dir %s" % (self.name, self.dynamic_dir + "/" + subdir))
-                        shutil.rmtree(self.dynamic_dir + "/" + subdir)
-                else:
-                    logger.info("recipe %s remove dynamic_dir %s" % (self.name, self.dynamic_dir))
-                    shutil.rmtree(self.dynamic_dir)
-            except Exception as e:
-                logger.info("recipe %s has problems with dynamic_dir %s" % (self.name, self.dynamic_dir))
-                logger.info(e)
-                raise e
-        else:
-            logger.info("recipe %s dynamic_dir %s does not exist" % (self.name, self.dynamic_dir))
-
-
-    def count_before_objects(self):
-        # if os.path.isdir(self.dynamic_dir) and os.path.exists(os.path.join(self.dynamic_dir, 'hosts')):
-        try:
-            hosts = len([name for name in os.listdir(os.path.join(self.dynamic_dir, 'hosts')) if os.path.isdir(os.path.join(self.dynamic_dir, 'hosts', name))])
-            apps = len([app for host in os.listdir(os.path.join(self.dynamic_dir, 'hosts')) if os.path.isdir(os.path.join(self.dynamic_dir, 'hosts', host)) for app in os.listdir(os.path.join(self.dynamic_dir, 'hosts', host)) if app != 'host.cfg'])
-            self.old_objects = (hosts, apps)
-        except Exception:
-            self.old_objects = (0, 0)
-
-    def count_after_objects(self):
-        if os.path.isdir(self.dynamic_dir):
-            hosts = len([name for name in os.listdir(os.path.join(self.dynamic_dir, 'hosts')) if os.path.isdir(os.path.join(self.dynamic_dir, 'hosts', name))])
-            apps = len([app for host in os.listdir(os.path.join(self.dynamic_dir, 'hosts')) if os.path.isdir(os.path.join(self.dynamic_dir, 'hosts', host)) for app in os.listdir(os.path.join(self.dynamic_dir, 'hosts', host)) if app != 'host.cfg'])
-            self.new_objects = (hosts, apps)
-        else:
-            self.new_objects = (0, 0)
 
     def collect(self):
         data_valid = True
@@ -250,80 +213,37 @@ class Recipe(object):
         #if self.classes_dir:
         #    Item.reload_template_path()
             
+    def count_before_objects(self):
+        for datarecipient in self.datarecipients:
+            datarecipient.count_before_objects()
+        self.old_objects = (sum([dr.old_objects[0] for dr in self.datarecipients], 0), sum([dr.old_objects[1] for dr in self.datarecipients], 0))
 
+    def count_after_objects(self):
+        for datarecipient in self.datarecipients:
+            datarecipient.count_after_objects()
+        self.new_objects = (sum(0, [dr.new_objects[0] for dr in self.datarecipients]), sum(0, [dr.new_objects[1] for dr in self.datarecipients]))
+
+    def cleanup_target_dir(self):
+        for datarecipient in self.datarecipients:
+            datarecipient.cleanup_target_dir()
+
+    def prepare_target_dir(self):
+        for datarecipient in self.datarecipients:
+            datarecipient.prepare_target_dir()
 
     def output(self):
-        delta_hosts, delta_services = 0, 0
-        for hostgroup in self.hostgroups.values():
-            hostgroup.write_config(self.dynamic_dir)
-        for host in self.hosts.values():
-            host.write_config(self.dynamic_dir)
-        for app in self.applications.values():
-            app.write_config(self.dynamic_dir)
-        for cg in self.contactgroups.values():
-            cg.write_config(self.dynamic_dir)
-        for c in self.contacts.values():
-            c.write_config(self.dynamic_dir)
-        self.count_after_objects()
-        try:
-            delta_hosts = 100 * abs(self.new_objects[0] - self.old_objects[0]) / self.old_objects[0]
-            delta_services = 100 * abs(self.new_objects[1] - self.old_objects[1]) / self.old_objects[1]
-        except Exception, e:
-            #print e
-            # if there are no objects in the dyndir yet, this results in a
-            # division by zero
-            pass
-
-        logger.info("number of files before: %d hosts, %d applications" % self.old_objects)
-        logger.info("number of files after:  %d hosts, %d applications" % self.new_objects)
-        if self.max_delta and (delta_hosts > self.max_delta[0] or delta_services > self.max_delta[1]):
-            print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-            print "number of hosts changed by %.2f percent" % delta_hosts
-            print "number of applications changed by %.2f percent" % delta_services
-            print "please check your datasource before activating this config."
-            print "if you use a git repository, you can go back to the last"
-            print "valid configuration with the following commands:"
-            print "cd %s" % self.dynamic_dir
-            print "git reset --hard"
-            print "git checkout ."
-            print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-        
-        elif os.path.exists(self.dynamic_dir + '/.git'):
-            logger.debug("dynamic_dir is a git repository")
-        
-            save_dir = os.getcwd()
-            os.chdir(self.dynamic_dir)
-            print "git add------------------"
-            process = Popen(["git", "add", "."], stdout=PIPE, stderr=STDOUT)
-            output, unused_err = process.communicate()
-            retcode = process.poll()
-            print output 
-            commitmsg = time.strftime("%Y-%m-%d-%H-%M-%S") + " %d hostfiles,%d appfiles" % (self.new_objects[0], self.new_objects[1])
-            print "git commit------------------"
-            print "commit-comment", commitmsg
-            process = Popen(["git", "commit", "-a", "-m", commitmsg], stdout=PIPE, stderr=STDOUT)
-            output, unused_err = process.communicate()
-            retcode = process.poll()
-            print output 
-            os.chdir(save_dir)
-            self.analyze_output(output)
-
-    def analyze_output(self, output):
-        add_hosts = []
-        del_hosts = []
-        for line in output.split("\n"):
-            #create mode 100644 hosts/libmbp1.naxgroup.net/host.cfg
-            match = re.match(r'\s*create mode.*hosts/(.*)/host.cfg', line)
-            if match:
-                add_hosts.append(match.group(1))
-            #delete mode 100644 hosts/litxd01.emea.gdc/host.cfg
-            match = re.match(r'\s*delete mode.*hosts/(.*)/host.cfg', line)
-            if match:
-                del_hosts.append(match.group(1))
-        if add_hosts:
-            logger.info("add hosts: %s" % ','.join(add_hosts))
-        if del_hosts:
-            logger.info("del hosts: %s" % ','.join(del_hosts))
+        for datarecipient in self.datarecipients:
+            datarecipient.count_before_objects()
+            datarecipient.load(None, {
+                'hosts': self.hosts,
+                'hostgroups': self.hostgroups,
+                'applications': self.applications,
+                'contacts': self.contacts,
+                'contactgroups': self.contactgroups,
+            })
+            datarecipient.cleanup_target_dir()
+            datarecipient.prepare_target_dir()
+            datarecipient.output()
 
     def read(self):
         return self.hosts.values(), self.applications.values(), self.appdetails, self.contacts, self.dependencies, self.bps
@@ -332,17 +252,27 @@ class Recipe(object):
     def init_class_cache(self):
         Datasource.init_classes(self.classes_path)
         logger.debug("init Datasource classes (%d)" % len(Datasource.class_factory))
+        Datarecipient.init_classes(self.classes_path)
+        logger.debug("init Datarecipient classes (%d)" % len(Datarecipient.class_factory))
         Application.init_classes(self.classes_path)
         logger.debug("init Application classes (%d)" % len(Application.class_factory))
         MonitoringDetail.init_classes(self.classes_path)
         logger.debug("init MonitoringDetail classes (%d)" % len(MonitoringDetail.class_factory))
 
     def add_datasource(self, **kwargs):
-        for key in kwargs.iterkeys():
+        for key in [k for k in kwargs.iterkeys() if isinstance(kwargs[k], str)]:
             kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
         newcls = Datasource.get_class(kwargs)
         if newcls:
             datasource = newcls(**kwargs)
             self.datasources.append(datasource)
+
+    def add_datarecipient(self, **kwargs):
+        for key in [k for k in kwargs.iterkeys() if isinstance(kwargs[k], str)]:
+            kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
+        newcls = Datarecipient.get_class(kwargs)
+        if newcls:
+            datarecipient = newcls(**kwargs)
+            self.datarecipients.append(datarecipient)
 
 

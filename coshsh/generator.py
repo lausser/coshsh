@@ -28,15 +28,11 @@ class Generator(object):
     def run(self):
         for recipe in self.recipes.values():
             try:
-                recipe.count_before_objects()
-                #recipe.cleanup_target_dir()
-            except Exception, e:
-                print e
-                logger.info("skipping recipe %s" % recipe.name)
-            else:
                 if recipe.collect():
-                    recipe.cleanup_target_dir()
-                    recipe.prepare_target_dir()
                     recipe.render()
                     recipe.output()
+            except Exception, exp:
+                logger.info("skipping recipe %s (%s)" % (recipe.name, exp))
+            else:
+                pass
 
