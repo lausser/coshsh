@@ -37,7 +37,7 @@ class SimpleSample(Datasource):
         self.bps = {}
         self.only_the_test_simplesample = True
 
-    def read(self, filter=None, intermediate_hosts=[], intermediate_applications=[]):
+    def read(self, filter=None, intermediate_objects={}):
         logger.info('read items from simplesample')
         hostdata = {
             'host_name': 'test_host_0',
@@ -74,5 +74,10 @@ class SimpleSample(Datasource):
         a = Application(appdata)
         self.applications[a.fingerprint()] = a
         
-        return self.hosts.values(), self.applications.values(), self.contacts.values(), self.contactgroups.values(), self.appdetails, self.dependencies, self.bps
+        return {
+            'hosts': self.hosts,
+            'applications': self.applications,
+            'contacts': self.contacts,
+            'contactgroups': self.contactgroups,
+        }
 

@@ -18,6 +18,7 @@ from jinja2_extensions import is_re_match, filter_re_sub, filter_re_escape, filt
 from log import logger
 from item import Item
 from application import Application
+from hostgroup import Hostgroup
 from monitoring_detail import MonitoringDetail
 from datasource import Datasource, DatasourceCorrupt, DatasourceNotReady, DatasourceNotAvailable, DatasourceNotCurrent
 from datarecipient import Datarecipient, DatarecipientCorrupt, DatarecipientNotReady, DatarecipientNotAvailable, DatarecipientNotCurrent
@@ -83,15 +84,17 @@ class Recipe(object):
         self.datasources = []
         self.datarecipients = []
 
-        self.hosts = {}
-        self.hostgroups = {}
-        self.applications = {}
-        self.appdetails = {}
-        self.contacts = {}
-        self.contactgroups = {}
-        self.dependencies = {}
-        self.bps = {}
-
+        self.objects = {
+            'hosts': {},
+            'hostgroups': {},
+            'applications': {},
+            'appdetails': {},
+            'contacts': {},
+            'contactgroups': {},
+            'dependencies': {},
+            'bps': {},
+        }
+        
         self.old_objects = (0, 0)
         self.new_objects = (0, 0)
 
@@ -133,8 +136,16 @@ class Recipe(object):
             filter = self.datasource_filters.get(ds.name)
             try:
                 ds.open()
-                hosts, applications, contacts, contactgroups, appdetails, dependencies, bps = ds.read(filter=filter, intermediate_hosts=self.hosts, intermediate_applications=self.applications)
-                logger.info("recipe %s read from datasource %s %d hosts, %d applications, %d details, %d contacts, %d dependencies, %d business processes" % (self.name, ds.name, len(hosts), len(applications), len(appdetails), len(contacts), len(dependencies), len(bps)))
+                ds_objects = ds.read(filter=filter, intermediate_objects=self.objects)
+                for key in ds_objects.keys():
+                    if key not in self.objects:
+                        self.objects[key] = {}
+                    for okey in ds_objects[key].keys():
+                        self.objects[key][okey] = ds_objects[key][okey]
+                    
+                #logger.info("recipe %s read from datasource %s %d hosts, %d applications, %d details, %d contacts, %d dependencies, %d business processes" % (self.name, ds.name, len(hosts), len(applications), len(appdetails), len(contacts), len(dependencies), len(bps)))
+                logger.info("recipe %s read from datasource %s %s" % (self.name, ds.name, ", ".join(["%d %s" % (len(ds_objects[k]), k) for k in ds_objects.keys()])))
+
                 ds.close()
             except DatasourceNotCurrent:
                 data_valid = False
@@ -151,31 +162,23 @@ class Recipe(object):
             if not data_valid:
                 logger.info("aborting collection phase") 
                 return False
-            for host in hosts:
-                self.hosts[host.host_name] = host
-            for app in applications:
-                self.applications[app.fingerprint()] = app
-            for cg in contactgroups:
-                self.contactgroups[cg.contactgroup_name] = cg
-            for c in contacts:
-                self.contacts[c.fingerprint()] = c
 
-        for host in self.hosts.values():
+        for host in self.objects['hosts'].values():
             host.resolve_monitoring_details()
             host.create_templates()
             host.create_hostgroups()
             host.create_contacts()
             for hostgroup in host.hostgroups:
                 try:
-                    self.hostgroups[hostgroup].append(host.host_name)
+                    self.objects['hostgroups'][hostgroup].append(host.host_name)
                 except Exception:
-                    self.hostgroups[hostgroup] = []
-                    self.hostgroups[hostgroup].append(host.host_name)
+                    self.objects['hostgroups'][hostgroup] = []
+                    self.objects['hostgroups'][hostgroup].append(host.host_name)
 
         orphaned_applications = []
-        for app in self.applications.values():
+        for app in self.objects['applications'].values():
             try:
-                setattr(app, 'host', self.hosts[app.host_name])
+                setattr(app, 'host', self.objects['hosts'][app.host_name])
                 app.resolve_monitoring_details()
                 app.create_templates()
                 app.create_servicegroups()
@@ -184,34 +187,30 @@ class Recipe(object):
                 logger.info("application %s %s refers to non-existing host %s" % (app.name, app.type, app.host_name))
                 orphaned_applications.append(app.fingerprint())
         for oa in orphaned_applications:
-            del self.applications[oa]
+            del self.objects['applications'][oa]
 
-        from hostgroup import Hostgroup
-        for (hostgroup_name, members) in self.hostgroups.items():
+        for (hostgroup_name, members) in self.objects['hostgroups'].items():
             logger.debug("creating hostgroup %s" % hostgroup_name)
-            self.hostgroups[hostgroup_name] = Hostgroup({ "hostgroup_name" : hostgroup_name, "members" : members})
-            self.hostgroups[hostgroup_name].create_templates()
-            self.hostgroups[hostgroup_name].create_contacts()
+            self.objects['hostgroups'][hostgroup_name] = Hostgroup({ "hostgroup_name" : hostgroup_name, "members" : members})
+            self.objects['hostgroups'][hostgroup_name].create_templates()
+            self.objects['hostgroups'][hostgroup_name].create_contacts()
 
         return True
  
-
     def render(self):
         template_cache = {}
-        for host in self.hosts.values():
+        for host in self.objects['hosts'].values():
             host.render(template_cache, self.jinja2)
-        for app in self.applications.values():
+        for app in self.objects['applications'].values():
             # because of this __new__ construct the Item.searchpath is
             # not inherited. Needs to be done explicitely
             app.render(template_cache, self.jinja2)
-        for cg in self.contactgroups.values():
+        for cg in self.objects['contactgroups'].values():
             cg.render(template_cache, self.jinja2)
-        for c in self.contacts.values():
+        for c in self.objects['contacts'].values():
             c.render(template_cache, self.jinja2)
-        for hg in self.hostgroups.values():
+        for hg in self.objects['hostgroups'].values():
             hg.render(template_cache, self.jinja2)
-        #if self.classes_dir:
-        #    Item.reload_template_path()
             
     def count_before_objects(self):
         for datarecipient in self.datarecipients:
@@ -234,19 +233,13 @@ class Recipe(object):
     def output(self):
         for datarecipient in self.datarecipients:
             datarecipient.count_before_objects()
-            datarecipient.load(None, {
-                'hosts': self.hosts,
-                'hostgroups': self.hostgroups,
-                'applications': self.applications,
-                'contacts': self.contacts,
-                'contactgroups': self.contactgroups,
-            })
+            datarecipient.load(None, self.objects)
             datarecipient.cleanup_target_dir()
             datarecipient.prepare_target_dir()
             datarecipient.output()
 
     def read(self):
-        return self.hosts.values(), self.applications.values(), self.appdetails, self.contacts, self.dependencies, self.bps
+        return self.objects
 
 
     def init_class_cache(self):

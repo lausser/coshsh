@@ -40,6 +40,11 @@ class SimpleSample(Datasource):
 
     def read(self, filter=None, intermediate_hosts=[], intermediate_applications=[]):
         logger.info('read items from simplesample')
-        return self.hosts.values(), self.applications.values(), self.contacts.values(), self.contactgroups.values(), self.appdetails, self.dependencies, self.bps
+        return {
+            'hosts': self.hosts,
+            'applications': self.applications,
+            'contacts': self.contacts,
+            'contactgroups': self.contactgroups,
+        }
 
 

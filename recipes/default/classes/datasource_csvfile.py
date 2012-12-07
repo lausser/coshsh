@@ -55,7 +55,7 @@ class CsvFile(Datasource):
             logger.error('csv dir %s does not exist' % self.dir)
             raise DatasourceNotAvailable
 
-    def read(self, filter=None, intermediate_hosts={}, intermediate_applications={}):
+    def read(self, filter=None, intermediate_objects={}):
         try:
             hostreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_hosts.csv'))))
             logger.info('read hosts from %s' % os.path.join(self.dir, self.name+'_hosts.csv'))
@@ -70,7 +70,7 @@ class CsvFile(Datasource):
             h = Host(row)
             self.hosts[h.host_name] = h
 
-        intermediate_hosts = dict(intermediate_hosts.items() + self.hosts.items())
+        intermediate_hosts = dict(intermediate_objects['hosts'].items() + self.hosts.items())
 
         try:
             appreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_applications.csv'))))
@@ -99,7 +99,7 @@ class CsvFile(Datasource):
             a = Application(row)
             self.applications["%s+%s+%s" % (a.host_name, a.name, a.type)] = a
 
-        intermediate_applications = dict(intermediate_applications.items() + self.applications.items())
+        intermediate_applications = dict(intermediate_objects['applications'].items() + self.applications.items())
 
         try:
             appdetailreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_applicationdetails.csv'))))
@@ -179,5 +179,10 @@ class CsvFile(Datasource):
                 c.contactgroups.extend(row["groups"].split(":"))
                 self.contacts[c.fingerprint()] = c
 
-        return self.hosts.values(), self.applications.values(), self.contacts.values(), self.contactgroups.values(), self.appdetails, self.dependencies, self.bps
+        return {
+            'hosts': self.hosts,
+            'applications': self.applications,
+            'contacts': self.contacts,
+            'contactgroups': self.contactgroups,
+        }
 

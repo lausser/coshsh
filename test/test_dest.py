@@ -97,10 +97,10 @@ class CoshshTest(unittest.TestCase):
         self.generator.recipes['recp'].add_datarecipient(**datareceiver)
         self.generator.recipes['recp'].collect()
         mcid = 1
-        for host in self.generator.recipes['recp'].hosts.values():
+        for host in self.generator.recipes['recp'].objects['hosts'].values():
             setattr(host, "mcid", "%010d" % mcid)
             mcid += 1
-        for app in self.generator.recipes['recp'].applications.values():
+        for app in self.generator.recipes['recp'].objects['applications'].values():
             setattr(app, "mcid", "%010d" % mcid)
             mcid += 1
         self.generator.recipes['recp'].render()
