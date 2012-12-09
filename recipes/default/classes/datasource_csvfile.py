@@ -169,5 +169,4 @@ class CsvFile(Datasource):
                 c.contactgroups.extend(row["groups"].split(":"))
                 self.add('contacts', c)
 
-        return 
 

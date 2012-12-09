@@ -78,7 +78,7 @@ class DrCloud(Datarecipient):
         logger.info('write items to simplesample')
         logger.info("writing...")
         dyndir = self.dynamic_dir
-        for app in self.applications.values():
+        for app in self.objects['applications'].values():
             self.item_write_config(app, self.dynamic_dir, os.path.join("mcids", app.mcid))
         self.count_after_objects()
         try:

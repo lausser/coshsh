@@ -115,6 +115,13 @@ class Item(object):
             self.monitoring_details.remove(detail)
         if details:
             self.wemustrepeat()
+        # example: if we have self.ports
+        # and self.ports[0] has an inside property ports
+        # and self has d default property port (set in __init__)
+        # replace the self.port by self.ports[0].port
+        for one_property in [detail.__class__.property.rstrip('s') for detail in details if detail.__class__.property_type == list and not hasattr(detail.__class__, "unique_attribute") and not hasattr(detail.__class__, "property_attr") and detail.__class__.property.endswith('s') and hasattr(self, detail.__class__.property.rstrip('s'))]:
+            if hasattr(getattr(self, one_property + 's')[0], one_property):
+                setattr(self, one_property, getattr(getattr(self, one_property + 's')[0], one_property))
 
     def wemustrepeat(self):
         """

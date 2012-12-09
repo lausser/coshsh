@@ -3,7 +3,6 @@ from templaterule import TemplateRule
 from util import compare_attr
 
 def __mi_ident__(params={}):
-    print "try mysql"
     if compare_attr("type", params, "mysql"):
         return MySQL
 

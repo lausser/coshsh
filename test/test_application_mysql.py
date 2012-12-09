@@ -37,7 +37,6 @@ class CoshshTest(unittest.TestCase):
             final_row[value] = [None if row[index] == "" else row[index]][0]
         a = Application(final_row)
         #a.__init__(final_row)
-        print "my fingerprint is", a.fingerprint()
         self.applications[a.fingerprint()] = a
         setattr(a, "host", self.hosts[a.host_name])
 
@@ -45,7 +44,6 @@ class CoshshTest(unittest.TestCase):
         self.assert_("drivelsrv" in self.hosts)
         h = self.hosts["drivelsrv"]
         a = self.applications["drivelsrv+drivel+mysql"]
-        print a, a.__dict__
         self.assert_(hasattr(h, 'host_name'))
         self.assert_(h.host_name == 'drivelsrv')
         self.assert_(hasattr(a, 'host_name'))
@@ -64,7 +62,7 @@ class CoshshTest(unittest.TestCase):
         self.assert_(a.host_name == 'drivelsrv')
         a.monitoring_details.append(MonitoringDetail({
             "monitoring_type" : "PORT",
-            "monitoring_0" : "10000"}))
+            "monitoring_0" : 10000}))
         a.resolve_monitoring_details()
         self.assert_(a.port == 10000)
 

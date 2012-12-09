@@ -32,7 +32,7 @@ Coshsh liest mit Hilfe von Adaptern beliebige Datenquellen, in denen
 Informationen über Hosts und die auf ihnen installierten Applikationen stehen.
 Die Host- und Servicedefinitionen werden erzeugt, indem Platzhalter in
 Template-Dateien ausgefüllt werden.
-
+Analog zu den datasource-Adaptern gibt es datarecipient-Module, in denen codiert wird, wie die erzeugten Konfigurationen im Dateisystem abgelegt werden.
 
 
 

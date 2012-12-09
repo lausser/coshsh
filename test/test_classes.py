@@ -79,7 +79,8 @@ class CoshshTest(unittest.TestCase):
         cfg = self.config.items("datasource_SIMPLESAMPLE")
         ds = Datasource(**dict(cfg))
         self.assert_(hasattr(ds, 'only_the_test_simplesample'))
-        objects = ds.read()
+        objects = self.generator.recipes['test4'].objects
+        ds.read(objects=objects)
         self.assert_(objects['hosts']['test_host_0'].my_host == True)
         self.assert_(objects['applications'].values()[0].test4_linux == True)
         self.assert_(objects['applications'].values()[1].test4_windows == True)
@@ -92,8 +93,8 @@ class CoshshTest(unittest.TestCase):
         cfg = self.config.items("datasource_SIMPLESAMPLE")
         ds = Datasource(**dict(cfg))
         self.assert_(hasattr(ds, 'only_the_test_simplesample'))
-        objects = ds.read()
-        print "objects", objects
+        objects = self.generator.recipes['test4a'].objects
+        ds.read(objects=objects)
         self.assert_(objects['hosts']['test_host_0'].my_host == True)
         self.assert_(objects['applications']['test_host_0+os+windows'].test4_windows == True)
         self.assert_(objects['applications']['test_host_0+os+red hat'].mycorp_linux == True)
