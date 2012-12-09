@@ -5,9 +5,10 @@ import os
 sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.abspath(".."))
 sys.path.insert(0, os.path.abspath(os.path.join("..", "coshsh")))
+
+from log import logger
 from generator import Generator
 from datasource import Datasource
-from application import Application
 from host import Host
 from application import Application
 from monitoring_detail import MonitoringDetail
@@ -16,15 +17,21 @@ class CoshshTest(unittest.TestCase):
     def setUp(self):
         self.hosts = {}
         self.applications = {}
+        Application.init_classes([
+            os.path.join(os.path.dirname(__file__), '../recipes/default/classes'),
+            os.path.join(os.path.dirname(__file__), 'recipes/test10/classes')])
+        MonitoringDetail.init_classes([
+            os.path.join(os.path.dirname(__file__), '../recipes/default/classes'),
+            os.path.join(os.path.dirname(__file__), 'recipes/test10/classes')])
         pass
-        row = ['nagioscop001', '10.130.9.10', 'Server', 'Red Hat 6.0', '', 'vs', '7x24', 'cl-itm003', 'Dir-III']
+        row = ['drivelsrv', '11.120.9.10', 'Server', 'Red Hat 6.0', '', 'vs', '7x24', '2nd floor', 'ps']
         final_row = { }
         for (index, value) in enumerate(['host_name', 'address', 'type', 'os', 'hardware', 'virtual', 'notification_period', 'location', 'department']):
             final_row[value] = [None if row[index] == "" else row[index]][0]
         h = Host(final_row)
         self.hosts[h.host_name] = h
 
-        row = ['gms1', 'gearman-server', '', '', '', 'nagioscop001', '7x24']
+        row = ['drivel', 'mysql', '', '', '', 'drivelsrv', '7x24']
         final_row = { }
         for (index, value) in enumerate(['name', 'type', 'component', 'version', 'patchlevel', 'host_name', 'check_period']):
             final_row[value] = [None if row[index] == "" else row[index]][0]
@@ -35,31 +42,31 @@ class CoshshTest(unittest.TestCase):
         setattr(a, "host", self.hosts[a.host_name])
 
     def test_create_server(self):
-        self.assert_("nagioscop001" in self.hosts)
-        h = self.hosts["nagioscop001"]
-        a = self.applications["nagioscop001+gms1+gearman-server"]
-        print a
+        self.assert_("drivelsrv" in self.hosts)
+        h = self.hosts["drivelsrv"]
+        a = self.applications["drivelsrv+drivel+mysql"]
+        print a, a.__dict__
         self.assert_(hasattr(h, 'host_name'))
-        self.assert_(h.host_name == 'nagioscop001')
+        self.assert_(h.host_name == 'drivelsrv')
         self.assert_(hasattr(a, 'host_name'))
-        self.assert_(a.host_name == 'nagioscop001')
+        self.assert_(a.host_name == 'drivelsrv')
         self.assert_(hasattr(a, "port"))
-        self.assert_(a.port == '4730')
+        self.assert_(a.port == 3306)
 
 
     def test_create_server_alternative_port(self):
-        self.assert_("nagioscop001" in self.hosts)
-        h = self.hosts["nagioscop001"]
-        a = self.applications["nagioscop001+gms1+gearman-server"]
+        self.assert_("drivelsrv" in self.hosts)
+        h = self.hosts["drivelsrv"]
+        a = self.applications["drivelsrv+drivel+mysql"]
         self.assert_(hasattr(h, 'host_name'))
-        self.assert_(h.host_name == 'nagioscop001')
+        self.assert_(h.host_name == 'drivelsrv')
         self.assert_(hasattr(a, 'host_name'))
-        self.assert_(a.host_name == 'nagioscop001')
+        self.assert_(a.host_name == 'drivelsrv')
         a.monitoring_details.append(MonitoringDetail({
             "monitoring_type" : "PORT",
-            "value" : "10000"}))
+            "monitoring_0" : "10000"}))
         a.resolve_monitoring_details()
-        self.assert_(a.port == '10000')
+        self.assert_(a.port == 10000)
 
 
 if __name__ == '__main__':
