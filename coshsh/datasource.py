@@ -54,14 +54,7 @@ class Datasource(object):
                 raise DatasourceNotImplemented
         else:
             setattr(self, 'name', params["name"])
-            self.hosts = {}
-            self.applications = {}
-            self.appdetails = {}
-            self.contacts = {}
-            self.contactgroups = {}
-            self.timeperiods = {}
-            self.dependencies = {}
-            self.bps = {}
+            self.objects = {}
             pass
         # i am a generic datasource
         # i find a suitable class
@@ -71,8 +64,29 @@ class Datasource(object):
     def open(self):
         pass
 
+    def read(self):
+        pass
+
     def close(self):
         pass
+
+    def add(self, objtype, obj):
+        try:
+            print "add", obj, objtype, obj.fingerprint()
+            self.objects[objtype][obj.fingerprint()] = obj
+        except Exception:
+            self.objects[objtype] = {}
+            self.objects[objtype][obj.fingerprint()] = obj
+
+    def get(self, objtype, fingerprint):
+        try:
+            print "get", objtype, obj.fingerprint()
+            return self.objects[objtype][obj.fingerprint()]
+        except Exception:
+            return 'i do not exist. no. no!'
+
+    def find(self, objtype, fingerprint):
+        return objtype in self.objects and fingerprint in self.objects[objtype]
 
     @classmethod
     def init_classes(cls, classpath):

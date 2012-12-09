@@ -26,25 +26,13 @@ class SimpleSample(Datasource):
     def __init__(self, **kwargs):
         #self.name = kwargs["name"]
         self.dir = kwargs.get("dir", "/tmp")
-        self.hosts = {}
-        self.applications = {}
-        self.appdetails = {}
-        self.contacts = {}
-        self.contactgroups = {}
-        self.dependencies = {}
-        self.bps = {}
+        self.objects = {}
 
     def open(self):
         logger.info('open datasource %s' % self.name)
         return True
 
-    def read(self, filter=None, intermediate_hosts=[], intermediate_applications=[]):
+    def read(self, filter=None, objects={}):
         logger.info('read items from simplesample')
-        return {
-            'hosts': self.hosts,
-            'applications': self.applications,
-            'contacts': self.contacts,
-            'contactgroups': self.contactgroups,
-        }
-
+        #self.add('hosts', Host(...))
 

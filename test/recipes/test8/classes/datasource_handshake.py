@@ -25,22 +25,9 @@ def __ds_ident__(params={}):
 class Handshake(Datasource):
     def __init__(self, **kwargs):
         self.name = kwargs["name"]
-        self.hosts = {}
-        self.applications = {}
-        self.appdetails = {}
-        self.contacts = {}
-        self.contactgroups = {}
-        self.dependencies = {}
-        self.bps = {}
         self.only_the_test_simplesample = True
 
-    def read(self, filter=None, intermediate_objects={}):
+    def read(self, filter=None, objects={}):
         logger.info('read items from handshake')
         raise DatasourceNotCurrent
-
-        return {
-            'hosts': self.hosts,
-            'applications': self.applications,
-            'contacts': self.contacts,
-            'contactgroups': self.contactgroups,
-        }
+        self.objects = objects

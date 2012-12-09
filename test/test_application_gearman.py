@@ -1,14 +1,18 @@
 import unittest
 import sys
+import os
 
-sys.path.append("..")
-sys.path.append("../shintarator")
-
+sys.dont_write_bytecode = True
+sys.path.insert(0, os.path.abspath(".."))
+sys.path.insert(0, os.path.abspath(os.path.join("..", "coshsh")))
+from generator import Generator
+from datasource import Datasource
+from application import Application
 from host import Host
 from application import Application
 from monitoring_detail import MonitoringDetail
 
-class GeneratorTest(unittest.TestCase):
+class CoshshTest(unittest.TestCase):
     def setUp(self):
         self.hosts = {}
         self.applications = {}
@@ -34,6 +38,7 @@ class GeneratorTest(unittest.TestCase):
         self.assert_("nagioscop001" in self.hosts)
         h = self.hosts["nagioscop001"]
         a = self.applications["nagioscop001+gms1+gearman-server"]
+        print a
         self.assert_(hasattr(h, 'host_name'))
         self.assert_(h.host_name == 'nagioscop001')
         self.assert_(hasattr(a, 'host_name'))

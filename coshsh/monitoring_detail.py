@@ -10,6 +10,7 @@ import imp
 import inspect
 from urlparse import urlparse
 from log import logger
+from item import Item
 from application import Application
 
 
@@ -17,7 +18,7 @@ class MonitoringDetailNotImplemented(Exception):
     pass
 
 
-class MonitoringDetail(object):
+class MonitoringDetail(Item):
     class_factory = []
     lower_columns = ['application_name', 'application_type']
 
@@ -39,9 +40,6 @@ class MonitoringDetail(object):
                 raise MonitoringDetailNotImplemented
         else:
             pass
-
-    def fingerprint(self):
-        return "%s+%s+%s" % (self.host_name, self.name, self.type)
 
     @classmethod
     def init_classes(cls, classpath):

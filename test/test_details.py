@@ -42,23 +42,25 @@ class CoshshTest(unittest.TestCase):
         self.print_header()
         cfg = self.config.items("datasource_CSVDETAILS")
         ds = Datasource(**dict(cfg))
-        hosts, applications, contacts, contactgroups, appdetails, dependencies, bps = ds.read()
-        applications[0].resolve_monitoring_details()
-        applications[1].resolve_monitoring_details()
+        objects = ds.read()
+        app1 = objects['applications'].values()[0]
+        app1.resolve_monitoring_details()
+        app2 = objects['applications'].values()[1]
+        app2.resolve_monitoring_details()
         # swap threshold via KEYVALUES detail
-        self.assert_(applications[0].swap_warning == "15%")
-        self.assert_(applications[0].swap_critical == "8%")
+        self.assert_(app1.swap_warning == "15%")
+        self.assert_(app1.swap_critical == "8%")
         # cron threshold via KEYVALUES detail
-        self.assert_(applications[0].cron_warning == "30")
-        self.assert_(applications[0].cron_critical == "100")
+        self.assert_(app1.cron_warning == "30")
+        self.assert_(app1.cron_critical == "100")
         # swap threshold via class os_linux
-        self.assert_(applications[1].swap_warning == "5%")
-        self.assert_(applications[1].swap_critical == "15%")
+        self.assert_(app2.swap_warning == "5%")
+        self.assert_(app2.swap_critical == "15%")
         # neither class detail nor csv detail
-        self.assert_(not hasattr(applications[1], "cron_warning"))
-        self.assert_(hasattr(applications[1], "thresholds"))
-        self.assert_(hasattr(applications[1].thresholds, "cron_warning"))
-        self.assert_(applications[1].thresholds.cron_warning == "31")
+        self.assert_(not hasattr(app2, "cron_warning"))
+        self.assert_(hasattr(app2, "thresholds"))
+        self.assert_(hasattr(app2.thresholds, "cron_warning"))
+        self.assert_(app2.thresholds.cron_warning == "31")
 
     def test_detail_url(self):
         self.print_header()

@@ -26,16 +26,10 @@ class SimpleSample(Datasource):
     def __init__(self, **kwargs):
         self.name = kwargs["name"]
         self.dir = kwargs["dir"]
-        self.hosts = {}
-        self.applications = {}
-        self.appdetails = {}
-        self.contacts = {}
-        self.contactgroups = {}
-        self.dependencies = {}
-        self.bps = {}
         self.only_the_test_simplesample = True
 
-    def read(self, filter=None, intermediate_hosts=[], intermediate_applications=[]):
+    def read(self, filter=None, objects={}):
+        self.objects = objects
         logger.info('read items from simplesample')
         hostdata = {
             'host_name': 'test_host_0',
@@ -48,6 +42,4 @@ class SimpleSample(Datasource):
             'location': 'esxsrv10',
             'department': 'test',
         }
-        self.hosts['test_host_0'] = Host(hostdata)
-        return self.hosts.values(), self.applications.values(), self.contacts.values(), self.contactgroups.values(), self.appdetails, self.dependencies, self.bps
-
+        self.add('hosts', Host(hostdata))

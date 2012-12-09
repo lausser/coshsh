@@ -28,17 +28,11 @@ class SimpleSample(Datasource):
     def __init__(self, **kwargs):
         self.name = kwargs["name"]
         self.dir = kwargs["dir"]
-        self.hosts = {}
-        self.applications = {}
-        self.appdetails = {}
-        self.contacts = {}
-        self.contactgroups = {}
-        self.dependencies = {}
-        self.bps = {}
         self.only_the_test_simplesample = True
 
-    def read(self, filter=None, intermediate_objects={}):
+    def read(self, filter=None, objects={}):
         logger.info('read items from simplesample')
+        self.objects = objects
         hostdata = {
             'host_name': 'test_host_0',
             'address': '127.0.0.9',
@@ -50,7 +44,7 @@ class SimpleSample(Datasource):
             'location': 'esxsrv10',
             'department': 'test',
         }
-        self.hosts['test_host_0'] = MyHost(hostdata)
+        self.add('hosts', MyHost(hostdata))
         appdata = {
             'name': 'os',
             'type': 'Red Hat',
@@ -60,8 +54,7 @@ class SimpleSample(Datasource):
             'host_name': 'test_host_0',
             'check_period': '7x24',
         }
-        a = Application(appdata)
-        self.applications[a.fingerprint()] = a
+        self.add('applications', Application(appdata))
         appdata = {
             'name': 'os',
             'type': 'Windows',
@@ -71,13 +64,4 @@ class SimpleSample(Datasource):
             'host_name': 'test_host_0',
             'check_period': '7x24',
         }
-        a = Application(appdata)
-        self.applications[a.fingerprint()] = a
-        
-        return {
-            'hosts': self.hosts,
-            'applications': self.applications,
-            'contacts': self.contacts,
-            'contactgroups': self.contactgroups,
-        }
-
+        self.add('applications', Application(appdata))

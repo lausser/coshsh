@@ -40,14 +40,7 @@ class CsvFile(Datasource):
         superclass.__init__(**kwargs)
         self.name = kwargs["name"]
         self.dir = kwargs["dir"]
-        self.hosts = {}
-        self.applications = {}
-        self.appdetails = {}
-        self.contacts = {}
-        self.contactgroups = {}
-        self.dependencies = {}
-        self.bps = {}
-
+        self.objects = {}
 
     def open(self):
         logger.info('open datasource %s' % self.name)
@@ -55,7 +48,8 @@ class CsvFile(Datasource):
             logger.error('csv dir %s does not exist' % self.dir)
             raise DatasourceNotAvailable
 
-    def read(self, filter=None, intermediate_objects={}):
+    def read(self, filter=None, objects={}):
+        self.objects = objects
         try:
             hostreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_hosts.csv'))))
             logger.info('read hosts from %s' % os.path.join(self.dir, self.name+'_hosts.csv'))
@@ -68,9 +62,7 @@ class CsvFile(Datasource):
             for attr in [k for k in row.keys() if k in ['type', 'os', 'hardware', 'virtual']]:
                 row[attr] = row[attr].lower()
             h = Host(row)
-            self.hosts[h.host_name] = h
-
-        intermediate_hosts = dict(intermediate_objects['hosts'].items() + self.hosts.items())
+            self.objects['hosts'][h.host_name] = h
 
         try:
             appreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_applications.csv'))))
@@ -84,7 +76,7 @@ class CsvFile(Datasource):
                 row[attr] = row[attr].lower()
             if '[' in row['host_name'] or '*' in row['host_name']:
                 # hostnames can be regular expressions
-                matching_hosts = [h for h in intermediate_hosts.keys() if re.match('^('+row['host_name']+')', h)]
+                matching_hosts = [h for h in self.objects['hosts'].keys() if re.match('^('+row['host_name']+')', h)]
                 for host_name in matching_hosts:
                     row['host_name'] = host_name
                     resolvedrows.append(copy(row))
@@ -93,13 +85,11 @@ class CsvFile(Datasource):
         for row in resolvedrows:
             if not "virtual" in row:
                 try:
-                    row["virtual"] = intermediate_hosts[row["host_name"]].virtual
+                    row["virtual"] = self.objects['hosts'][row["host_name"]].virtual
                 except KeyError:
                     logger.error('host %s not found for application %s' % (row["host_name"], row["name"]))
             a = Application(row)
-            self.applications["%s+%s+%s" % (a.host_name, a.name, a.type)] = a
-
-        intermediate_applications = dict(intermediate_objects['applications'].items() + self.applications.items())
+            self.objects['applications']["%s+%s+%s" % (a.host_name, a.name, a.type)] = a
 
         try:
             appdetailreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_applicationdetails.csv'))))
@@ -111,7 +101,7 @@ class CsvFile(Datasource):
         for row in appdetailreader:
             if '[' in row['host_name'] or '*' in row['host_name']:
                 # hostnames can be regular expressions
-                matching_hosts = [h for h in intermediate_hosts.keys() if re.match('^('+row['host_name']+')', h)]
+                matching_hosts = [h for h in self.objects['hosts'].keys() if re.match('^('+row['host_name']+')', h)]
                 for host_name in matching_hosts:
                     row['host_name'] = host_name
                     resolvedrows.append(copy(row))
@@ -122,10 +112,10 @@ class CsvFile(Datasource):
                 row[attr] = row[attr].lower()
             application_id = "%s+%s+%s" % (row["host_name"], row["application_name"], row["application_type"])
             detail = MonitoringDetail(row)
-            if application_id in intermediate_applications:
-                intermediate_applications[application_id].monitoring_details.append(detail)
-            elif row["host_name"] in intermediate_hosts:
-                intermediate_hosts[row["host_name"]].monitoring_details.append(detail)
+            if application_id in self.objects['applications']:
+                self.objects['applications'][application_id].monitoring_details.append(detail)
+            elif row["host_name"] in self.objects['hosts']:
+                self.objects['hosts'][row["host_name"]].monitoring_details.append(detail)
             else:
                 logger.info("found a detail %s for an unknown application %s" % (detail, application_id))
                 raise
@@ -140,7 +130,7 @@ class CsvFile(Datasource):
         for row in contactgroupreader:
             if '[' in row['host_name'] or '*' in row['host_name']:
                 # hostnames can be regular expressions
-                matching_hosts = [h for h in intermediate_hosts.keys() if re.match('^('+row['host_name']+')', h)]
+                matching_hosts = [h for h in self.objects['hosts'].keys() if re.match('^('+row['host_name']+')', h)]
                 for host_name in matching_hosts:
                     row['host_name'] = host_name
                     resolvedrows.append(copy(row))
@@ -150,19 +140,19 @@ class CsvFile(Datasource):
             application_id = "%s+%s+%s" % (row["host_name"], row["application_name"], row["application_type"])
             for group in row["groups"].split(":"):
                 if group not in self.contactgroups:
-                    self.contactgroups[group] = ContactGroup({ 'contactgroup_name' : group })
-                if application_id in self.applications and row["application_name"] == "os":
-                    if not group in self.applications[application_id].contact_groups:
-                        self.applications[application_id].contact_groups.append(group)
+                    self.add('contactgroups', ContactGroup({ 'contactgroup_name' : group }))
+                if self.find('applications', application_id) and row["application_name"] == "os":
+                    if not group in self.get('applications', application_id).contact_groups:
+                        self.get('applications', application_id).contact_groups.append(group)
                     # OS contacts also are host's contacts
-                    if not group in self.hosts[row["host_name"]].contact_groups:
-                        self.hosts[row["host_name"]].contact_groups.append(group)
-                elif application_id in self.applications:
-                    if not group in self.applications[application_id].contact_groups:
-                        self.applications[application_id].contact_groups.append(group)
-                elif ("application_name" not in row or not row['application_name']) and row['host_name'] in intermediate_hosts:
-                    if not group in intermediate_hosts[row['host_name']].contact_groups:
-                        intermediate_hosts[row['host_name']].contact_groups.append(group)
+                    if not group in self.get('hosts', row["host_name"]).contact_groups:
+                        self.get('hosts', row["host_name"]).contact_groups.append(group)
+                elif self.find('applications', application_id):
+                    if not group in self.get('applications', application_id).contact_groups:
+                        self.get('applications', application_id).contact_groups.append(group)
+                elif ("application_name" not in row or not row['application_name']) and self.find('hosts', row['host_name']):
+                    if not group in self.get('hosts', row['host_name']).contact_groups:
+                        self.get('hosts', row['host_name']).contact_groups.append(group)
                 else:
                     logger.error('no such application %s for contactgroup %s' % (application_id, row['groups']))
 
@@ -175,14 +165,9 @@ class CsvFile(Datasource):
         # name,type,address,userid,notification_period,groups
         for row in contactreader:
             c = Contact(row)
-            if c.fingerprint() not in self.contacts:
+            if not self.find('contacts', c.fingerprint()):
                 c.contactgroups.extend(row["groups"].split(":"))
-                self.contacts[c.fingerprint()] = c
+                self.add('contacts', c)
 
-        return {
-            'hosts': self.hosts,
-            'applications': self.applications,
-            'contacts': self.contacts,
-            'contactgroups': self.contactgroups,
-        }
+        return 
 

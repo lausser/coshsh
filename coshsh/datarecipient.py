@@ -54,20 +54,12 @@ class Datarecipient(object):
                 raise DatarecipientNotImplemented
         else:
             setattr(self, 'name', params["name"])
-            self.hosts = {}
-            self.applications = {}
-            self.appdetails = {}
-            self.contacts = {}
-            self.contactgroups = {}
-            self.timeperiods = {}
-            self.dependencies = {}
-            self.bps = {}
+            self.objects = {}
             pass
 
     def load(self, filter=None, objects={}):
         logger.info('load items to %s' % (self.name, ))
-        for objtype in objects.keys():
-            setattr(self, objtype, objects[objtype])
+        self.objects = objects
 
     def count_before_objects(self):
         self.old_objects = (0, 0)
@@ -85,15 +77,15 @@ class Datarecipient(object):
                 f.write(content)
 
     def output(self, filter=None):
-        for hostgroup in self.hostgroups.values():
+        for hostgroup in self.objects['hostgroups'].values():
             self.item_write_config(hostgroup, self.dynamic_dir, "hostgroups")
-        for host in self.hosts.values():
+        for host in self.objects['hosts'].values():
             self.item_write_config(host, self.dynamic_dir, os.path.join("hosts", host.host_name))
-        for app in self.applications.values():
+        for app in self.objects['applications'].values():
             self.item_write_config(app, self.dynamic_dir, os.path.join("hosts", app.host_name))
-        for cg in self.contactgroups.values():
+        for cg in self.objects['contactgroups'].values():
             self.item_write_config(cg, self.dynamic_dir, "contactgroups")
-        for c in self.contacts.values():
+        for c in self.objects['contacts'].values():
             self.item_write_config(cg, self.dynamic_dir, "contacts")
 
     def count_objects(self):

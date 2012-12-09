@@ -231,3 +231,15 @@ class Item(object):
                 else:
                     self.render_cfg_template(template_cache, rule.template, rule.template, **dict([(rule.self_name, self)]))
 
+    def fingerprint(self):
+        try:
+            return "%s+%s+%s" % (self.host_name, self.name, self.type)
+        except: pass
+        try:
+            return "%s+%s+%s" % (self.host_name, self.application_name, self.application_type)
+        except: pass
+        try:
+            return "%s" % (self.host_name, )
+        except: pass
+        raise "impossible fingerprint"
+

@@ -91,6 +91,8 @@ class Recipe(object):
             'appdetails': {},
             'contacts': {},
             'contactgroups': {},
+            'commands': {},
+            'timeperiods': {},
             'dependencies': {},
             'bps': {},
         }
@@ -136,15 +138,16 @@ class Recipe(object):
             filter = self.datasource_filters.get(ds.name)
             try:
                 ds.open()
-                ds_objects = ds.read(filter=filter, intermediate_objects=self.objects)
-                for key in ds_objects.keys():
-                    if key not in self.objects:
-                        self.objects[key] = {}
-                    for okey in ds_objects[key].keys():
-                        self.objects[key][okey] = ds_objects[key][okey]
-                    
-                #logger.info("recipe %s read from datasource %s %d hosts, %d applications, %d details, %d contacts, %d dependencies, %d business processes" % (self.name, ds.name, len(hosts), len(applications), len(appdetails), len(contacts), len(dependencies), len(bps)))
-                logger.info("recipe %s read from datasource %s %s" % (self.name, ds.name, ", ".join(["%d %s" % (len(ds_objects[k]), k) for k in ds_objects.keys()])))
+                pre_count = dict([(key, len(self.objects[key].keys())) for key in self.objects.keys()])
+                pre_detail_count = sum([(len(obj.monitoring_details) if hasattr(obj, 'monitoring_details') else 99) for objs in [self.objects[key].values() for key in self.objects.keys()] for obj in objs], 0)
+                ds.read(filter=filter, objects=self.objects)
+                post_count = dict([(key, len(self.objects[key].keys())) for key in self.objects.keys()])
+                post_detail_count = sum([(len(obj.monitoring_details) if hasattr(obj, 'monitoring_details') else 99) for objs in [self.objects[key].values() for key in self.objects.keys()] for obj in objs], 0)
+                pre_count['details'] = pre_detail_count
+                post_count['details'] = post_detail_count
+                # todo: count monitoring_details
+                chg_keys = [(key, post_count[key] - pre_count[key]) for key in set(pre_count.keys() + post_count.keys()) if post_count[key] != pre_count[key]]
+                logger.info("recipe %s read from datasource %s %s" % (self.name, ds.name, ", ".join(["%d %s" % (k[1], k[0]) for k in chg_keys])))
 
                 ds.close()
             except DatasourceNotCurrent:
