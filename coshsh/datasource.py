@@ -72,7 +72,6 @@ class Datasource(object):
 
     def add(self, objtype, obj):
         try:
-            print "add", obj, objtype, obj.fingerprint()
             self.objects[objtype][obj.fingerprint()] = obj
         except Exception:
             self.objects[objtype] = {}
@@ -80,9 +79,9 @@ class Datasource(object):
 
     def get(self, objtype, fingerprint):
         try:
-            print "get", objtype, obj.fingerprint()
-            return self.objects[objtype][obj.fingerprint()]
+            return self.objects[objtype][fingerprint]
         except Exception:
+            # should be None
             return 'i do not exist. no. no!'
 
     def find(self, objtype, fingerprint):

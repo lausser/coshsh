@@ -8,6 +8,7 @@
 import os
 import re
 import shutil
+from subprocess import Popen
 from host import Host
 from datarecipient import Datarecipient
 from application import Application

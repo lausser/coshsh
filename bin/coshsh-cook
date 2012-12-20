@@ -103,7 +103,6 @@ if __name__ == '__main__':
                     else:
                         parser.error("Datasource %s is unknown" % ds)
                 for dr in generator.recipes[recipe].datarecipient_names:
-                    print "dr is", dr
                     if dr == "datarecipient_coshsh_default":
                         # implicitely added by recipe.__init__
                         pass
