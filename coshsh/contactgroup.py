@@ -20,6 +20,8 @@ class ContactGroup(Item):
         self.members = []
         super(ContactGroup, self).__init__(params)
 
+    def fingerprint(self):
+        return "%s" % (self.contactgroup_name, )
 
     def __str__(self):
         return "contactgroup %s" % self.contactgroup_name
