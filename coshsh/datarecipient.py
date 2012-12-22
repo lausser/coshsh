@@ -86,7 +86,7 @@ class Datarecipient(object):
         for cg in self.objects['contactgroups'].values():
             self.item_write_config(cg, self.dynamic_dir, "contactgroups")
         for c in self.objects['contacts'].values():
-            self.item_write_config(cg, self.dynamic_dir, "contacts")
+            self.item_write_config(c, self.dynamic_dir, "contacts")
 
     def count_objects(self):
         try:
