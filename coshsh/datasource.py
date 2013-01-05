@@ -85,6 +85,12 @@ class Datasource(object):
             # should be None
             return 'i do not exist. no. no!'
 
+    def getall(self, objtype):
+        try:
+            return self.objects[objtype].values()
+        except Exception:
+            return []
+
     def find(self, objtype, fingerprint):
         return objtype in self.objects and fingerprint in self.objects[objtype]
 
