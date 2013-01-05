@@ -8,14 +8,16 @@
 from datasource import Datasource
 import os
 import re
+import logging
 from copy import copy
 from host import Host
 from application import Application
 from contactgroup import ContactGroup
 from contact import Contact
 from monitoring_detail import MonitoringDetail
-from coshsh.log import logger
 from util import compare_attr
+
+logger = logging.getLogger("coshsh")
 
 def __ds_ident__(params={}):
     if compare_attr("type", params, "simplesample"):

@@ -9,9 +9,10 @@ import os
 import re
 import imp
 import inspect
-from log import logger
+import logging
 from util import compare_attr, substenv
 
+logger = logging.getLogger('coshsh')
 
 class DatarecipientNotImplemented(Exception):
     pass

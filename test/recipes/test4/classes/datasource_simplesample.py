@@ -7,11 +7,13 @@
 
 import os
 import re
+import logging
 from host import Host
 from datasource import Datasource
 from application import Application
 from util import compare_attr
-from log import logger
+
+logger = logging.getLogger('coshsh')
 
 def __ds_ident__(params={}):
     if compare_attr("type", params, "simplesample"):

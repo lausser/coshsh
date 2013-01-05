@@ -7,6 +7,7 @@
 
 import os
 import re
+import logging
 from util import compare_attr
 from datasource import Datasource
 from copy import copy
@@ -15,7 +16,8 @@ from application import Application
 from contactgroup import ContactGroup
 from contact import Contact
 from monitoring_detail import MonitoringDetail
-from log import logger
+
+logger = logging.getLogger('coshsh')
 
 def __ds_ident__(params={}):
     if compare_attr("type", params, "simplesample"):

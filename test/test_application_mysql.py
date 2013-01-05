@@ -1,20 +1,24 @@
 import unittest
 import sys
 import os
+import logging
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.abspath(".."))
 sys.path.insert(0, os.path.abspath(os.path.join("..", "coshsh")))
 
-from log import logger
 from generator import Generator
 from datasource import Datasource
 from host import Host
 from application import Application
 from monitoring_detail import MonitoringDetail
 
+logger = logging.getLogger('coshsh')
+
 class CoshshTest(unittest.TestCase):
     def setUp(self):
+        self.generator = Generator()
+        self.generator.setup_logging()
         self.hosts = {}
         self.applications = {}
         Application.init_classes([

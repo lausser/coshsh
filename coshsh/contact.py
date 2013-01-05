@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import os
+import logging
 from item import Item
 from templaterule import TemplateRule
-from log import logger
+
+logger = logging.getLogger('coshsh')
 
 translations = (
     (u'\N{LATIN SMALL LETTER SHARP S}', u'ss'),

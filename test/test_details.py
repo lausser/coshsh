@@ -5,14 +5,14 @@ import shutil
 import string
 from optparse import OptionParser
 import ConfigParser
-from logging import INFO, DEBUG
+import logging
 
+logger = logging.getLogger('coshsh')
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.abspath(".."))
 sys.path.insert(0, os.path.abspath(os.path.join("..", "coshsh")))
 
-from log import logger
 from generator import Generator
 from datasource import Datasource
 from application import Application
@@ -26,11 +26,11 @@ class CoshshTest(unittest.TestCase):
         print "#" + " " * 78 + "#\n" + "#" * 80 + "\n"
 
     def setUp(self):
-        logger.handlers[1].setLevel(DEBUG)
         os.makedirs("./var/objects/test6")
         self.config = ConfigParser.ConfigParser()
         self.config.read('etc/coshsh.cfg')
         self.generator = Generator()
+        self.generator.setup_logging()
         self.generator.add_recipe(name='test6', **dict(self.config.items('recipe_TEST6')))
         self.config.set("datasource_CSVDETAILS", "name", "test6")
 

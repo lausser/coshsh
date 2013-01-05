@@ -8,11 +8,12 @@
 import os
 import imp
 import inspect
+import logging
 from util import compare_attr, is_attr
-from log import logger
 from item import Item
 from templaterule import TemplateRule
 
+logger = logging.getLogger('coshsh')
 
 class ApplicationNotImplemented(Exception):
     pass

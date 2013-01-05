@@ -10,10 +10,13 @@ from subprocess import Popen, PIPE, STDOUT
 import time
 
 sys.dont_write_bytecode = True
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'coshsh'))
+if 'COSHSH_HOME' in os.environ:
+    coshsh_home = os.environ['COSHSH_HOME']
+else:
+    coshsh_home = os.path.join(os.path.dirname(__file__), '..', 'coshsh')
+    os.environ['COSHSH_HOME'] = coshsh_home
+sys.path.append(coshsh_home)
 
-from log import logger
 from generator import Generator
 from recipe import Recipe
 from datasource import Datasource, DatasourceNotAvailable
@@ -49,6 +52,11 @@ if __name__ == '__main__':
     parser.add_option('--template', action='store',
                       dest="template_name",
                       help="Build a template hierarchy for this service profile")
+    parser.add_option('--debug', action='store_const',
+                      const="debug",
+                      default="info",
+                      dest="default_log_level",
+                      help="Output additional messages on stdout")
 
     opts, args = parser.parse_args()
     generator = Generator()
@@ -69,7 +77,6 @@ if __name__ == '__main__':
                 recipes = [s.strip().lower() for s in cookbook.get("defaults", "recipes").split(",")]
             except Exception:
                 recipes = []
-        print "recipes is", recipes
         for recipe in [section for section in cookbook.sections() if section.startswith('recipe_')]:
             if recipe.replace("recipe_", "", 1).lower() in recipes:
                 generator.add_recipe(name=recipe.replace("recipe_", "", 1), **dict(cookbook.items(recipe)))
@@ -94,12 +101,12 @@ if __name__ == '__main__':
             output = "define service {\n  name %s\n  use %s\n  register 0\n}\n" % (template + sep + tail, template)
             template_file = os.path.join(basedir, template + sep + tail + ".cfg")
             if not os.path.exists(template_file):
-                logger.info("create %s" % template_file)
+                print "create %s" % template_file
                 with open(template_file, "w") as f:
                     f.write(output)
                     created = True
             else:
-                logger.info("confirm %s" % template_file)
+                print "confirm %s" % template_file
         if created and os.path.exists(recipe.objects_dir + '/static/.git'):
             save_dir = os.getcwd()
             os.chdir(recipe.objects_dir + '/static')

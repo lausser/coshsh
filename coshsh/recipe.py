@@ -10,12 +10,10 @@ import os
 import re
 import inspect
 import time
-#sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-#sys.path.append(os.path.join(os.path.dirname(__file__), '../coshsh'))
+import logging
 from jinja2 import FileSystemLoader, Environment, TemplateSyntaxError, TemplateNotFound
 from subprocess import Popen, PIPE, STDOUT
 from jinja2_extensions import is_re_match, filter_re_sub, filter_re_escape, filter_service
-from log import logger
 from item import Item
 from application import Application
 from hostgroup import Hostgroup
@@ -24,6 +22,7 @@ from datasource import Datasource, DatasourceCorrupt, DatasourceNotReady, Dataso
 from datarecipient import Datarecipient, DatarecipientCorrupt, DatarecipientNotReady, DatarecipientNotAvailable, DatarecipientNotCurrent
 from util import compare_attr, substenv
 
+logger = logging.getLogger('coshsh')
 
 class EmptyObject(object):
     pass

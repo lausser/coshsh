@@ -6,19 +6,17 @@ import ConfigParser
 import sys
 import os
 import shutil
-
+from logging import INFO, DEBUG
 
 sys.dont_write_bytecode = True
 if 'COSHSH_HOME' in os.environ:
     coshsh_home = os.environ['COSHSH_HOME']
 else:
     coshsh_home = os.path.join(os.path.dirname(__file__), '..', 'coshsh')
-
-#sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+    os.environ['COSHSH_HOME'] = coshsh_home
 sys.path.append(coshsh_home)
 
-from log import logger
-from logging import INFO, DEBUG
+#from log import logger
 from generator import Generator
 from recipe import Recipe
 from datasource import Datasource, DatasourceNotAvailable
@@ -77,16 +75,6 @@ if __name__ == '__main__':
             recipe_configs[recipe.replace("recipe_", "", 1).lower()] = cookbook.items(recipe) + [('name', recipe.replace("recipe_", "", 1).lower())]
 
         recipes = []
-        if opts.default_log_level:
-            if opts.default_log_level.lower() == "debug":
-                logger.handlers[1].setLevel(DEBUG)
-            else:
-                logger.handlers[1].setLevel(INFO)
-        elif "defaults" in cookbook.sections() and "log_level" in [c[0] for c in cookbook.items("defaults")]:
-            if cookbook.items("defaults")["log_level"].lower() == "debug":
-                logger.handlers[1].setLevel(DEBUG)
-            else:
-                logger.handlers[1].setLevel(INFO)
         if opts.default_recipe:
             recipes = [r.lower() for r in opts.default_recipe.split(",")]
         else:
@@ -94,6 +82,14 @@ if __name__ == '__main__':
                 recipes = [recipe.lower() for recipe in dict(cookbook.items("defaults"))["recipes"].split(",")]
             else:
                 recipes = recipe_configs.keys()
+        if "defaults" in cookbook.sections() and "log_dir" in [c[0] for c in cookbook.items("defaults")]:
+            log_dir = dict(cookbook.items("defaults"))["log_dir"]
+        else:
+            log_dir = os.path.join(os.environ['COSHSH_HOME'], "..")
+        if opts.default_log_level and opts.default_log_level.lower() == "debug" or "defaults" in cookbook.sections() and "log_level" in [c[0] for c in cookbook.items("defaults")] and cookbook.items("defaults")["log_level"].lower() == "debug":
+            generator.setup_logging(logdir=log_dir, scrnloglevel=DEBUG)
+        else:
+            generator.setup_logging(logdir=log_dir, scrnloglevel=INFO)
         for recipe in recipes:
             if recipe in recipe_configs.keys():
                 generator.add_recipe(**dict(recipe_configs[recipe]))

@@ -8,11 +8,13 @@
 import os
 import re
 import shutil
+import logging
 from host import Host
 from datarecipient import Datarecipient
 from application import Application
 from util import compare_attr
-from log import logger
+
+logger = logging.getLogger('coshsh')
 
 def __ds_ident__(params={}):
     if compare_attr("type", params, "xpaas"):

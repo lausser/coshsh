@@ -8,10 +8,11 @@
 import os
 import re
 import locale
+import logging
 from jinja2 import FileSystemLoader, Environment, TemplateSyntaxError, TemplateNotFound
 from copy import copy, deepcopy
-from log import logger
 
+logger = logging.getLogger('coshsh')
 
 class EmptyObject(object):
     pass

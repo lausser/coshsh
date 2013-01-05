@@ -8,11 +8,12 @@
 import os
 import imp
 import inspect
+import logging
 from urlparse import urlparse
-from log import logger
 from item import Item
 from application import Application
 
+logger = logging.getLogger('coshsh')
 
 class MonitoringDetailNotImplemented(Exception):
     pass
