@@ -9,6 +9,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from util import odict
 
+logger = None
 
 class Generator(object):
 
@@ -66,3 +67,4 @@ class Generator(object):
         log.addHandler(console_handler)
 
         self._logging_on = True
+        logger = logging.getLogger('coshsh')

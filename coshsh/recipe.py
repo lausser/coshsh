@@ -12,7 +12,6 @@ import inspect
 import time
 import logging
 from jinja2 import FileSystemLoader, Environment, TemplateSyntaxError, TemplateNotFound
-from subprocess import Popen, PIPE, STDOUT
 from jinja2_extensions import is_re_match, filter_re_sub, filter_re_escape, filter_service
 from item import Item
 from application import Application
