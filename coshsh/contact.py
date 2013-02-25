@@ -27,6 +27,7 @@ class Contact(Item):
     template_rules = [
         TemplateRule(
             template="contact",
+            self_name="contact",
             unique_attr="contact_name", unique_config="contact_%s",
         )
     ]

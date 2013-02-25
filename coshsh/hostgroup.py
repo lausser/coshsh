@@ -8,6 +8,7 @@ class Hostgroup(Item):
     template_rules = [
         TemplateRule(needsattr=None, 
             template="hostgroup", 
+            self_name="hostgroup", 
             unique_attr="hostgroup_name", unique_config="hostgroup_%s",
         ),
     ]

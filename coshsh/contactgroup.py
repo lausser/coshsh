@@ -11,6 +11,7 @@ class ContactGroup(Item):
     template_rules = [
         TemplateRule(
             template="contactgroup",
+            self_name="contactgroup",
             unique_attr="contactgroup_name", unique_config="contactgroup_%s",
         )
     ]
