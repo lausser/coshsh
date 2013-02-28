@@ -1,24 +1,24 @@
 define contact {
-  contact_name        {{ application.contact_name }}
-{% if application.can_submit_commands %}
+  contact_name        {{ contact.contact_name }}
+{% if contact.can_submit_commands %}
   can_submit_commands 1
 {% else %}
   can_submit_commands 0
 {% endif %}
-{% if application.pager %}
-  pager               {{ application.pager }}
+{% if contact.pager %}
+  pager               {{ contact.pager }}
 {% endif %}
-{% if application.email %}
-  email               {{ application.email }}
+{% if contact.email %}
+  email               {{ contact.email }}
 {% endif %}
-{% if application.contactgroups %}
-  contactgroups       {{ application.contactgroups }}
+{% if contact.contactgroups %}
+  contactgroups       {{ contact.contactgroups }}
 {% endif %}
-  host_notification_period {{ application.host_notification_period }}
-  service_notification_period {{ application.service_notification_period }}
-  host_notification_options {{ application.host_notification_options }}
-  service_notification_options {{ application.service_notification_options }}
-  host_notification_commands {{ application.host_notification_commands }}
-  service_notification_commands {{ application.service_notification_commands }}
+  host_notification_period {{ contact.host_notification_period }}
+  service_notification_period {{ contact.service_notification_period }}
+  host_notification_options {{ contact.host_notification_options }}
+  service_notification_options {{ contact.service_notification_options }}
+  host_notification_commands {{ contact.host_notification_commands }}
+  service_notification_commands {{ contact.service_notification_commands }}
 }
 

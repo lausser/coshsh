@@ -1,7 +1,7 @@
 define contactgroup {
-  contactgroup_name        {{ application.contactgroup_name }}
+  contactgroup_name        {{ contactgroup.contactgroup_name }}
 {% if application.members %}
-  members                  {{ application.members }}
+  members                  {{ contactgroup.members }}
 {% endif %}
 }
 
