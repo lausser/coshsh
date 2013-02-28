@@ -50,12 +50,13 @@ class Application(Item):
                 super(Application, self).__init__(params)
                 self.__init__(params)
                 #raise ApplicationNotImplemented
+                self.fingerprint = lambda s=self:s.__class__.fingerprint(params)
         else:
             pass
 
-
-    def fingerprint(self):
-        return "%s+%s+%s" % (self.host_name, self.name, self.type)
+    @classmethod
+    def fingerprint(self, params):
+        return "%s+%s+%s" % (params["host_name"], params["name"], params["type"])
 
     def _i_init__(self, params={}):
         super(Application, self).__init__(params)

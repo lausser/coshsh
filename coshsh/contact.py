@@ -44,6 +44,7 @@ class Contact(Item):
         self.can_submit_commands = False
         self.contactgroups = []
         super(Contact, self).__init__(params)
+        self.fingerprint = lambda s=self:s.__class__.fingerprint(params)
         if not hasattr(self, 'host_notification_period'):
             self.host_notification_period = self.notification_period
         if not hasattr(self, 'service_notification_period'):
@@ -83,12 +84,12 @@ class Contact(Item):
             raise
 
 
-
-    def fingerprint(self):
-        if self.type and self.type.startswith("WEB"):
-            return "+".join([unicode(getattr(self, a, "")) for a in ["name", "type", "address", "userid"]])
+    @classmethod
+    def fingerprint(self, params):
+        if params["type"] and params["type"].startswith("WEB"):
+            return "+".join([unicode(params.get(a, "")) for a in ["name", "type", "address", "userid"]])
         else:
-            return "+".join([unicode(getattr(self, a, "")) for a in ["name", "type", "address", "userid", "notification_period"]])
+            return "+".join([unicode(params.get(a, "")) for a in ["name", "type", "address", "userid", "notification_period"]])
 
 
     def __str__(self):

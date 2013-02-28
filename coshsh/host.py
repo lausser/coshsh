@@ -27,6 +27,11 @@ class Host(Item):
         self.ports = [22] # can be changed with a PORT detail
         super(Host, self).__init__(params)
         self.alias = getattr(self, 'alias', self.host_name)
+        self.fingerprint = lambda s=self:s.__class__.fingerprint(params)
+
+    @classmethod
+    def fingerprint(self, params):
+        return "%s" % (params["host_name"], )
 
     def is_correct(self):
         return hasattr(self.host_name) and self.host_name != None
