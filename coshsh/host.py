@@ -36,9 +36,6 @@ class Host(Item):
     def is_correct(self):
         return hasattr(self.host_name) and self.host_name != None
 
-    def fingerprint(self):
-        return "%s" % (self.host_name, )
-
     def create_hostgroups(self):
         pass
 
