@@ -55,8 +55,11 @@ class Application(Item):
             pass
 
     @classmethod
-    def fingerprint(self, params):
-        return "%s+%s+%s" % (params["host_name"], params["name"], params["type"])
+    def fingerprint(self, params={}):
+        try:
+            return "%s+%s+%s" % (self.host_name, self.name, self.type)
+        except Exception:
+            return "%s+%s+%s" % (params["host_name"], params["name"], params["type"])
 
     def _i_init__(self, params={}):
         super(Application, self).__init__(params)

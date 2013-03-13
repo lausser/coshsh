@@ -36,8 +36,10 @@ class Recipe(object):
 
     def __init__(self, **kwargs):
         for key in kwargs.iterkeys():
-            kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
+            if isinstance(kwargs[key], basestring):
+                kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
         self.name = kwargs["name"]
+        self.force = kwargs.get("force")
         logger.info("recipe %s init" % self.name)
         self.templates_dir = kwargs.get("templates_dir")
         self.classes_dir = kwargs.get("classes_dir")
@@ -138,7 +140,7 @@ class Recipe(object):
                 ds.open()
                 pre_count = dict([(key, len(self.objects[key].keys())) for key in self.objects.keys()])
                 pre_detail_count = sum([(len(obj.monitoring_details) if hasattr(obj, 'monitoring_details') else 99) for objs in [self.objects[key].values() for key in self.objects.keys()] for obj in objs], 0)
-                ds.read(filter=filter, objects=self.objects)
+                ds.read(filter=filter, objects=self.objects, force=self.force)
                 post_count = dict([(key, len(self.objects[key].keys())) for key in self.objects.keys()])
                 post_detail_count = sum([(len(obj.monitoring_details) if hasattr(obj, 'monitoring_details') else 99) for objs in [self.objects[key].values() for key in self.objects.keys()] for obj in objs], 0)
                 pre_count['details'] = pre_detail_count

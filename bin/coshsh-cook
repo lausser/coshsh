@@ -54,6 +54,10 @@ if __name__ == '__main__':
                       default="info",
                       dest="default_log_level",
                       help="Output additional messages on stdout")
+    parser.add_option('--force', action='store_true',
+                      default=False,
+                      dest="force",
+                      help="Force datasource to be read")
 
     opts, args = parser.parse_args()
     generator = Generator()
@@ -92,6 +96,7 @@ if __name__ == '__main__':
             generator.setup_logging(logdir=log_dir, scrnloglevel=INFO)
         for recipe in recipes:
             if recipe in recipe_configs.keys():
+                recipe_configs[recipe].append(('force', opts.force))
                 generator.add_recipe(**dict(recipe_configs[recipe]))
                 for ds in generator.recipes[recipe].datasource_names:
                     if ds in datasource_configs.keys():
