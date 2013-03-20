@@ -73,8 +73,10 @@ class Contact(Item):
             elif self.type == "MAIL":
                 self.contact_name = "mail_" + self.name + "_" + self.notification_period.replace("/", "_")
                 self.email = self.address
-                self.service_notification_options = "w,c,u,r,f,s"
-                self.host_notification_options = "d,u,r,f,s"
+                if not hasattr(self, "service_notification_options"):
+                    setattr(self, "service_notification_options", "w,c,u,r,f,s")
+                if not hasattr(self, "host_notification_options"):
+                    setattr(self, "host_notification_options", "d,u,r,f,s")
                 self.service_notification_commands = ["service-notify-by-email"]
                 self.host_notification_commands = ["host-notify-by-email"]
             else:

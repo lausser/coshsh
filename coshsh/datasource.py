@@ -62,10 +62,10 @@ class Datasource(object):
         # i rebless
         # i call __init__
         
-    def open(self):
+    def open(self, **kwargs):
         pass
 
-    def read(self):
+    def read(self, **kwargs):
         pass
 
     def close(self):
