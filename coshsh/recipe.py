@@ -145,7 +145,7 @@ class Recipe(object):
                 post_detail_count = sum([(len(obj.monitoring_details) if hasattr(obj, 'monitoring_details') else 99) for objs in [self.objects[key].values() for key in self.objects.keys()] for obj in objs], 0)
                 pre_count['details'] = pre_detail_count
                 post_count['details'] = post_detail_count
-                # todo: count monitoring_details
+                pre_count.update(dict.fromkeys([k for k in post_count if not k in pre_count], 0))
                 chg_keys = [(key, post_count[key] - pre_count[key]) for key in set(pre_count.keys() + post_count.keys()) if post_count[key] != pre_count[key]]
                 logger.info("recipe %s read from datasource %s %s" % (self.name, ds.name, ", ".join(["%d %s" % (k[1], k[0]) for k in chg_keys])))
 
