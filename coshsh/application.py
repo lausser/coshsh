@@ -43,6 +43,7 @@ class Application(Item):
                 self.contact_groups = []
                 super(Application, self).__init__(params)
                 self.__init__(params)
+                self.fingerprint = lambda s=self:s.__class__.fingerprint(params)
             else:
                 print "this will be Generic", params
                 self.__class__ = GenericApplication

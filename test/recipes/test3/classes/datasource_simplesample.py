@@ -30,7 +30,7 @@ class SimpleSample(Datasource):
         self.dir = kwargs["dir"]
         self.only_the_test_simplesample = True
 
-    def read(self, filter=None, objects={}):
+    def read(self, filter=None, objects={}, **kwargs):
         self.objects = objects
         logger.info('read items from simplesample')
         hostdata = {
