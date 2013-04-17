@@ -113,7 +113,7 @@ class GenericApplication(Application):
     template_rules = [
         TemplateRule(needsattr=None, 
             template="app_generic_default",
-            unique_attr='name', unique_config="app_%s_default"),
+            unique_attr=['name', 'type'], unique_config="app_%s_%s_default"),
     ]
 
     def x__new__(cls, params={}):

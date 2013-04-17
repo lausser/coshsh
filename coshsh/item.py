@@ -245,8 +245,10 @@ class Item(object):
                 logger.critical("error in %s template rules. please check %s" % (self.__class__.__name__, rule))
 
             if render_this:
-                if rule.unique_config and hasattr(self, rule.unique_attr):
+                if rule.unique_config and isinstance(rule.unique_attr, basestring) and hasattr(g, rule.unique_attr):
                     self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % getattr(self, rule.unique_attr), **dict([(rule.self_name, self)]))
+                elif rule.unique_config and isinstance(rule.unique_attr, list) and reduce(lambda x, y: x and y, [hasattr(g, ua) for ua in rule.unique_attr]):
+                    self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % tuple([getattr(g, a) for a in rule.unique_attr]), **dict([(rule.self_name, self)]))
                 else:
                     self.render_cfg_template(jinja2, template_cache, rule.template, rule.template, **dict([(rule.self_name, self)]))
 
