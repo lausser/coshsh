@@ -34,7 +34,7 @@ class SimpleSample(Datasource):
         logger.info('open datasource %s' % self.name)
         return True
 
-    def read(self, filter=None, objects={}):
+    def read(self, filter=None, objects={}, force=None, **kwargs):
         logger.info('read items from simplesample')
         #self.add('hosts', Host(...))
 

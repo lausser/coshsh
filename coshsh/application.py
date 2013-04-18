@@ -43,6 +43,7 @@ class Application(Item):
                 self.contact_groups = []
                 super(Application, self).__init__(params)
                 self.__init__(params)
+                self.fingerprint = lambda s=self:s.__class__.fingerprint(params)
             else:
                 print "this will be Generic", params
                 self.__class__ = GenericApplication
@@ -56,10 +57,7 @@ class Application(Item):
 
     @classmethod
     def fingerprint(self, params={}):
-        try:
-            return "%s+%s+%s" % (self.host_name, self.name, self.type)
-        except Exception:
-            return "%s+%s+%s" % (params["host_name"], params["name"], params["type"])
+        return "%s+%s+%s" % (params["host_name"], params["name"], params["type"])
 
     def _i_init__(self, params={}):
         super(Application, self).__init__(params)
@@ -113,7 +111,7 @@ class GenericApplication(Application):
     template_rules = [
         TemplateRule(needsattr=None, 
             template="app_generic_default",
-            unique_attr=['name', 'type'], unique_config="app_%s_%s_default"),
+            unique_attr=['type', 'name'], unique_config="app_%s_%s_default"),
     ]
 
     def x__new__(cls, params={}):

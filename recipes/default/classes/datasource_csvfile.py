@@ -50,7 +50,7 @@ class CsvFile(Datasource):
             logger.error('csv dir %s does not exist' % self.dir)
             raise DatasourceNotAvailable
 
-    def read(self, filter=None, objects={}):
+    def read(self, filter=None, objects={}, force=False, **kwargs):
         self.objects = objects
         try:
             hostreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_hosts.csv'))))
