@@ -5,6 +5,9 @@ define host {
     host_name                       {{ host.host_name }}
     address                         {{ host.address }}
     alias                           {{ host.alias }}
+{% if host.parents %}
+    parents                         {{ host.parents }}
+{% endif %}
 {% if host.hostgroups %}
     hostgroups                      {{ host.hostgroups }}
 {% endif %}
@@ -17,11 +20,22 @@ define host {
 {% if host.notification_period %}
     notification_period             {{ host.notification_period }}
 {% endif %}
+{% if host.is_bp %}
+    check_command                   check_business_process
+    # geschfhr. bekommt nur down, recover, ack
+    notification_options            d,r
+{% else %}
     check_command                   check_host_alive
+    # ticketsystem bekommt nur ack
+    #notification_options            n
+    notification_options            d,u,r
     _SSH_PORT                       {{ host.ports[-1] }}
+{% endif %}
+{% if host.icon_image %}
+    icon_image                      {{ host.icon_image }}
+{% endif %}
+{% for m in host.macros.keys() %}
+    {{ m }}                         {{ host.macros[m] }}
+{% endfor %}
 }
-
-{#todo
-contactgroups only? use both contactgroups and contacts?
-#}
 
