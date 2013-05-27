@@ -22,12 +22,9 @@ define host {
 {% endif %}
 {% if host.is_bp %}
     check_command                   check_business_process
-    # geschfhr. bekommt nur down, recover, ack
     notification_options            d,r
 {% else %}
     check_command                   check_host_alive
-    # ticketsystem bekommt nur ack
-    #notification_options            n
     notification_options            d,u,r
     _SSH_PORT                       {{ host.ports[-1] }}
 {% endif %}
