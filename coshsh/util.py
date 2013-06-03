@@ -77,14 +77,18 @@ def substenv(matchobj):
 
 def normalize_dict(the_dict, titles=[]):
     for k in the_dict.keys():
-        if k != k.lower():
-            if the_dict[k] != None and isinstance(the_dict[k], basestring):
+        try:
+            if k != k.lower():
                 the_dict[k.lower()] = the_dict[k].strip()
-            del the_dict[k]
-        else:
-            if the_dict[k] != None and isinstance(the_dict[k], basestring):
+                del the_dict[k]
+            else:
                 the_dict[k] = the_dict[k].strip()
+        except Exception:
+            pass
     for attr in [k for k in the_dict.keys() if k in titles]:
-        the_dict[attr] = the_dict[attr].lower()
+        try:
+            the_dict[attr] = the_dict[attr].lower()
+        except Exception:
+            pass
 
 
