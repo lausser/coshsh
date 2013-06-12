@@ -38,7 +38,7 @@ class Generator(object):
                     recipe.render()
                     recipe.output()
             except Exception, exp:
-                logger.info("skipping recipe %s (%s)" % (recipe.name, exp))
+                logging.getLogger('coshsh').info("skipping recipe %s (%s)" % (recipe.name, exp))
             else:
                 pass
 
