@@ -64,7 +64,7 @@ class CsvFile(Datasource):
             for attr in [k for k in row.keys() if k in ['type', 'os', 'hardware', 'virtual']]:
                 row[attr] = row[attr].lower()
             h = Host(row)
-            self.objects['hosts'][h.host_name] = h
+            self.add('hosts', h)
 
         try:
             appreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_applications.csv'))))
@@ -91,7 +91,7 @@ class CsvFile(Datasource):
                 except KeyError:
                     logger.error('host %s not found for application %s' % (row["host_name"], row["name"]))
             a = Application(row)
-            self.objects['applications']["%s+%s+%s" % (a.host_name, a.name, a.type)] = a
+            self.add('applications', a)
 
         try:
             appdetailreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_applicationdetails.csv'))))
