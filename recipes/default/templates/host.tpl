@@ -31,8 +31,5 @@ define host {
 {% if host.icon_image %}
     icon_image                      {{ host.icon_image }}
 {% endif %}
-{% for m in host.macros.keys() %}
-    {{ m }}                         {{ host.macros[m] }}
-{% endfor %}
-}
+{{ host|custom_macros() }}}
 

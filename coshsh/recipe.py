@@ -12,7 +12,7 @@ import inspect
 import time
 import logging
 from jinja2 import FileSystemLoader, Environment, TemplateSyntaxError, TemplateNotFound
-from jinja2_extensions import is_re_match, filter_re_sub, filter_re_escape, filter_service
+from jinja2_extensions import is_re_match, filter_re_sub, filter_re_escape, filter_service, filter_custom_macros
 from item import Item
 from application import Application
 from hostgroup import Hostgroup
@@ -72,6 +72,7 @@ class Recipe(object):
         self.jinja2.env.filters['re_sub'] = filter_re_sub
         self.jinja2.env.filters['re_escape'] = filter_re_escape
         self.jinja2.env.filters['service'] = filter_service
+        self.jinja2.env.filters['custom_macros'] = filter_custom_macros
 
         if self.my_jinja2_extensions:
             for extension in [e.strip() for e in self.my_jinja2_extensions.split(",")]:

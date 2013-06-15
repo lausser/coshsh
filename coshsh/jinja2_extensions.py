@@ -99,3 +99,10 @@ def filter_service(application, service_description):
             snippet += "\n  contact_groups %s" % (application.contact_groups, )
     return snippet
 
+def filter_custom_macros(application):
+    snippet = ""
+    for k, v in [x if x[0].startswith("_") else ("_" + x[0], x[1]) \
+        for x in getattr(application, "custom_macros", {}).items() + \
+                 getattr(application, "macros", {}).items()]:
+        snippet += "  %-31s %s\n" % (k, v)
+    return snippet
