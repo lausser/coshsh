@@ -210,7 +210,10 @@ class Item(object):
             try:
                 self.config_files[output_name + ".cfg"] = template_cache[name].render(kwargs)
             except Exception as exp:
-                logger.critical("render exception in template %s for %s: %s" % (name, self, exp))
+                if hasattr(self, "fingerprint"):
+                    logger.critical("render exception in template %s for %s %s: %s" % (name, self, self.fingerprint(), exp))
+                else:
+                    logger.critical("render exception in template %s for %s: %s" % (name, self, exp))
             # transform hostgroups, contacts, etc. back to lists
             self.pythonize()
 
