@@ -5,6 +5,7 @@ from optparse import OptionParser
 import ConfigParser
 import sys
 import os
+import re
 import shutil
 from logging import INFO, DEBUG
 
