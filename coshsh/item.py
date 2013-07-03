@@ -46,7 +46,6 @@ class Item(object):
             setattr(self, "monitoring_details", list(self.__class__.monitoring_details))
         self.config_files = {}
 
-
     def clone(self):
         """ Return a copy of the item, but give him a new id """
         cls = self.__class__
@@ -56,14 +55,12 @@ class Item(object):
         new_obj.id = save_id
         return new_obj
 
-
     def write_config(self, target_dir):
         my_target_dir = os.path.join(target_dir, "hosts", self.host_name)
         for file in self.config_files:
             content = self.config_files[file]
             with open(os.path.join(my_target_dir, file), "w") as f:
                 f.write(content)
-
 
     def resolve_monitoring_details(self):
         details = [d for d in self.monitoring_details]
@@ -153,7 +150,6 @@ class Item(object):
         if hasattr(self, "service_notification_commands"):
             self.service_notification_commands = self.service_notification_commands.split(',')
 
-
     def depythonize(self):
         if hasattr(self, "templates"):
             self.templates = ",".join(sorted(self.templates, cmp=locale.strcoll))
@@ -176,23 +172,7 @@ class Item(object):
         if hasattr(self, "service_notification_commands"):
             self.service_notification_commands = ",".join(sorted(self.service_notification_commands, cmp=locale.strcoll))
 
-
-    def load_cfg_template_cache(self, template_cache, jinja2):
-        if hasattr(self.__class__, "template_rules"):
-            for rule in self.template_rules:
-                try:
-                    if not rule.template in template_cache:
-                        template_cache[rule.template] = jinja2.env.get_template(rule.template + ".tpl")
-                        logger.info("load template " + rule.template)
-                except TemplateSyntaxError as e:
-                    logger.critical("%s template %s has an error in line %d: %s" % (self.__class__.__name__, rule.template, e.lineno, e.message))
-                except TemplateNotFound:
-                    logger.error("cannot find template " + rule.template)
-                except Exception as exp:
-                    logger.critical("error in template %s (%s,%s)" (rule.template, exp.__class__.__name__, exp))
-
-
-    def render_cfg_template(self, jinja2, template_cache, name, output_name, **kwargs):
+    def render_cfg_template(self, jinja2, template_cache, name, output_name, suffix, **kwargs):
         try:
             if not name in template_cache:
                 template_cache[name] = jinja2.env.get_template(name + ".tpl")
@@ -208,7 +188,7 @@ class Item(object):
             # transform hostgroups, contacts, etc. from list to string
             self.depythonize()
             try:
-                self.config_files[output_name + ".cfg"] = template_cache[name].render(kwargs)
+                self.config_files[output_name + "." + suffix] = template_cache[name].render(kwargs)
             except Exception as exp:
                 if hasattr(self, "fingerprint"):
                     logger.critical("render exception in template %s for %s %s: %s" % (name, self, self.fingerprint(), exp))
@@ -217,9 +197,7 @@ class Item(object):
             # transform hostgroups, contacts, etc. back to lists
             self.pythonize()
 
-
     def render(self, template_cache, jinja2):
-        #self.load_cfg_template_cache(template_cache, jinja2)
         for rule in self.template_rules:
             render_this = False
             try:
@@ -249,11 +227,11 @@ class Item(object):
 
             if render_this:
                 if rule.unique_config and isinstance(rule.unique_attr, basestring) and hasattr(self, rule.unique_attr):
-                    self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % getattr(self, rule.unique_attr), **dict([(rule.self_name, self)]))
+                    self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % getattr(self, rule.unique_attr), rule.suffix, **dict([(rule.self_name, self)]))
                 elif rule.unique_config and isinstance(rule.unique_attr, list) and reduce(lambda x, y: x and y, [hasattr(self, ua) for ua in rule.unique_attr]):
-                    self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % tuple([getattr(self, a) for a in rule.unique_attr]), **dict([(rule.self_name, self)]))
+                    self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % tuple([getattr(self, a) for a in rule.unique_attr]), rule.suffix, **dict([(rule.self_name, self)]))
                 else:
-                    self.render_cfg_template(jinja2, template_cache, rule.template, rule.template, **dict([(rule.self_name, self)]))
+                    self.render_cfg_template(jinja2, template_cache, rule.template, rule.template, rule.suffix, **dict([(rule.self_name, self)]))
 
     def fingerprint(self):
         try:
