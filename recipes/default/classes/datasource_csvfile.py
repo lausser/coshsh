@@ -141,7 +141,7 @@ class CsvFile(Datasource):
         for row in resolvedrows:
             application_id = "%s+%s+%s" % (row["host_name"], row["application_name"], row["application_type"])
             for group in row["groups"].split(":"):
-                if group not in self.contactgroups:
+                if not self.find('contactgroups', group):
                     self.add('contactgroups', ContactGroup({ 'contactgroup_name' : group }))
                 if self.find('applications', application_id) and row["application_name"] == "os":
                     if not group in self.get('applications', application_id).contact_groups:
