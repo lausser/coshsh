@@ -16,9 +16,11 @@ class MonitoringDetailUrl(MonitoringDetail):
         self.warning = params.get("monitoring_1", "5") or "5"
         self.critical = params.get("monitoring_2", "10") or "10"
         self.url_expect = params.get("monitoring_3", None)
-        o = urlparse(self.url)
+        scheme, rest = self.url.split(":", 1)
+        o = urlparse("http:" + rest)
         for attr in ["scheme", "netloc", "path", "params", "query", "fragment", "username", "password", "hostname", "port"]:
             setattr(self, attr, getattr(o, attr))
+        setattr(self, "scheme", scheme)
 
     def __str__(self):
         return "%s %s:%s" % (self.url, self.warning, self.critical)
