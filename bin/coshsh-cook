@@ -101,6 +101,10 @@ if __name__ == '__main__':
             if recipe in recipe_configs.keys():
                 recipe_configs[recipe].append(('force', opts.force))
                 generator.add_recipe(**dict(recipe_configs[recipe]))
+                if recipe not in generator.recipes:
+                    # something went wrong in add_recipe. we should already see
+                    # an error message here.
+                    continue
                 for ds in generator.recipes[recipe].datasource_names:
                     if ds in datasource_configs.keys():
                         generator.recipes[recipe].add_datasource(**dict(datasource_configs[ds]))
