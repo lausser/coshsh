@@ -23,7 +23,7 @@ Support
 Changelog
 ---------
 The changelog is available on
-https://github.com/lausser/coshsh/blob/master/Changes[github].
+https://github.com/lausser/coshsh/blob/master/Changelog[github].
 
 How does it work
 ----------------
