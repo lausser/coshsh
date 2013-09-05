@@ -24,7 +24,7 @@ Support
 Changelog
 ---------
 Das Changelog findet man unter
-https://github.com/lausser/coshsh/blob/master/Changes[github].
+https://github.com/lausser/coshsh/blob/master/Changelog[github].
 
 Wie funktioniert's?
 -------------------
