@@ -28,6 +28,7 @@ class DatarecipientCoshshDefault(Datarecipient):
         self.name = kwargs["name"]
         self.objects_dir = kwargs.get("objects_dir", "/tmp")
         self.max_delta = kwargs.get("max_delta", ())
+        self.safe_output = kwargs.get("safe_output")
         self.static_dir = os.path.join(self.objects_dir, 'static')
         self.dynamic_dir = os.path.join(self.objects_dir, 'dynamic')
 
@@ -73,7 +74,19 @@ class DatarecipientCoshshDefault(Datarecipient):
 
         logger.info("number of files before: %d hosts, %d applications" % self.old_objects)
         logger.info("number of files after:  %d hosts, %d applications" % self.new_objects)
-        if self.max_delta and (delta_hosts > self.max_delta[0] or delta_services > self.max_delta[1]):
+        if self.safe_output and self.max_delta and (delta_hosts > self.max_delta[0] or delta_services > self.max_delta[1]) and os.path.exists(self.dynamic_dir + '/.git'):
+            save_dir = os.getcwd()
+            os.chdir(self.dynamic_dir)
+            print "git reset hard------------------"
+            process = Popen(["git", "reset", "--hard"], stdout=PIPE, stderr=STDOUT)
+            output, unused_err = process.communicate()
+            retcode = process.poll()
+            print output
+            os.chdir(save_dir)
+            self.analyze_output(output)
+            logger.error("the last commit was revoked")
+
+        elif self.max_delta and (delta_hosts > self.max_delta[0] or delta_services > self.max_delta[1]):
             print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
             print "number of hosts changed by %.2f percent" % delta_hosts
             print "number of applications changed by %.2f percent" % delta_services

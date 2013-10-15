@@ -62,12 +62,6 @@ class Datarecipient(object):
         logger.info('load items to %s' % (self.name, ))
         self.objects = objects
 
-    def count_before_objects(self):
-        self.old_objects = (0, 0)
-
-    def count_after_objects(self):
-        self.new_objects = (0, 0)
-
     def item_write_config(self, obj, dynamic_dir, objtype):
         my_target_dir = os.path.join(dynamic_dir, objtype)
         if not os.path.exists(my_target_dir):

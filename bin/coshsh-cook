@@ -60,6 +60,10 @@ if __name__ == '__main__':
                       default=False,
                       dest="force",
                       help="Force datasource to be read")
+    parser.add_option('--safe-output', action='store_true',
+                      default=False,
+                      dest="safe_output",
+                      help="Do not commit when hosts disappeared")
 
     opts, args = parser.parse_args()
     generator = Generator()
@@ -100,6 +104,7 @@ if __name__ == '__main__':
         for recipe in recipes:
             if recipe in recipe_configs.keys():
                 recipe_configs[recipe].append(('force', opts.force))
+                recipe_configs[recipe].append(('safe_output', opts.safe_output))
                 generator.add_recipe(**dict(recipe_configs[recipe]))
                 if recipe not in generator.recipes:
                     # something went wrong in add_recipe. we should already see

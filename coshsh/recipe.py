@@ -40,6 +40,7 @@ class Recipe(object):
                 kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
         self.name = kwargs["name"]
         self.force = kwargs.get("force")
+        self.safe_output = kwargs.get("safe_output")
         logger.info("recipe %s init" % self.name)
         self.templates_dir = kwargs.get("templates_dir")
         self.classes_dir = kwargs.get("classes_dir")
@@ -118,7 +119,7 @@ class Recipe(object):
             self.objects_dir = kwargs["objects_dir"]
             logger.info("recipe %s objects_dir %s" % (self.name, os.path.abspath(self.objects_dir)))
             self.datarecipient_names = ["datarecipient_coshsh_default"]
-            self.add_datarecipient(**dict([('type', 'datarecipient_coshsh_default'), ('name', 'datarecipient_coshsh_default'), ('objects_dir', self.objects_dir), ('max_delta', self.max_delta)]))
+            self.add_datarecipient(**dict([('type', 'datarecipient_coshsh_default'), ('name', 'datarecipient_coshsh_default'), ('objects_dir', self.objects_dir), ('max_delta', self.max_delta), ('safe_output', self.safe_output)]))
         elif kwargs.get("objects_dir") and kwargs.get("datarecipients"):
             logger.warn("recipe %s delete parameter objects_dir (use datarecipients instead)" % (self.name, ))
             self.datarecipient_names = [ds.lower() for ds in kwargs.get("datarecipients").split(",")]
