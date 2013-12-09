@@ -45,9 +45,9 @@ class Contact(Item):
         self.contactgroups = []
         super(Contact, self).__init__(params)
         self.fingerprint = lambda s=self:s.__class__.fingerprint(params)
-        if not hasattr(self, 'host_notification_period'):
+        if not hasattr(self, 'host_notification_period') or not self.host_notification_period:
             self.host_notification_period = self.notification_period
-        if not hasattr(self, 'service_notification_period'):
+        if not hasattr(self, 'service_notification_period') or not self.service_notification_period:
             self.service_notification_period = self.notification_period
         try:
             for from_str, to_str in translations:
