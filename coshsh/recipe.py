@@ -67,7 +67,7 @@ class Recipe(object):
 
         self.jinja2 = EmptyObject()
         setattr(self.jinja2, 'loader', FileSystemLoader(self.templates_path))
-        setattr(self.jinja2, 'env', Environment(loader=self.jinja2.loader))
+        setattr(self.jinja2, 'env', Environment(loader=self.jinja2.loader, extensions=['jinja2.ext.do']))
         self.jinja2.env.trim_blocks = True
         self.jinja2.env.tests['re_match'] = is_re_match
         self.jinja2.env.filters['re_sub'] = filter_re_sub
