@@ -41,6 +41,7 @@ class Recipe(object):
         self.name = kwargs["name"]
         self.force = kwargs.get("force")
         self.safe_output = kwargs.get("safe_output")
+        self.pid_file = "/tmp" # odeer omdrootzeugs
         logger.info("recipe %s init" % self.name)
         self.templates_dir = kwargs.get("templates_dir")
         self.classes_dir = kwargs.get("classes_dir")
@@ -273,4 +274,49 @@ class Recipe(object):
             datarecipient = newcls(**kwargs)
             self.datarecipients.append(datarecipient)
 
+    def check_pid_writable(self):
+        """Verify the user has access to write to the pid file.
+
+        Note that the eventual process ID isn't known until after
+        daemonize(), so it's not possible to write the PID here.
+        """
+        if not self.daemon_pidfile:
+            return
+        if os.path.exists(self.daemon_pidfile):
+            check = self.daemon_pidfile
+        else:
+            check = os.path.dirname(self.daemon_pidfile)
+        if not os.access(check, os.W_OK):
+            self.logger.info('unable to write to pidfile %s' % self.daemon_pidfile)
+            exit(1)
+
+    def check_pid(self):
+        """Check the pid file.
+
+        Stop using sys.exit() if another instance is already running.
+        If the pid file exists but no other instance is running,
+        delete the pid file.
+        """
+        if not self.daemon_pidfile:
+            return
+        # based on twisted/scripts/twistd.py
+        if os.path.exists(self.daemon_pidfile):
+            try:
+                pid = int(open(self.daemon_pidfile).read().strip())
+            except ValueError:
+                self.logger.info('pidfile %s contains a non-integer value' % self.daemon_pidfile)
+                exit(1)
+            try:
+                os.kill(pid, 0)
+            except OSError, (code, text):
+                if code == errno.ESRCH:
+                    # The pid doesn't exist, so remove the stale pidfile.
+                    os.remove(self.daemon_pidfile)
+                    self.logger.info('removing stale (pid %d) pidfile %s' % (pid, self.daemon_pidfile))
+                else:
+                    self.logger.info('failed to check status of process %d from pidfile %s: %s' % (pid, self.daemon_pidfile, text))
+                    exit(1)
+            else:
+                self.logger.info('another instance seems to be running (pid %s), exiting' % pid)
+                exit(1)
 

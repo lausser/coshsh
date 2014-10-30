@@ -34,9 +34,11 @@ class Generator(object):
             self.setup_logging(logdir=".")
         for recipe in self.recipes.values():
             try:
-                if recipe.collect():
-                    recipe.render()
-                    recipe.output()
+                if recipe.pid_protect():
+                    if recipe.collect():
+                        recipe.render()
+                        recipe.output()
+                    recipe.pid_remove()
             except Exception, exp:
                 logging.getLogger('coshsh').error("skipping recipe %s (%s)" % (recipe.name, exp))
             else:
