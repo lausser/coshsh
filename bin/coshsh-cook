@@ -7,6 +7,7 @@ import sys
 import os
 import re
 import shutil
+import tempfile
 from logging import INFO, DEBUG
 
 sys.dont_write_bytecode = True
@@ -101,7 +102,7 @@ if __name__ == '__main__':
             pid_dir = dict(cookbook.items("defaults"))["pid_dir"]
             pid_dir = re.sub('%.*?%', substenv, pid_dir)
         else:
-            pid_dir = os.path.join(os.environ['COSHSH_HOME'], "..")
+            pid_dir = tempfile.gettempdir()
         if opts.default_log_level and opts.default_log_level.lower() == "debug" or "defaults" in cookbook.sections() and "log_level" in [c[0] for c in cookbook.items("defaults")] and cookbook.items("defaults")["log_level"].lower() == "debug":
             generator.setup_logging(logdir=log_dir, scrnloglevel=DEBUG)
         else:
@@ -110,7 +111,8 @@ if __name__ == '__main__':
             if recipe in recipe_configs.keys():
                 recipe_configs[recipe].append(('force', opts.force))
                 recipe_configs[recipe].append(('safe_output', opts.safe_output))
-                recipe_configs[recipe].append(('pid_dir', pid_dir))
+                if not [c for c in recipe_configs[recipe] if c[0] == 'pid_dir']:
+                    recipe_configs[recipe].append(('pid_dir', pid_dir))
                 generator.add_recipe(**dict(recipe_configs[recipe]))
                 if recipe not in generator.recipes:
                     # something went wrong in add_recipe. we should already see
