@@ -3,7 +3,8 @@
 
 import os
 import sys
-from recipe import Recipe
+import re
+from recipe import Recipe, RecipePidAlreadyRunning, RecipePidNotWritable, RecipePidGarbage
 #from log import logger
 import logging
 from logging.handlers import RotatingFileHandler
@@ -39,6 +40,12 @@ class Generator(object):
                         recipe.render()
                         recipe.output()
                     recipe.pid_remove()
+            except RecipePidAlreadyRunning:
+                logging.getLogger('coshsh').info("skipping recipe %s. already running" % (recipe.name))
+            except RecipePidNotWritable:
+                logging.getLogger('coshsh').error("skipping recipe %s. cannot write pid file to %s" % (recipe.name, recipe.pid_dir))
+            except RecipePidGarbage:
+                logging.getLogger('coshsh').error("skipping recipe %s. pid file %s contains garbage" % (recipe.name, recipe.pid_file))
             except Exception, exp:
                 logging.getLogger('coshsh').error("skipping recipe %s (%s)" % (recipe.name, exp))
             else:
