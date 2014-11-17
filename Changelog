@@ -1,6 +1,9 @@
 2014-11-17 2.1
 - finish pid check. now the city of munich can use coshsh in parallel
 
+2014-11-05 2.1a
+- protect recipes from collisions with pid-file
+
 2012-12-20 2.0.1
 - minor bugfix in datasource::get
 

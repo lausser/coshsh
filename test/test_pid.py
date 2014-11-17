@@ -5,6 +5,7 @@ import os
 import sys
 import shutil
 import string
+import tempfile
 from optparse import OptionParser
 import ConfigParser
 import logging
@@ -76,8 +77,6 @@ class CoshshTest(unittest.TestCase):
 
     def test_run(self):
         self.print_header()
-        print "kaas", self.generator.recipes['test1'].__dict__
-
         self.generator.run()
 
     def test_pid_exists(self):
@@ -143,6 +142,7 @@ class CoshshTest(unittest.TestCase):
         self.print_header()
         self.generator.recipes['test1'].pid_dir = "/"
         self.generator.run()
+        os.chmod(self.generator.recipes['test1'].pid_dir, 0)
         try:
             pid_file = self.generator.recipes['test1'].pid_protect()
         except Exception, exp:
