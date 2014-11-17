@@ -59,6 +59,11 @@ class Recipe(object):
         self.pid_dir = kwargs.get("pid_dir")
         if not self.pid_dir:
             pass # win linux
+            if "cygwin" in sys.platform or "linux" in sys.platform:
+                self.pid_dir = "/tmp"
+            else:
+                self.pid_dir = os.environ.get("%TEMP%", "C:/TEMP")
+
         self.pid_file = os.path.join(self.pid_dir, "coshsh.pid." + re.sub('[/\\\.]', '_', self.name))
         logger.info("recipe %s init" % self.name)
         self.templates_dir = kwargs.get("templates_dir")

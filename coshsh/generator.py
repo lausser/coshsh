@@ -27,7 +27,6 @@ class Generator(object):
             self.recipes[kwargs["name"]] = recipe
         except Exception, e:
             logging.getLogger('coshsh').error("exception creating a recipe: %s" % e)
-            print e
         pass
 
     def run(self):
