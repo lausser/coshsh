@@ -1,3 +1,7 @@
+2014-12-17 2.2
+- add [cfgfiles] as generic application attribute
+- fix sms contacts
+
 2014-11-17 2.1
 - finish pid check. now the city of munich can use coshsh in parallel
 
