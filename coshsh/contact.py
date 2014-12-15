@@ -47,8 +47,10 @@ class Contact(Item):
         self.fingerprint = lambda s=self:s.__class__.fingerprint(params)
         if not hasattr(self, 'host_notification_period') or not self.host_notification_period:
             self.host_notification_period = self.notification_period
+            logger.debug('no column host_notificatin_period found use notification_period instead')
         if not hasattr(self, 'service_notification_period') or not self.service_notification_period:
             self.service_notification_period = self.notification_period
+            logger.debug('no column service_notificatin_period found use notification_period instead')
         try:
             for from_str, to_str in translations:
                 self.name = self.name.replace(from_str, to_str)
@@ -63,10 +65,12 @@ class Contact(Item):
             elif self.type == "SMS":
                 self.contact_name = "sms_" + self.name + "_" + self.notification_period.replace("/", "_")
                 self.pager = self.address
-                self.service_notification_options = "w,c,u"
-                self.host_notification_options = "d,u"
-                self.service_notification_commands = ["notify_by_nothing"] #changeme
-                self.host_notification_commands = ["notify_by_nothing"]
+                if not hasattr(self, "service_notification_options"):
+                    setattr(self, "service_notification_options", "w,c,u,r,f")
+                if not hasattr(self, "host_notification_options"):
+                    setattr(self, "host_notification_options", "d,u,r,f")
+                self.service_notification_commands = ["service-notify-by-sms"]
+                self.host_notification_commands = ["host-notify-by-sms"]
             elif self.type == "PHONE":
                 self.contact_name = "phone_" + self.name + "_" + self.notification_period.replace("/", "_")
                 self.pager = self.address
@@ -74,9 +78,9 @@ class Contact(Item):
                 self.contact_name = "mail_" + self.name + "_" + self.notification_period.replace("/", "_")
                 self.email = self.address
                 if not hasattr(self, "service_notification_options"):
-                    setattr(self, "service_notification_options", "w,c,u,r,f,s")
+                    setattr(self, "service_notification_options", "w,c,u,r,f")
                 if not hasattr(self, "host_notification_options"):
-                    setattr(self, "host_notification_options", "d,u,r,f,s")
+                    setattr(self, "host_notification_options", "d,u,r,f")
                 self.service_notification_commands = ["service-notify-by-email"]
                 self.host_notification_commands = ["host-notify-by-email"]
             else:
@@ -88,11 +92,7 @@ class Contact(Item):
 
     @classmethod
     def fingerprint(self, params):
-        if params["type"] and params["type"].startswith("WEB"):
-            return "+".join([unicode(params.get(a, "")) for a in ["name", "type", "address", "userid"]])
-        else:
-            return "+".join([unicode(params.get(a, "")) for a in ["name", "type", "address", "userid", "notification_period"]])
-
+        return "+".join([unicode(params.get(a, "")) for a in ["name", "type", "address", "userid"]])
 
     def __str__(self):
         fipri = " ".join([unicode(getattr(self, a, "")) for a in ["name", "type", "address", "userid"]])
