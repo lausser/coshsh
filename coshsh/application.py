@@ -45,7 +45,7 @@ class Application(Item):
                 self.__init__(params)
                 self.fingerprint = lambda s=self:s.__class__.fingerprint(params)
             else:
-                logger.debug("this will be Generic: %s" % params)
+                logger.debug('this will be Generic %s' % params)
                 self.__class__ = GenericApplication
                 self.contact_groups = []
                 super(Application, self).__init__(params)
@@ -124,7 +124,7 @@ class GenericApplication(Application):
     def render(self, template_cache, jinja2):
         # Maybe we find some processes, ports, filesystems in the
         # monitoring_details so we can output generic services
-        if (hasattr(self, "processes") and self.processes) or (hasattr(self, "filesystems") and self.filesystems) or (hasattr(self, "ports") and self.ports):
+        if (hasattr(self, "processes") and self.processes) or (hasattr(self, "filesystems") and self.filesystems) or (hasattr(self, "cfgfiles") and self.cfgfiles) or (hasattr(self, "files") and self.files) or (hasattr(self, "ports") and self.ports):
             super(GenericApplication, self).render(template_cache, jinja2)
         else:
             return ()
