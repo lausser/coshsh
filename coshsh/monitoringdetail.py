@@ -10,8 +10,9 @@ import imp
 import inspect
 import logging
 from urlparse import urlparse
-from item import Item
-from application import Application
+import coshsh
+from coshsh.item import Item
+from coshsh.application import Application
 
 logger = logging.getLogger('coshsh')
 
@@ -19,7 +20,7 @@ class MonitoringDetailNotImplemented(Exception):
     pass
 
 
-class MonitoringDetail(Item):
+class MonitoringDetail(coshsh.item.Item):
     class_factory = []
     lower_columns = ['application_name', 'application_type']
 

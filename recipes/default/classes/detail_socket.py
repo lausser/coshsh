@@ -1,11 +1,12 @@
-from monitoring_detail import MonitoringDetail
+import coshsh
+from coshsh.monitoringdetail import MonitoringDetail
 
 def __detail_ident__(params={}):
     if params["monitoring_type"] == "SOCKET":
         return MonitoringDetailSocket
 
 
-class MonitoringDetailSocket(MonitoringDetail):
+class MonitoringDetailSocket(coshsh.monitoringdetail.MonitoringDetail):
     """
     """
     property = "socket"

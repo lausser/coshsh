@@ -10,13 +10,12 @@ import logging
 logger = logging.getLogger('coshsh')
 
 sys.dont_write_bytecode = True
-sys.path.insert(0, os.path.abspath(".."))
-sys.path.insert(0, os.path.abspath(os.path.join("..", "coshsh")))
 
-from generator import Generator
-from datasource import Datasource
-from application import Application
-from monitoring_detail import MonitoringDetail
+import coshsh
+from coshsh.generator import Generator
+from coshsh.datasource import Datasource
+from coshsh.application import Application
+from coshsh.monitoringdetail import MonitoringDetail
 
 
 class CoshshTest(unittest.TestCase):
@@ -29,7 +28,7 @@ class CoshshTest(unittest.TestCase):
         os.makedirs("./var/objects/test6")
         self.config = ConfigParser.ConfigParser()
         self.config.read('etc/coshsh.cfg')
-        self.generator = Generator()
+        self.generator = coshsh.generator.Generator()
         self.generator.setup_logging()
         self.generator.add_recipe(name='test6', **dict(self.config.items('recipe_TEST6')))
         self.config.set("datasource_CSVDETAILS", "name", "test6")
@@ -42,7 +41,7 @@ class CoshshTest(unittest.TestCase):
         self.print_header()
         cfg = self.config.items("datasource_CSVDETAILS")
         objects = self.generator.recipes['test6'].objects
-        ds = Datasource(**dict(cfg))
+        ds = coshsh.datasource.Datasource(**dict(cfg))
         ds.read(objects=objects)
         app1 = objects['applications'].values()[0]
         app1.resolve_monitoring_details()
@@ -65,12 +64,12 @@ class CoshshTest(unittest.TestCase):
 
     def test_detail_url(self):
         self.print_header()
-        oracle = Application({
+        oracle = coshsh.application.Application({
             'host_name': 'test',
             'name': 'test',
             'type': 'generic',
         })
-        url = MonitoringDetail({
+        url = coshsh.monitoringdetail.MonitoringDetail({
             'host_name': 'test',
             'application_name': 'test',
             'application_type': 'generic',
@@ -90,15 +89,15 @@ class CoshshTest(unittest.TestCase):
         self.assert_(oracle.urls[0].path == '/svc')
 
     def test_detail_ram(self):
-        Application.init_classes([
+        coshsh.application.Application.init_classes([
             os.path.join(os.path.dirname(__file__), 'recipes/test6/classes'),
             os.path.join(os.path.dirname(__file__), '../recipes/default/classes')])
-        MonitoringDetail.init_classes([
+        coshsh.monitoringdetail.MonitoringDetail.init_classes([
             os.path.join(os.path.dirname(__file__), 'recipes/test6/classes'),
             os.path.join(os.path.dirname(__file__), '../recipes/default/classes')])
         self.print_header()
-        opsys = Application({'name': 'os', 'type': 'red hat 6.1'})
-        ram = MonitoringDetail({'application_name': 'os',
+        opsys = coshsh.application.Application({'name': 'os', 'type': 'red hat 6.1'})
+        ram = coshsh.monitoringdetail.MonitoringDetail({'application_name': 'os',
             'application_type': 'red hat 6.1',
             'monitoring_type': 'RAM',
             'monitoring_0': '80',

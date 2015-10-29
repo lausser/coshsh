@@ -1,12 +1,13 @@
 from urlparse import urlparse
-from monitoring_detail import MonitoringDetail
+import coshsh
+from coshsh.monitoringdetail import MonitoringDetail
 
 def __detail_ident__(params={}):
     if params["monitoring_type"] == "URL":
         return MonitoringDetailUrl
 
 
-class MonitoringDetailUrl(MonitoringDetail):
+class MonitoringDetailUrl(coshsh.monitoringdetail.MonitoringDetail):
     property = "urls"
     property_type = list
 

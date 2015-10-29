@@ -1,11 +1,12 @@
-from monitoring_detail import MonitoringDetail
+import coshsh
+from coshsh.monitoringdetail import MonitoringDetail
 
 def __detail_ident__(params={}):
     if params["monitoring_type"] == "ROLE":
         return MonitoringDetailRole
 
 
-class MonitoringDetailRole(MonitoringDetail):
+class MonitoringDetailRole(coshsh.monitoringdetail.MonitoringDetail):
     """
     """
     property = "role"

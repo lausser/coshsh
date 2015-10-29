@@ -1,11 +1,12 @@
-from monitoring_detail import MonitoringDetail
+import coshsh
+from coshsh.monitoringdetail import MonitoringDetail
 
 def __detail_ident__(params={}):
     if params["monitoring_type"] == "DEPTH":
         return MonitoringDetailDepth
 
 
-class MonitoringDetailDepth(MonitoringDetail):
+class MonitoringDetailDepth(coshsh.monitoringdetail.MonitoringDetail):
     """
     Describes hwo deep the monitoring of an application should go.
     Levels are 0 (ignore), 1 (minimum) ... n (expert level, debugging)

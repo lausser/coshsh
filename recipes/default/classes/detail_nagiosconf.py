@@ -1,11 +1,12 @@
-from monitoring_detail import MonitoringDetail
+import coshsh
+from coshsh.monitoringdetail import MonitoringDetail
 
 def __detail_ident__(params={}):
     if params["monitoring_type"] == "NAGIOSCONF":
         return MonitoringDetailNagiosConf
 
 
-class MonitoringDetailNagiosConf(MonitoringDetail):
+class MonitoringDetailNagiosConf(coshsh.monitoringdetail.MonitoringDetail):
     property = "generic"
     property_type = str
 

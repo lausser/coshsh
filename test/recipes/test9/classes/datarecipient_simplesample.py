@@ -9,25 +9,25 @@ import os
 import re
 import shutil
 import logging
-from host import Host
-from datarecipient import Datarecipient
-from application import Application
-from util import compare_attr
+import coshsh
+from coshsh.datarecipient import Datarecipient
+from coshsh.host import Host
+from coshsh.util import compare_attr
 
 logger = logging.getLogger('coshsh')
 
 def __ds_ident__(params={}):
-    if compare_attr("type", params, "simplesample"):
+    if coshsh.util.compare_attr("type", params, "simplesample"):
         return DrSimpleSample
 
 
-class MyHost(Host):
+class MyHost(coshsh.host.Host):
     def __init__(self, params={}):
         superclass = super(MyHost, self)
         superclass.__init__(params)
         self.my_host = True
 
-class DrSimpleSample(Datarecipient):
+class DrSimpleSample(coshsh.datarecipient.Datarecipient):
     class_only_the_test_simplesample = False
     def __init__(self, **kwargs):
         self.name = kwargs["name"]

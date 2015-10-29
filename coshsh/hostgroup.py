@@ -1,12 +1,12 @@
 import os
-from item import Item
-from templaterule import TemplateRule
+import coshsh
 
-class Hostgroup(Item):
+
+class HostGroup(coshsh.item.Item):
 
     id = 1 #0 is reserved for host (primary node for parents)
     template_rules = [
-        TemplateRule(needsattr=None, 
+        coshsh.templaterule.TemplateRule(needsattr=None, 
             template="hostgroup", 
             self_name="hostgroup",
             unique_attr="hostgroup_name", unique_config="hostgroup_%s",
@@ -19,7 +19,7 @@ class Hostgroup(Item):
         self.contacts = []
         self.contactgroups = []
         self.templates = []
-        superclass = super(Hostgroup, self)
+        superclass = super(HostGroup, self)
         superclass.__init__(params)
         
 

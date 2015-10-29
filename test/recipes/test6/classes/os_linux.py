@@ -1,17 +1,18 @@
-from application import Application
-from templaterule import TemplateRule
-from util import compare_attr
+import coshsh
+from coshsh.application import Application
+from coshsh.templaterule import TemplateRule
+from coshsh.util import compare_attr
 
 def __mi_ident__(params={}):
-    if compare_attr("type", params, ".*red\s*hat.*|.*rhel.*|.*sles.*|.*linux.*|.*limux.*|.*debian.*|.*ubuntu.*|.*centos.*"):
+    if coshsh.util.compare_attr("type", params, ".*red\s*hat.*|.*rhel.*|.*sles.*|.*linux.*|.*limux.*|.*debian.*|.*ubuntu.*|.*centos.*"):
         return Linux
 
 
-class Linux(Application):
+class Linux(coshsh.application.Application):
     template_rules = [
-        TemplateRule(needsattr=None, 
+        coshsh.templaterule.TemplateRule(needsattr=None, 
             template="os_linux_default"),
-        TemplateRule(needsattr="filesystems", 
+        coshsh.templaterule.TemplateRule(needsattr="filesystems", 
             template="os_linux_fs"),
     ]
 
@@ -36,7 +37,7 @@ class SuSE(Linux):
 
 class EmbeddedLinux(Linux):
     template_rules = [
-        TemplateRule(needsattr=None, 
+        coshsh.templaterule.TemplateRule(needsattr=None, 
             template="os_linux_heartbeat"),
     ]
 

@@ -1,11 +1,12 @@
-from monitoring_detail import MonitoringDetail
+import coshsh
+from coshsh.monitoringdetail import MonitoringDetail
 
 def __detail_ident__(params={}):
     if params["monitoring_type"] == "INTERFACE":
         return MonitoringDetailInterface
 
 
-class MonitoringDetailInterface(MonitoringDetail):
+class MonitoringDetailInterface(coshsh.monitoringdetail.MonitoringDetail):
     """
     """
     property = "interfaces"

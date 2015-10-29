@@ -11,19 +11,18 @@ import shutil
 import logging
 import time
 from subprocess import Popen, PIPE, STDOUT
-from host import Host
-from datarecipient import Datarecipient
-from application import Application
-from util import compare_attr
+import coshsh
+from coshsh.datarecipient import Datarecipient
+from coshsh.util import compare_attr
 
 logger = logging.getLogger('coshsh')
 
 def __ds_ident__(params={}):
-    if compare_attr("type", params, "datarecipient_coshsh_default"):
+    if coshsh.util.compare_attr("type", params, "datarecipient_coshsh_default"):
         return DatarecipientCoshshDefault
 
 
-class DatarecipientCoshshDefault(Datarecipient):
+class DatarecipientCoshshDefault(coshsh.datarecipient.Datarecipient):
     def __init__(self, **kwargs):
         self.name = kwargs["name"]
         self.objects_dir = kwargs.get("objects_dir", "/tmp")

@@ -9,9 +9,10 @@ import os
 import imp
 import inspect
 import logging
-from util import compare_attr, is_attr
-from item import Item
-from templaterule import TemplateRule
+import coshsh
+from coshsh.util import compare_attr, is_attr
+from coshsh.item import Item
+from coshsh.templaterule import TemplateRule
 
 logger = logging.getLogger('coshsh')
 
@@ -19,7 +20,7 @@ class ApplicationNotImplemented(Exception):
     pass
 
 
-class Application(Item):
+class Application(coshsh.item.Item):
 
     id = 1 #0 is reserved for host (primary node for parents)
     my_type = 'application'

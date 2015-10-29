@@ -13,14 +13,15 @@ import time
 import logging
 import errno
 from jinja2 import FileSystemLoader, Environment, TemplateSyntaxError, TemplateNotFound
-from jinja2_extensions import is_re_match, filter_re_sub, filter_re_escape, filter_service, filter_custom_macros
-from item import Item
-from application import Application
-from hostgroup import Hostgroup
-from monitoring_detail import MonitoringDetail
-from datasource import Datasource, DatasourceCorrupt, DatasourceNotReady, DatasourceNotAvailable, DatasourceNotCurrent
-from datarecipient import Datarecipient, DatarecipientCorrupt, DatarecipientNotReady, DatarecipientNotAvailable, DatarecipientNotCurrent
-from util import compare_attr, substenv
+import coshsh
+from coshsh.jinja2_extensions import is_re_match, filter_re_sub, filter_re_escape, filter_service, filter_custom_macros
+from coshsh.item import Item
+from coshsh.application import Application
+from coshsh.hostgroup import HostGroup
+from coshsh.monitoringdetail import MonitoringDetail
+from coshsh.datasource import Datasource, DatasourceCorrupt, DatasourceNotReady, DatasourceNotAvailable, DatasourceNotCurrent
+from coshsh.datarecipient import Datarecipient, DatarecipientCorrupt, DatarecipientNotReady, DatarecipientNotAvailable, DatarecipientNotCurrent
+from coshsh.util import compare_attr, substenv
 
 logger = logging.getLogger('coshsh')
 
@@ -219,7 +220,7 @@ class Recipe(object):
 
         for (hostgroup_name, members) in self.objects['hostgroups'].items():
             logger.debug("creating hostgroup %s" % hostgroup_name)
-            self.objects['hostgroups'][hostgroup_name] = Hostgroup({ "hostgroup_name" : hostgroup_name, "members" : members})
+            self.objects['hostgroups'][hostgroup_name] = HostGroup({ "hostgroup_name" : hostgroup_name, "members" : members})
             self.objects['hostgroups'][hostgroup_name].create_templates()
             self.objects['hostgroups'][hostgroup_name].create_contacts()
 

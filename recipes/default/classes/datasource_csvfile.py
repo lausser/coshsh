@@ -5,23 +5,24 @@
 # This software is licensed under the
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
-from datasource import Datasource, DatasourceNotAvailable
 import csv
 import os
 import re
 import logging
 from copy import copy
-from host import Host
-from application import Application
-from contactgroup import ContactGroup
-from contact import Contact
-from monitoring_detail import MonitoringDetail
-from util import compare_attr
+import coshsh
+from coshsh.datasource import Datasource, DatasourceNotAvailable
+from coshsh.host import Host
+from coshsh.application import Application
+from coshsh.contactgroup import ContactGroup
+from coshsh.contact import Contact
+from coshsh.monitoringdetail import MonitoringDetail
+from coshsh.util import compare_attr
 
 logger = logging.getLogger('coshsh')
 
 def __ds_ident__(params={}):
-    if compare_attr("type", params, "csv"):
+    if coshsh.util.compare_attr("type", params, "csv"):
         return CsvFile
 
 class CommentedFile:
@@ -36,7 +37,7 @@ class CommentedFile:
     def __iter__(self):
         return self
 
-class CsvFile(Datasource):
+class CsvFile(coshsh.datasource.Datasource):
     def __init__(self, **kwargs):
         superclass = super(self.__class__, self)
         superclass.__init__(**kwargs)
@@ -48,7 +49,7 @@ class CsvFile(Datasource):
         logger.info('open datasource %s' % self.name)
         if not os.path.exists(self.dir):
             logger.error('csv dir %s does not exist' % self.dir)
-            raise DatasourceNotAvailable
+            raise coshsh.datasource.DatasourceNotAvailable
 
     def read(self, filter=None, objects={}, force=False, **kwargs):
         self.objects = objects
@@ -63,7 +64,7 @@ class CsvFile(Datasource):
             row["templates"] = ["generic-host"]
             for attr in [k for k in row.keys() if k in ['type', 'os', 'hardware', 'virtual']]:
                 row[attr] = row[attr].lower()
-            h = Host(row)
+            h = coshsh.host.Host(row)
             self.add('hosts', h)
 
         try:
@@ -90,7 +91,7 @@ class CsvFile(Datasource):
                     row["virtual"] = self.objects['hosts'][row["host_name"]].virtual
                 except KeyError:
                     logger.error('host %s not found for application %s' % (row["host_name"], row["name"]))
-            a = Application(row)
+            a = coshsh.application.Application(row)
             self.add('applications', a)
 
         try:
@@ -113,7 +114,7 @@ class CsvFile(Datasource):
             for attr in [k for k in row.keys() if k in ['application_name', 'application_type', 'component', 'version']]:
                 row[attr] = row[attr].lower()
             application_id = "%s+%s+%s" % (row["host_name"], row["application_name"], row["application_type"])
-            detail = MonitoringDetail(row)
+            detail = coshsh.monitoringdetail.MonitoringDetail(row)
             if application_id in self.objects['applications']:
                 self.objects['applications'][application_id].monitoring_details.append(detail)
             elif row["host_name"] in self.objects['hosts']:
@@ -142,7 +143,7 @@ class CsvFile(Datasource):
             application_id = "%s+%s+%s" % (row["host_name"], row["application_name"], row["application_type"])
             for group in row["groups"].split(":"):
                 if not self.find('contactgroups', group):
-                    self.add('contactgroups', ContactGroup({ 'contactgroup_name' : group }))
+                    self.add('contactgroups', coshsh.contactgroup.ContactGroup({ 'contactgroup_name' : group }))
                 if self.find('applications', application_id) and row["application_name"] == "os":
                     if not group in self.get('applications', application_id).contact_groups:
                         self.get('applications', application_id).contact_groups.append(group)
@@ -166,7 +167,7 @@ class CsvFile(Datasource):
             contactreader = []
         # name,type,address,userid,notification_period,groups
         for row in contactreader:
-            c = Contact(row)
+            c = coshsh.contact.Contact(row)
             if not self.find('contacts', c.fingerprint()):
                 c.contactgroups.extend(row["groups"].split(":"))
                 self.add('contacts', c)

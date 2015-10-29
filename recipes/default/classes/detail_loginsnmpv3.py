@@ -1,11 +1,12 @@
-from monitoring_detail import MonitoringDetail
+import coshsh
+from coshsh.monitoringdetail import MonitoringDetail
 
 def __detail_ident__(params={}):
     if params["monitoring_type"] == "LOGINSNMPV3":
         return MonitoringDetailLoginSNMPV3
 
 
-class MonitoringDetailLoginSNMPV3(MonitoringDetail):
+class MonitoringDetailLoginSNMPV3(coshsh.monitoringdetail.MonitoringDetail):
     """
     """
     property = "loginsnmpv3"

@@ -8,23 +8,24 @@
 import os
 import re
 import logging
-from util import compare_attr
-from datasource import Datasource
+import coshsh
 from copy import copy
-from host import Host
-from application import Application
-from contactgroup import ContactGroup
-from contact import Contact
-from monitoring_detail import MonitoringDetail
+from coshsh.util import compare_attr
+from coshsh.datasource import Datasource
+from coshsh.host import Host
+from coshsh.application import Application
+from coshsh.contactgroup import ContactGroup
+from coshsh.contact import Contact
+from coshsh.monitoringdetail import MonitoringDetail
 
 logger = logging.getLogger('coshsh')
 
 def __ds_ident__(params={}):
-    if compare_attr("type", params, "simplesample"):
+    if coshsh.util.compare_attr("type", params, "simplesample"):
         return SimpleSample
 
 
-class SimpleSample(Datasource):
+class SimpleSample(coshsh.datasource.Datasource):
     def __init__(self, **kwargs):
         #self.name = kwargs["name"]
         self.dir = kwargs.get("dir", "/tmp")

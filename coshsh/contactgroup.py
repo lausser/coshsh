@@ -1,15 +1,16 @@
 import os
-from item import Item
-from templaterule import TemplateRule
+import coshsh
+from coshsh.item import Item
+from coshsh.templaterule import TemplateRule
 
-class ContactGroup(Item):
+class ContactGroup(coshsh.item.Item):
 
     id = 1 #0 is reserved for host (primary node for parents)
     my_type = 'contact_group'
     app_template = "app.tpl"
 
     template_rules = [
-        TemplateRule(
+        coshsh.templaterule.TemplateRule(
             template="contactgroup",
             self_name="contactgroup",
             unique_attr="contactgroup_name", unique_config="contactgroup_%s",

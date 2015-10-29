@@ -8,24 +8,25 @@
 import os
 import re
 import logging
-from host import Host
-from datasource import Datasource
-from application import Application
-from util import compare_attr
+import coshsh
+from coshsh.host import Host
+from coshsh.datasource import Datasource
+from coshsh.application import Application
+from coshsh.util import compare_attr
 
 logger = logging.getLogger('coshsh')
 
 def __ds_ident__(params={}):
-    if compare_attr("type", params, "simplesample"):
+    if coshsh.util.compare_attr("type", params, "simplesample"):
         return SimpleSample
 
-class MyHost(Host):
+class MyHost(coshsh.host.Host):
     def __init__(self, params={}):
         superclass = super(MyHost, self)
         superclass.__init__(params)
         self.my_host = True
 
-class SimpleSample(Datasource):
+class SimpleSample(coshsh.datasource.Datasource):
     class_only_the_test_simplesample = True
     def __init__(self, **kwargs):
         self.name = kwargs["name"]
@@ -55,7 +56,7 @@ class SimpleSample(Datasource):
             'host_name': 'test_host_0',
             'check_period': '7x24',
         }
-        self.add('applications', Application(appdata))
+        self.add('applications', coshsh.application.Application(appdata))
         appdata = {
             'name': 'os',
             'type': 'Windows',
@@ -65,4 +66,4 @@ class SimpleSample(Datasource):
             'host_name': 'test_host_0',
             'check_period': '7x24',
         }
-        self.add('applications', Application(appdata))
+        self.add('applications', coshsh.application.Application(appdata))

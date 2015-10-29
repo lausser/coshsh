@@ -12,13 +12,12 @@ import logging
 
 
 sys.dont_write_bytecode = True
-sys.path.insert(0, os.path.abspath(".."))
-sys.path.insert(0, os.path.abspath(os.path.join("..", "coshsh")))
 
-from generator import Generator
-from datasource import Datasource
-from application import Application
-from util import substenv
+import coshsh
+from coshsh.generator import Generator
+from coshsh.datasource import Datasource
+from coshsh.application import Application
+from coshsh.util import substenv
 
 class CoshshTest(unittest.TestCase):
     def print_header(self):
@@ -63,7 +62,7 @@ class CoshshTest(unittest.TestCase):
             pid_dir = re.sub('%.*?%', substenv, pid_dir)
         else:
             pid_dir = os.path.join(os.environ['COSHSH_HOME'], "..")
-        self.generator = Generator()
+        self.generator = coshsh.generator.Generator()
         for recipe in recipes:
             if recipe == 'test1':
                 recipe_configs[recipe].append(('pid_dir', pid_dir))

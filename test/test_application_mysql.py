@@ -5,13 +5,14 @@ import logging
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.abspath(".."))
-sys.path.insert(0, os.path.abspath(os.path.join("..", "coshsh")))
+#sys.path.insert(0, os.path.abspath(os.path.join("..", "coshsh")))
 
-from generator import Generator
-from datasource import Datasource
-from host import Host
-from application import Application
-from monitoring_detail import MonitoringDetail
+import coshsh
+from coshsh.generator import Generator
+#from datasource import Datasource
+from coshsh.host import Host
+from coshsh.application import Application
+from coshsh.monitoringdetail import MonitoringDetail
 
 logger = logging.getLogger('coshsh')
 
@@ -21,7 +22,7 @@ class CoshshTest(unittest.TestCase):
         self.generator.setup_logging()
         self.hosts = {}
         self.applications = {}
-        Application.init_classes([
+        coshsh.application.Application.init_classes([
             os.path.join(os.path.dirname(__file__), '../recipes/default/classes'),
             os.path.join(os.path.dirname(__file__), 'recipes/test10/classes')])
         MonitoringDetail.init_classes([
@@ -32,14 +33,14 @@ class CoshshTest(unittest.TestCase):
         final_row = { }
         for (index, value) in enumerate(['host_name', 'address', 'type', 'os', 'hardware', 'virtual', 'notification_period', 'location', 'department']):
             final_row[value] = [None if row[index] == "" else row[index]][0]
-        h = Host(final_row)
+        h = coshsh.host.Host(final_row)
         self.hosts[h.host_name] = h
 
         row = ['drivel', 'mysql', '', '', '', 'drivelsrv', '7x24']
         final_row = { }
         for (index, value) in enumerate(['name', 'type', 'component', 'version', 'patchlevel', 'host_name', 'check_period']):
             final_row[value] = [None if row[index] == "" else row[index]][0]
-        a = Application(final_row)
+        a = coshsh.application.Application(final_row)
         #a.__init__(final_row)
         self.applications[a.fingerprint()] = a
         setattr(a, "host", self.hosts[a.host_name])
@@ -64,7 +65,7 @@ class CoshshTest(unittest.TestCase):
         self.assert_(h.host_name == 'drivelsrv')
         self.assert_(hasattr(a, 'host_name'))
         self.assert_(a.host_name == 'drivelsrv')
-        a.monitoring_details.append(MonitoringDetail({
+        a.monitoring_details.append(coshsh.monitoringdetail.MonitoringDetail({
             "monitoring_type" : "PORT",
             "monitoring_0" : 10000}))
         a.resolve_monitoring_details()

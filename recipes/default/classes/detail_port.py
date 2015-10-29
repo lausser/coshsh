@@ -1,11 +1,12 @@
-from monitoring_detail import MonitoringDetail
+import coshsh
+from coshsh.monitoringdetail import MonitoringDetail
 
 def __detail_ident__(params={}):
     if params["monitoring_type"] == "PORT":
         return MonitoringDetailPort
 
 
-class MonitoringDetailPort(MonitoringDetail):
+class MonitoringDetailPort(coshsh.monitoringdetail.MonitoringDetail):
     """
     """
     property = "ports"

@@ -10,7 +10,8 @@ import re
 import imp
 import inspect
 import logging
-from util import compare_attr, substenv
+import coshsh
+from coshsh.util import compare_attr, substenv
 
 logger = logging.getLogger('coshsh')
 

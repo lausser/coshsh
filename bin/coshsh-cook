@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # Copyright (C) : Gerhard Lausser, gerhard.lausser@consol.de
 
+import sys
+reload(sys)
+sys.setdefaultencoding('utf8')
+
 from optparse import OptionParser
 import ConfigParser
 import sys
@@ -11,18 +15,24 @@ import tempfile
 from logging import INFO, DEBUG
 
 sys.dont_write_bytecode = True
-if 'COSHSH_HOME' in os.environ:
-    coshsh_home = os.environ['COSHSH_HOME']
-else:
-    coshsh_home = os.path.join(os.path.dirname(__file__), '..', 'coshsh')
-    os.environ['COSHSH_HOME'] = coshsh_home
-sys.path.append(coshsh_home)
+try:
+    import coshsh
+except Exception:
+    if 'COSHSH_HOME' in os.environ:
+        coshsh_home = os.environ['COSHSH_HOME']
+    else:
+        coshsh_home = os.path.join(os.path.dirname(__file__), '..')
+        os.environ['COSHSH_HOME'] = coshsh_home
+    sys.path.append(coshsh_home)
+    try:
+        import coshsh
+    except Exception:
+        print "Could not load package coshsh. Check your PYTHONPATH"
+        sys.exit(3)
 
-#from log import logger
-from generator import Generator
-from recipe import Recipe
-from datasource import Datasource, DatasourceNotAvailable
-from util import substenv
+from coshsh.generator import Generator
+from coshsh.recipe import Recipe
+from coshsh.util import substenv
 
 
 class GeneratorMessage(object):
@@ -95,12 +105,12 @@ if __name__ == '__main__':
                 recipes = recipe_configs.keys()
         if "defaults" in cookbook.sections() and "log_dir" in [c[0] for c in cookbook.items("defaults")]:
             log_dir = dict(cookbook.items("defaults"))["log_dir"]
-            log_dir = re.sub('%.*?%', substenv, log_dir)
+            log_dir = re.sub('%.*?%', coshsh.util.substenv, log_dir)
         else:
             log_dir = os.path.join(os.environ['COSHSH_HOME'], "..")
         if "defaults" in cookbook.sections() and "pid_dir" in [c[0] for c in cookbook.items("defaults")]:
             pid_dir = dict(cookbook.items("defaults"))["pid_dir"]
-            pid_dir = re.sub('%.*?%', substenv, pid_dir)
+            pid_dir = re.sub('%.*?%', coshsh.util.substenv, pid_dir)
         else:
             pid_dir = tempfile.gettempdir()
         if opts.default_log_level and opts.default_log_level.lower() == "debug" or "defaults" in cookbook.sections() and "log_level" in [c[0] for c in cookbook.items("defaults")] and cookbook.items("defaults")["log_level"].lower() == "debug":

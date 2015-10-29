@@ -1,6 +1,4 @@
 import os
-from item import Item
-from templaterule import TemplateRule
 
 class Dependency(object):
 

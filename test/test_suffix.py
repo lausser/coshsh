@@ -9,13 +9,12 @@ import logging
 
 
 sys.dont_write_bytecode = True
-sys.path.insert(0, os.path.abspath(".."))
-sys.path.insert(0, os.path.abspath(os.path.join("..", "coshsh")))
 
-from generator import Generator
-from datasource import Datasource
-from datarecipient import Datarecipient
-from application import Application
+import coshsh
+from coshsh.generator import Generator
+from coshsh.datasource import Datasource
+from coshsh.datarecipient import Datarecipient
+from coshsh.application import Application
 
 class CoshshTest(unittest.TestCase):
     def print_header(self):
@@ -28,7 +27,7 @@ class CoshshTest(unittest.TestCase):
         os.makedirs("./var/objects/test11")
         self.config = ConfigParser.ConfigParser()
         self.config.read('etc/coshsh.cfg')
-        self.generator = Generator()
+        self.generator = coshsh.generator.Generator()
         self.generator.setup_logging()
 
     def tearDown(self):

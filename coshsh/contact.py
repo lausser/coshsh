@@ -2,8 +2,9 @@
 
 import os
 import logging
-from item import Item
-from templaterule import TemplateRule
+import coshsh
+from coshsh.item import Item
+from coshsh.templaterule import TemplateRule
 
 logger = logging.getLogger('coshsh')
 
@@ -18,14 +19,14 @@ translations = (
 )
 
 
-class Contact(Item):
+class Contact(coshsh.item.Item):
 
     id = 1 #0 is reserved for host (primary node for parents)
     my_type = 'contact'
     app_template = "app.tpl"
 
     template_rules = [
-        TemplateRule(
+        coshsh.templaterule.TemplateRule(
             template="contact",
             self_name="contact",
             unique_attr="contact_name", unique_config="contact_%s",

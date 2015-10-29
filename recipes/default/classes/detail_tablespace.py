@@ -1,11 +1,12 @@
-from monitoring_detail import MonitoringDetail
+import coshsh
+from coshsh.monitoringdetail import MonitoringDetail
 
 def __detail_ident__(params={}):
     if params["monitoring_type"] == "TABLESPACE":
         return MonitoringDetailTablespace
 
 
-class MonitoringDetailTablespace(MonitoringDetail):
+class MonitoringDetailTablespace(coshsh.monitoringdetail.MonitoringDetail):
     """
     """
     property = "tablespaces"

@@ -4,11 +4,11 @@
 import os
 import sys
 import re
-from recipe import Recipe, RecipePidAlreadyRunning, RecipePidNotWritable, RecipePidGarbage
-#from log import logger
 import logging
 from logging.handlers import RotatingFileHandler
-from util import odict
+import coshsh
+from coshsh.recipe import Recipe, RecipePidAlreadyRunning, RecipePidNotWritable, RecipePidGarbage
+from coshsh.util import odict
 
 logger = None
 
@@ -18,12 +18,12 @@ class Generator(object):
     messages = []
 
     def __init__(self):
-        self.recipes = odict()
+        self.recipes = coshsh.util.odict()
         self._logging_on = False
 
     def add_recipe(self, *args, **kwargs):
         try:
-            recipe = Recipe(**kwargs)
+            recipe = coshsh.recipe.Recipe(**kwargs)
             self.recipes[kwargs["name"]] = recipe
         except Exception, e:
             logging.getLogger('coshsh').error("exception creating a recipe: %s" % e)
@@ -39,11 +39,11 @@ class Generator(object):
                         recipe.render()
                         recipe.output()
                     recipe.pid_remove()
-            except RecipePidAlreadyRunning:
+            except coshsh.recipe.RecipePidAlreadyRunning:
                 logging.getLogger('coshsh').info("skipping recipe %s. already running" % (recipe.name))
-            except RecipePidNotWritable:
+            except coshsh.recipe.RecipePidNotWritable:
                 logging.getLogger('coshsh').error("skipping recipe %s. cannot write pid file to %s" % (recipe.name, recipe.pid_dir))
-            except RecipePidGarbage:
+            except coshsh.recipe.RecipePidGarbage:
                 logging.getLogger('coshsh').error("skipping recipe %s. pid file %s contains garbage" % (recipe.name, recipe.pid_file))
             except Exception, exp:
                 logging.getLogger('coshsh').error("skipping recipe %s (%s)" % (recipe.name, exp))

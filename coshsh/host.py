@@ -1,12 +1,14 @@
 import os
-from item import Item
-from templaterule import TemplateRule
+import coshsh
+from coshsh.item import Item
+from coshsh.templaterule import TemplateRule
 
-class Host(Item):
+
+class Host(coshsh.item.Item):
 
     id = 1 #0 is reserved for host (primary node for parents)
     template_rules = [
-        TemplateRule(needsattr=None, 
+        coshsh.templaterule.TemplateRule(needsattr=None, 
             template="host", 
             self_name="host",
         ),

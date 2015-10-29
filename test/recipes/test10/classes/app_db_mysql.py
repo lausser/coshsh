@@ -1,15 +1,16 @@
-from application import Application
-from templaterule import TemplateRule
-from util import compare_attr
+import coshsh
+from coshsh.application import Application
+from coshsh.templaterule import TemplateRule
+from coshsh.util import compare_attr
 
 def __mi_ident__(params={}):
-    if compare_attr("type", params, "mysql"):
+    if coshsh.util.compare_attr("type", params, "mysql"):
         return MySQL
 
 
-class MySQL(Application):
+class MySQL(coshsh.application.Application):
     template_rules = [
-        TemplateRule(
+        coshsh.templaterule.TemplateRule(
             template="app_db_mysql_default",
             unique_config="app_db_mysql_%s_default",
         )
