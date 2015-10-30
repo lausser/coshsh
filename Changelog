@@ -1,3 +1,5 @@
+* 2015-10-30 3.0
+  redesign as pypi package
 * 2014-12-17 2.2
   add [cfgfiles] as generic application attribute
   fix sms contacts

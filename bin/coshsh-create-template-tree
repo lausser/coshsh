@@ -1,5 +1,10 @@
 #!/usr/bin/env python
-# Copyright (C) : Gerhard Lausser, gerhard.lausser@consol.de
+#-*- encoding: utf-8 -*-
+#
+# This file belongs to coshsh.
+# Copyright Gerhard Lausser.
+# This software is licensed under the
+# GNU Affero General Public License version 3 (see the file LICENSE).
 
 from optparse import OptionParser
 import ConfigParser
@@ -7,6 +12,7 @@ import sys
 import os
 import shutil
 from subprocess import Popen, PIPE, STDOUT
+from tempfile import gettempdir
 import time
 from logging import INFO, DEBUG
 
@@ -88,8 +94,10 @@ if __name__ == '__main__':
         if "defaults" in cookbook.sections() and "log_dir" in [c[0] for c in cookbook.items("defaults")]:
             log_dir = dict(cookbook.items("defaults"))["log_dir"]
             log_dir = re.sub('%.*?%', coshsh.util.substenv, log_dir)
+        elif 'OMD_ROOT' in os.environ:
+            log_dir = os.path.join(os.environ['OMD_ROOT'], "var", "coshsh")
         else:
-            log_dir = os.path.join(os.environ['COSHSH_HOME'], "..")
+            log_dir = gettempdir()
 
         if opts.default_log_level and opts.default_log_level.lower() == "debug" or "defaults" in cookbook.sections() and "log_level" in [c[0] for c in cookbook.items("defaults")] and cookbook.items("defaults")["log_level"].lower() == "debug":
             generator.setup_logging(logdir=log_dir, scrnloglevel=DEBUG)

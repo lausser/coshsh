@@ -180,7 +180,7 @@ class CoshshTest(unittest.TestCase):
             hosts, applications, contacts, contactgroups, appdetails, dependencies, bps = ds.read()
         except Exception, exp:
             pass
-        self.assert_(exp.__class__.__name__ == "coshsh.datasource.DatasourceNotCurrent")
+        self.assert_(exp.__class__.__name__ == "DatasourceNotCurrent")
         cfg = self.config.items("datasource_HANDSH")
         self.generator.recipes['test8'].add_datasource(**dict(cfg))
         coll_success = self.generator.recipes['test8'].collect()

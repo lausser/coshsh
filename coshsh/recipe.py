@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 #-*- encoding: utf-8 -*-
 #
-# Copyright 2010-2012 Gerhard Lausser.
+# This file belongs to coshsh.
+# Copyright Gerhard Lausser.
 # This software is licensed under the
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
@@ -76,12 +77,18 @@ class Recipe(object):
                 self.max_delta = tuple(map(int, (self.max_delta, self.max_delta)))
         self.my_jinja2_extensions = kwargs.get("my_jinja2_extensions", None)
 
-        self.classes_path = [os.path.join(os.path.dirname(__file__), '../recipes/default/classes')]
+        if 'OMD_ROOT' in os.environ:
+            self.classes_path = [os.path.join(os.environ['OMD_ROOT'], 'share/coshsh/recipes/default/classes')]
+        else:
+            self.classes_path = [os.path.join(os.path.dirname(__file__), '../recipes/default/classes')]
         if self.classes_dir:
             for path in reversed([p.strip() for p in self.classes_dir.split(',')]):
                 self.classes_path.insert(0, path)
         self.set_recipe_sys_path()
-        self.templates_path = [os.path.join(os.path.dirname(__file__), '../recipes/default/templates')]
+        if 'OMD_ROOT' in os.environ:
+            self.templates_path = [os.path.join(os.environ['OMD_ROOT'], 'share/coshsh/recipes/default/templates')]
+        else:
+            self.templates_path = [os.path.join(os.path.dirname(__file__), '../recipes/default/templates')]
         if self.templates_dir:
             for path in reversed([p.strip() for p in self.templates_dir.split(',')]):
                 self.templates_path.insert(0, path)

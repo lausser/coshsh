@@ -1,4 +1,10 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python
+#-*- encoding: utf-8 -*-
+#
+# This file belongs to coshsh.
+# Copyright Gerhard Lausser.
+# This software is licensed under the
+# GNU Affero General Public License version 3 (see the file LICENSE).
 
 import os
 import logging
