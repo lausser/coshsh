@@ -59,8 +59,9 @@ class Recipe(object):
         self.safe_output = kwargs.get("safe_output")
         self.pid_dir = kwargs.get("pid_dir")
         if not self.pid_dir:
-            pass # win linux
-            if "cygwin" in sys.platform or "linux" in sys.platform:
+            if 'OMD_ROOT' in os.environ:
+                self.pid_dir = os.path.join(os.environ['OMD_ROOT'], 'tmp/run')
+            elif "cygwin" in sys.platform or "linux" in sys.platform:
                 self.pid_dir = "/tmp"
             else:
                 self.pid_dir = os.environ.get("%TEMP%", "C:/TEMP")
