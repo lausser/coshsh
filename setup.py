@@ -12,6 +12,7 @@ if python_version < (2, 4):
 elif python_version >= (3,):
     sys.exit("coshsh requires python 2.x")
 
+from setuptools import setup
 from distutils import log
 from distutils.command.install import install as _install
 from distutils.command.install_data import install_data as _install_data
@@ -54,7 +55,7 @@ class install_data(_install_data):
 
 
 setup(name='coshsh',
-      version='3.0.1',
+      version='3.0.3',
       description='Coshsh - config generator for monitoring systems',
       url='http://github.com/lausser/coshsh',
       author='Gerhard Lausser',
