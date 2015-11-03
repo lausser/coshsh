@@ -23,3 +23,11 @@ doc:
 	chmod 644 docs/README.html
 	$(DOS2UNIX) docs/README.html
 	$(RM) -f docs/README
+
+#  vi Changelog  ->3.0.1
+#  vi setup.py   ->3.0.1
+#  git commit -a -m "set pid_dir for OMD"
+#  git tag -a "3.0.1" 
+#  git push
+#  python setup.py sdist upload
+

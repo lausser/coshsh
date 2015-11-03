@@ -1,3 +1,5 @@
+* 2015-11-03 3.0.2
+  remove setuptools-import
 * 2015-10-30 3.0.1
   set pid_dir in an OMD environment automatically 
 * 2015-10-30 3.0
