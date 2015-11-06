@@ -105,7 +105,7 @@ class Datasource(object):
                     #print "try ds", module, path
                     path = os.path.abspath(path)
                     fp, filename, data = imp.find_module(module.replace('.py', ''), [path])
-                    toplevel = imp.load_module('', fp, '', ('py', 'r', imp.PY_SOURCE))
+                    toplevel = imp.load_source(module.replace(".py", ""), filename)
                     for cl in inspect.getmembers(toplevel, inspect.isfunction):
                         if cl[0] ==  "__ds_ident__":
                             cls.class_factory.append([path, module, cl[1]])
