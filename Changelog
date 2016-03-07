@@ -1,3 +1,5 @@
+* 2016-03-07 3.1.2
+  let generic applications handle urls
 * 2015-11-07 3.1.1
   suppress bytcode writing for dynamically loaded classes
 * 2015-11-06 3.1
