@@ -6,6 +6,7 @@
 # This software is licensed under the
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
+import sys
 import os
 import imp
 import inspect
@@ -46,6 +47,7 @@ class MonitoringDetail(coshsh.item.Item):
 
     @classmethod
     def init_classes(cls, classpath):
+        sys.dont_write_bytecode = True
         for p in [p for p in reversed(classpath) if os.path.exists(p) and os.path.isdir(p)]:
             for module, path in [(item, p) for item in os.listdir(p) if item[-3:] == ".py" and item.startswith('detail_')]:
                 try:
