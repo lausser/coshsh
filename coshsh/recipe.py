@@ -45,6 +45,8 @@ class RecipePidGarbage(Exception):
 
 class Recipe(object):
 
+    attributes_for_adapters = ["name", "force", "safe_output", "pid_dir", "pid_file", "templates_dir", "classes_dir", "max_delta", "classes_path", "templates_path", "filter"]
+
     def __del__(self):
         pass
         # sys.path is invisible here, so this will fail
@@ -165,6 +167,11 @@ class Recipe(object):
     def unset_recipe_sys_path(self):
         for p in [p for p in self.classes_path if os.path.exists(p) and os.path.isdir(p)]:
             sys.path.pop(0)
+
+    def hand_down_to_ds_dr(self):
+        for dsr in self.datasources + self.datarecipients:
+            for attr in self.attributes_for_adapters:
+                setattr(dsr, 'recipe_'+attr, getattr(self, attr))
 
     def collect(self):
         data_valid = True
