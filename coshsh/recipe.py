@@ -45,7 +45,7 @@ class RecipePidGarbage(Exception):
 
 class Recipe(object):
 
-    attributes_for_adapters = ["name", "force", "safe_output", "pid_dir", "pid_file", "templates_dir", "classes_dir", "max_delta", "classes_path", "templates_path", "filter"]
+    attributes_for_adapters = ["name", "force", "safe_output", "pid_dir", "pid_file", "templates_dir", "classes_dir", "objects_dir", "max_delta", "classes_path", "templates_path", "filter"]
 
     def __del__(self):
         pass
@@ -155,7 +155,8 @@ class Recipe(object):
             self.datarecipient_names = ["datarecipient_coshsh_default"]
             self.add_datarecipient(**dict([('type', 'datarecipient_coshsh_default'), ('name', 'datarecipient_coshsh_default'), ('objects_dir', self.objects_dir), ('max_delta', self.max_delta), ('safe_output', self.safe_output)]))
         elif kwargs.get("objects_dir") and kwargs.get("datarecipients"):
-            logger.warn("recipe %s delete parameter objects_dir (use datarecipients instead)" % (self.name, ))
+            self.objects_dir = kwargs["objects_dir"]
+            #logger.warn("recipe %s delete parameter objects_dir (use datarecipients instead)" % (self.name, ))
             self.datarecipient_names = [ds.lower() for ds in kwargs.get("datarecipients").split(",")]
         else:
             self.datarecipient_names = [ds.lower() for ds in kwargs.get("datarecipients").split(",")]

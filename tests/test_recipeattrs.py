@@ -35,6 +35,7 @@ class CoshshTest(unittest.TestCase):
         print 
 
     def test_create_recipe_collect(self):
+        attributes_for_adapters = ["name", "force", "safe_output", "pid_dir", "pid_file", "templates_dir", "classes_dir", "max_delta", "classes_path", "templates_path", "filter", "objects_dir"]
         self.print_header()
         self.generator.add_recipe(name='test12', **dict(self.config.items('recipe_TEST12')))
 
@@ -54,11 +55,19 @@ class CoshshTest(unittest.TestCase):
         cfg = self.config.items("datarecipient_SIMPLESAMPLE2")
         self.generator.recipes['test12'].add_datarecipient(**dict(cfg))
 
-        self.generator.run()
-        #self.generator.recipes['test12'].render()
-        #self.generator.recipes['test12'].output()
-        #self.assert_(os.path.exists('var/objects/test12/dynamic/hosts/test_host_0/nrpe_os_windows_fs.conf'))
-        #self.assert_(os.path.exists('var/objects/test12/dynamic/hosts/test_host_0/os_windows_fs.cfg'))
+        self.generator.recipes['test12'].hand_down_to_ds_dr()
+        for attr in attributes_for_adapters:
+            self.assert_(hasattr(self.generator.recipes['test12'], attr))
+            for ds in self.generator.recipes['test12'].datasources:
+                self.assert_(hasattr(ds, "recipe_"+attr))
+            for dr in self.generator.recipes['test12'].datarecipients:
+                self.assert_(hasattr(dr, "recipe_"+attr))
+        dr_simplesample = [dr for dr in self.generator.recipes['test12'].datarecipients if dr.name == 'simplesample'][0]
+        self.assert_(dr_simplesample.objects_dir == "/tmp")
+        self.assert_(dr_simplesample.recipe_objects_dir == self.generator.recipes['test12'].objects_dir)
+        dr_simplesample2 = [dr for dr in self.generator.recipes['test12'].datarecipients if dr.name == 'simplesample2'][0]
+        self.assert_(dr_simplesample2.objects_dir == "./var/objects/test1")
+        self.assert_(dr_simplesample2.recipe_objects_dir == self.generator.recipes['test12'].objects_dir)
 
 
 if __name__ == '__main__':

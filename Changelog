@@ -1,3 +1,5 @@
+* 2016-03-09 3.2
+  datasources and datarecipients inherit recipe's attributes
 * 2016-03-07 3.1.2
   let generic applications handle urls
 * 2015-11-07 3.1.1
