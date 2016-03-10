@@ -24,8 +24,9 @@ def __ds_ident__(params={}):
 
 class DatarecipientCoshshDefault(coshsh.datarecipient.Datarecipient):
     def __init__(self, **kwargs):
+        super(self.__class__, self).__init__(**kwargs)
         self.name = kwargs["name"]
-        self.objects_dir = kwargs.get("objects_dir", "/tmp")
+        self.objects_dir = kwargs.get("objects_dir", kwargs.get("recipe_objects_dir", "/tmp"))
         self.max_delta = kwargs.get("max_delta", ())
         self.safe_output = kwargs.get("safe_output")
         self.static_dir = os.path.join(self.objects_dir, 'static')

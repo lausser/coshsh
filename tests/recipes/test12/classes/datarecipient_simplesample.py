@@ -30,6 +30,7 @@ class MyHost(coshsh.host.Host):
 class DrSimpleSample(coshsh.datarecipient.Datarecipient):
     class_only_the_test_simplesample = False
     def __init__(self, **kwargs):
+        super(self.__class__, self).__init__(**kwargs)
         self.name = kwargs["name"]
         self.objects_dir = kwargs.get("objects_dir", "/tmp")
         self.max_delta = kwargs.get("max_delta", ())

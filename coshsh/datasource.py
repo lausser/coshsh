@@ -43,8 +43,11 @@ class Datasource(object):
 
     def __init__(self, **params):
         #print "datasourceinit with", self.__class__
+        for key in [k for k in params if k.startswith("recipe_")]:
+            setattr(self, key, params[key])
         for key in params.iterkeys():
-            params[key] = re.sub('%.*?%', substenv, params[key])
+            if isinstance(params[key], basestring):
+                params[key] = re.sub('%.*?%', substenv, params[key])
         if self.__class__ == Datasource:
             #print "generic ds", params
             newcls = self.__class__.get_class(params)

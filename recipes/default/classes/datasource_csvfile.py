@@ -39,8 +39,7 @@ class CommentedFile:
 
 class CsvFile(coshsh.datasource.Datasource):
     def __init__(self, **kwargs):
-        superclass = super(self.__class__, self)
-        superclass.__init__(**kwargs)
+        super(self.__class__, self).__init__(**kwargs)
         self.name = kwargs["name"]
         self.dir = kwargs["dir"]
         self.objects = {}

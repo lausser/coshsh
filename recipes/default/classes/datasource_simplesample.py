@@ -27,6 +27,7 @@ def __ds_ident__(params={}):
 
 class SimpleSample(coshsh.datasource.Datasource):
     def __init__(self, **kwargs):
+        super(self.__class__, self).__init__(**kwargs)
         #self.name = kwargs["name"]
         self.dir = kwargs.get("dir", "/tmp")
         self.objects = {}

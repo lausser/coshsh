@@ -29,6 +29,7 @@ class MyHost(coshsh.host.Host):
 class SimpleSample(coshsh.datasource.Datasource):
     class_only_the_test_simplesample = True
     def __init__(self, **kwargs):
+        super(self.__class__, self).__init__(**kwargs)
         self.name = kwargs["name"]
         self.only_the_test_simplesample = True
 

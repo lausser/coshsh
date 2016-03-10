@@ -153,13 +153,16 @@ class Recipe(object):
             self.objects_dir = kwargs["objects_dir"]
             logger.info("recipe %s objects_dir %s" % (self.name, os.path.abspath(self.objects_dir)))
             self.datarecipient_names = ["datarecipient_coshsh_default"]
-            self.add_datarecipient(**dict([('type', 'datarecipient_coshsh_default'), ('name', 'datarecipient_coshsh_default'), ('objects_dir', self.objects_dir), ('max_delta', self.max_delta), ('safe_output', self.safe_output)]))
         elif kwargs.get("objects_dir") and kwargs.get("datarecipients"):
             self.objects_dir = kwargs["objects_dir"]
             #logger.warn("recipe %s delete parameter objects_dir (use datarecipients instead)" % (self.name, ))
             self.datarecipient_names = [ds.lower() for ds in kwargs.get("datarecipients").split(",")]
         else:
             self.datarecipient_names = [ds.lower() for ds in kwargs.get("datarecipients").split(",")]
+        # because this is allowed: datarecipients = >>>,SIMPLESAMPLE
+        self.datarecipient_names = ['datarecipient_coshsh_default' if dr == '>>>' else dr for dr in self.datarecipient_names]
+        if 'datarecipient_coshsh_default' in self.datarecipient_names:
+            self.add_datarecipient(**dict([('type', 'datarecipient_coshsh_default'), ('name', 'datarecipient_coshsh_default'), ('objects_dir', self.objects_dir), ('max_delta', self.max_delta), ('safe_output', self.safe_output)]))
 
     def set_recipe_sys_path(self):
         for p in [p for p in reversed(self.classes_path) if os.path.exists(p) and os.path.isdir(p)]:
@@ -168,11 +171,6 @@ class Recipe(object):
     def unset_recipe_sys_path(self):
         for p in [p for p in self.classes_path if os.path.exists(p) and os.path.isdir(p)]:
             sys.path.pop(0)
-
-    def hand_down_to_ds_dr(self):
-        for dsr in self.datasources + self.datarecipients:
-            for attr in self.attributes_for_adapters:
-                setattr(dsr, 'recipe_'+attr, getattr(self, attr))
 
     def collect(self):
         data_valid = True
@@ -302,6 +300,8 @@ class Recipe(object):
             kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
         newcls = Datasource.get_class(kwargs)
         if newcls:
+            for key in [attr for attr in self.attributes_for_adapters if hasattr(self, attr)]:
+                kwargs['recipe_'+key] = getattr(self, key)
             datasource = newcls(**kwargs)
             self.datasources.append(datasource)
 
@@ -310,6 +310,8 @@ class Recipe(object):
             kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
         newcls = Datarecipient.get_class(kwargs)
         if newcls:
+            for key in [attr for attr in self.attributes_for_adapters if hasattr(self, attr)]:
+                kwargs['recipe_'+key] = getattr(self, key)
             datarecipient = newcls(**kwargs)
             self.datarecipients.append(datarecipient)
 

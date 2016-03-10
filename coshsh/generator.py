@@ -40,7 +40,6 @@ class Generator(object):
         for recipe in self.recipes.values():
             try:
                 if recipe.pid_protect():
-                    recipe.hand_down_to_ds_dr()
                     if recipe.collect():
                         recipe.render()
                         recipe.output()

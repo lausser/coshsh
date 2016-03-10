@@ -1,3 +1,7 @@
+* 2016-03-10 3.2.2
+  datarecipient >>> means use internal default recipient
+* 2016-03-09 3.2.1
+  some refactoring, datarecipients also add recipe.objects_dir
 * 2016-03-09 3.2
   datasources and datarecipients inherit recipe's attributes
 * 2016-03-07 3.1.2
