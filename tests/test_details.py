@@ -6,6 +6,7 @@ import string
 from optparse import OptionParser
 import ConfigParser
 import logging
+from logging import INFO, DEBUG
 
 logger = logging.getLogger('coshsh')
 
@@ -25,11 +26,12 @@ class CoshshTest(unittest.TestCase):
         print "#" + " " * 78 + "#\n" + "#" * 80 + "\n"
 
     def setUp(self):
+        shutil.rmtree("./var/objects/test6", True)
         os.makedirs("./var/objects/test6")
         self.config = ConfigParser.ConfigParser()
         self.config.read('etc/coshsh.cfg')
         self.generator = coshsh.generator.Generator()
-        self.generator.setup_logging()
+        self.generator.setup_logging(scrnloglevel=DEBUG)
         self.generator.add_recipe(name='test6', **dict(self.config.items('recipe_TEST6')))
         self.config.set("datasource_CSVDETAILS", "name", "test6")
 
@@ -109,6 +111,60 @@ class CoshshTest(unittest.TestCase):
         opsys.resolve_monitoring_details()
         self.assert_(hasattr(opsys, 'ram'))
         self.assert_(opsys.ram.warning == '80')
+
+    def test_detail_2url(self):
+        self.print_header()
+        cfg = self.config.items("datasource_CSVDETAILS")
+        objects = self.generator.recipes['test6'].objects
+        ds = coshsh.datasource.Datasource(**dict(cfg))
+        ds.read(objects=objects)
+
+
+
+        #coshsh.application.Application.init_classes([
+        #    os.path.join(os.path.dirname(__file__), 'recipes/test6/classes'),
+        #    os.path.join(os.path.dirname(__file__), '../recipes/default/classes')])
+        #coshsh.monitoringdetail.MonitoringDetail.init_classes([
+        #    os.path.join(os.path.dirname(__file__), 'recipes/test6/classes'),
+        #    os.path.join(os.path.dirname(__file__), '../recipes/default/classes')])
+        opsys = coshsh.application.Application({'host_name': 'test_host_0', 'name': 'testapp', 'type': 'webapp'})
+        url1 = coshsh.monitoringdetail.MonitoringDetail({
+            'host_name': 'test_host_0',
+            'application_name': 'testapp',
+            'application_type': 'webapp',
+            'monitoring_type': 'URL',
+            'monitoring_0': 'https://uzi75.schoggimaschin.com:5480/login.html',
+            'monitoring_1': '10',
+            'monitoring_2': '15',
+        })
+        opsys.monitoring_details.append(url1)
+        url2 = coshsh.monitoringdetail.MonitoringDetail({
+            'host_name': 'test_host_0',
+            'application_name': 'testapp',
+            'application_type': 'webapp',
+            'monitoring_type': 'URL',
+            'monitoring_0': 'https://uzi75.schoggimaschin.com/vsphere-client/?csp',
+            'monitoring_1': '10',
+            'monitoring_2': '15',
+        })
+        opsys.monitoring_details.append(url2)
+        ds.add('applications', opsys)
+        for m in opsys.monitoring_details:
+            print "detail", m
+        opsys.resolve_monitoring_details()
+        self.assert_(hasattr(opsys, 'urls'))
+        for u in opsys.urls:
+            print "url is", u, u.__dict__
+        shutil.rmtree("./var/objects/test6", True)
+        os.makedirs("./var/objects/test6/dynamic")
+        self.generator.recipes['test6'].collect()
+        self.generator.recipes['test6'].render()
+        self.generator.recipes['test6'].output()
+        self.assert_(os.path.exists('var/objects/test6/dynamic/hosts/test_host_0/app_generic_web.cfg'))
+        with open('var/objects/test6/dynamic/hosts/test_host_0/app_generic_web.cfg', 'r') as outfile:
+            for line in outfile.read().split('\n'):
+                print line
+
 
 if __name__ == '__main__':
     unittest.main()
