@@ -1,3 +1,5 @@
+* 2016-10-09 3.2.3
+  call render for custom objects in recipe
 * 2016-03-10 3.2.2
   datarecipient >>> means use internal default recipient
 * 2016-03-09 3.2.1

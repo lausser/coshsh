@@ -254,6 +254,12 @@ class Recipe(object):
             c.render(template_cache, self.jinja2)
         for hg in self.objects['hostgroups'].values():
             hg.render(template_cache, self.jinja2)
+        # you can put anything in objects (Item class with own templaterules)
+        for item in sum([self.objects[itype].values() for itype in self.objects if itype not in ['hosts', 'applications', 'contactgroups', 'contacts', 'hostgroups']], []):
+            if not item.config_files:
+                # has not been populated with content in the datasource
+                # (like bmw appmon timeperiods)
+                item.render(template_cache, self.jinja2)
             
     def count_before_objects(self):
         for datarecipient in self.datarecipients:
