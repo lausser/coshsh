@@ -211,12 +211,6 @@ class Recipe(object):
             host.create_templates()
             host.create_hostgroups()
             host.create_contacts()
-            for hostgroup in host.hostgroups:
-                try:
-                    self.objects['hostgroups'][hostgroup].append(host.host_name)
-                except Exception:
-                    self.objects['hostgroups'][hostgroup] = []
-                    self.objects['hostgroups'][hostgroup].append(host.host_name)
 
         orphaned_applications = []
         for app in self.objects['applications'].values():
@@ -232,6 +226,16 @@ class Recipe(object):
         for oa in orphaned_applications:
             del self.objects['applications'][oa]
 
+        # load the hostgroups-objects after application procession because
+        # this allows modification of self.host.hostgroups
+        # in application.wemustrepeat()
+        for host in self.objects['hosts'].values():
+            for hostgroup in host.hostgroups:
+                try:
+                    self.objects['hostgroups'][hostgroup].append(host.host_name)
+                except Exception:
+                    self.objects['hostgroups'][hostgroup] = []
+                    self.objects['hostgroups'][hostgroup].append(host.host_name)
         for (hostgroup_name, members) in self.objects['hostgroups'].items():
             logger.debug("creating hostgroup %s" % hostgroup_name)
             self.objects['hostgroups'][hostgroup_name] = HostGroup({ "hostgroup_name" : hostgroup_name, "members" : members})
