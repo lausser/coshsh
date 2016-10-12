@@ -68,6 +68,22 @@ class Datarecipient(object):
         logger.info('load items to %s' % (self.name, ))
         self.objects = objects
 
+    def get(self, objtype, fingerprint):
+        try:
+            return self.objects[objtype][fingerprint]
+        except Exception:
+            # should be None
+            return 'i do not exist. no. no!'
+
+    def getall(self, objtype):
+        try:
+            return self.objects[objtype].values()
+        except Exception:
+            return []
+
+    def find(self, objtype, fingerprint):
+        return objtype in self.objects and fingerprint in self.objects[objtype]
+
     def item_write_config(self, obj, dynamic_dir, objtype):
         my_target_dir = os.path.join(dynamic_dir, objtype)
         if not os.path.exists(my_target_dir):
@@ -103,6 +119,11 @@ class Datarecipient(object):
     def count_after_objects(self):
         self.new_objects = self.count_objects()
 
+    def prepare_target_dir(self):
+        pass
+
+    def cleanup_target_dir(self):
+        pass
 
     @classmethod
     def init_classes(cls, classpath):
