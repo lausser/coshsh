@@ -17,7 +17,7 @@ A recipe is the central configuration item in coshsh. It describes the ingredien
 First you have to create a config file for coshsh:
 ```
 [recipe_tutorial]
-datasourcse = mysource
+datasourcse = mysource # this can also be a comma-separated list.
 classes_dir =  %OMD_ROOT%/etc/coshsh/recipes/tutorial/classes
 templates_dir =  %OMD_ROOT%/etc/coshsh/recipes/tutorial/templates
 objects_dir = %OMD_ROOT%/var/coshsh/configs/tutorial
@@ -44,17 +44,8 @@ A datasource's job is to open and read the inventories and to create Host and Ap
 ```
 #!/usr/bin/env python
 #-*- encoding: utf-8 -*-
-#
-# Copyright 2010-2012 Gerhard Lausser.
-# This software is licensed under the
-# GNU Affero General Public License version 3 (see the file LICENSE).
 
-import csv
-import os
-import re
 import logging
-from copy import copy
-import pprint
 import coshsh
 from coshsh.datasource import Datasource, DatasourceNotAvailable
 from coshsh.host import Host
@@ -68,7 +59,7 @@ from coshsh.util import compare_attr
 
 logger = logging.getLogger('coshsh')
 
-def __ds_ident__(params={}):
+def **__ds_ident__**(params={}):
     if coshsh.util.compare_attr("type", params, "mycmdb"):
         return MyCMDBClass
 
@@ -77,25 +68,10 @@ class MyCMDBClass(coshsh.datasource.Datasource):
         super(self.__class__, self).__init__(**kwargs)
         self.username = kwargs["username"]
         self.password = kwargs["password"]
-        self.sid = kwargs["sid"]
-        self.objects = {}
-
-    def open(self):
-        logger.info('open datasource %s' % self.name)
-
+        self.hostname = kwargs["hostname"]
 ```
-Code inside a datasource (later)
 
-Datasource reads an input line.
-Something that has a host_name and an address is fed to the constructor Host().
-This Host object will be added to the (internal) list of hosts.
-```
-    for row in database_or_csv_or_whatever:
-        # row must have row["host_name"] and row["address"]
-        h = Host(row)
-        self.add(h)
-
-```
+In order to use this code, the datasource has to be registered in the config file. Remember the _datasources = mysource_ in the recipe's section. It references the section _datasource_mysource_.
 
 ```
 [datasource_mysource]
@@ -104,6 +80,34 @@ hostname = cmdb.mycorp.com
 username = coshshuser
 password = c0$h$h
 ```
+
+These settings do not point directly to the Python-file above. Coshsh instead scans the directory _classes_dir_ for _datasource\_*_-files and calls the _ds_ident_-functions found in these until one returns a Python class. Now coshsh knowns which class is is the right one to handle datasources of type _mycmdb_.
+Such a class has to implement the methods _\__init___, _open_, _read_ and _close_. 
+
+```
+    def open(self):
+        logger.info('open datasource %s' % self.name)
+        ...
+```
+
+The most important method is _read_, this is where Host and Application objects are created.
+
+```
+    def read(self, filter=None, objects={}, force=False, **kwargs):
+        self.objects = objects
+        ...
+        for row in database_or_csv_or_whatever:
+            # row must have row["host_name"] and row["address"]
+            h = Host(row)
+            # this host object will be added to the (internal) list of hosts
+            self.add('hosts', h)
+        ...
+```
+
+
+
+
+
 
 
 
