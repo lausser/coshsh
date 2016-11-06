@@ -1,6 +1,7 @@
 ### Recipe
 
 A recipe is the central configuration item in coshsh. It describes the ingredients used to "cook" a nagios configuration. It consists of the following settings:
+
 1. datasources  
   This is where the raw data like host names, ip addreses, applications, locations etc. come from. A datasource in coshsh is a piece of python code which acts as an adaptor to cmdbs, excel sheets or any kind of inventory. A datasource's job is to open and read the inventories and to create Host and Application objects.
 2. classes_dir  
