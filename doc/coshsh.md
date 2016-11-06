@@ -124,7 +124,15 @@ OMD[cotu]:~$ coshsh-cook --cookbook etc/coshsh/conf.d/tutorial.cfg --recipe tuto
 
 ```
 
-Coshsh just created a nagios configuration consisting of one host. Let's look into this in detail.
+Coshsh just created a nagios configuration consisting of one host. For demonstration purposes you can simply add this line to the sample code above:
+
+```
+        database_or_csv_or_whatever = [
+            { 'host_name': 'server-nr1', 'address': '192.168.14.1' },
+        ]
+```
+
+Let's look into the process of config generation in detail.
 
 ### How a host object is created
 
@@ -163,4 +171,21 @@ var/coshsh/configs/tutorial/dynamic/hosts/server-nr1
 var/coshsh/configs/tutorial/dynamic/hosts/server-nr1/host.cfg
 
 ```
+
+If your datasource provides more information for a host than name and address, you can use it for hostgroups or custom macros.
+
+```
+            h.hostgroups.append('customer_' + row['customer'].lower())
+            h.hostgroups.append('location_' + row['location_code'].lower())
+            h.macros = {
+                '_CUSTOMER': row['customer'],
+                '_DATACENTER': row['datacenter'],
+                '_LOCATION_CODE': row['location_code'],
+                '_PROVIDER': row['provider'],
+                '_SERIAL': row['sn'],
+            }
+```
+
+
+
 
