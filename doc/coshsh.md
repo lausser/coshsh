@@ -1,9 +1,12 @@
+In this tutorial you will learn how to automatically create Nagios configuration files from your own inventory data.  
+In order to reproduce the examples described here you should install [OMD Labs Edition](https://labs.consol.de/omd) and create a site called _cotu_ (coshsh tutorial).
+
 ### Recipe
 
 A recipe is the central configuration item in coshsh. It describes the ingredients used to "cook" a nagios configuration. It consists of the following settings:
 
 1. datasources  
-  This is where the raw data like host names, ip addreses, applications, locations etc. come from. A datasource in coshsh is a piece of python code which acts as an adaptor to cmdbs, excel sheets or any kind of inventory. A datasource's job is to open and read the inventories and to create Host and Application objects.
+  This is where the raw data like host names, ip addreses, applications, locations etc. come from. A datasource in coshsh is a piece of python code which acts as an adaptor to cmdbs, excel sheets or any kind of inventory.
 2. classes_dir  
   In a directory specified by the classes_dir attribute coshsh looks for small Python files describing certain types of applications. 
 3. templates_dir
@@ -11,9 +14,76 @@ A recipe is the central configuration item in coshsh. It describes the ingredien
 4. objects_dir  
   This attribute points to a directory where coshsh will write the final configuration files.
 
+First you have to create a config file for coshsh:
+```
+[recipe_tutorial]
+datasourcse = mysource
+classes_dir =  %OMD_ROOT%/etc/coshsh/recipes/tutorial/classes
+templates_dir =  %OMD_ROOT%/etc/coshsh/recipes/tutorial/templates
+objects_dir = %OMD_ROOT%/var/coshsh/configs/tutorial
+```
+It will be saved to _~/etc/coshsh/conf.d/tutorial.cfg_. Then run the command **coshsh-cook** for the first time: 
+```
+OMD[cotu]:~$ coshsh-cook --cookbook etc/coshsh/conf.d/tutorial.cfg --recipe tutorial
+2016-11-06 18:28:53,030 - INFO - recipe tutorial init
+2016-11-06 18:28:53,030 - INFO - recipe tutorial classes_dir /omd/sites/cotu/etc/coshsh/recipes/tutorial/classes,/omd/sites/cotu/share/coshsh/recipes/default/classes
+2016-11-06 18:28:53,030 - INFO - recipe tutorial templates_dir /omd/sites/cotu/etc/coshsh/recipes/tutorial/templates,/omd/sites/cotu/share/coshsh/recipes/default/templates
+2016-11-06 18:28:53,052 - INFO - recipe tutorial objects_dir /omd/sites/cotu/var/coshsh/configs/tutorial
+2016-11-06 18:28:53,053 - INFO - load items to datarecipient_coshsh_default
+2016-11-06 18:28:53,054 - INFO - recipe datarecipient_coshsh_default dynamic_dir /omd/sites/cotu/var/coshsh/configs/tutorial/dynamic does not exist
+2016-11-06 18:28:53,054 - INFO - recipient datarecipient_coshsh_default dynamic_dir /omd/sites/cotu/var/coshsh/configs/tutorial/dynamic
+2016-11-06 18:28:53,054 - INFO - number of files before: 0 hosts, 0 applications
+2016-11-06 18:28:53,054 - INFO - number of files after:  0 hosts, 0 applications
+```
+Nothing happens here, because the datasource mysource does not exist yet.
 
 ### Datasource
 
+A datasource's job is to open and read the inventories and to create Host and Application objects. It's code has to be put in a file with a name starting with _datasource__. The actual datasource is a Python class. In order to be found by a recipe, the datasource file has to implement an interface function _ds_ident_.
+
+```
+#!/usr/bin/env python
+#-*- encoding: utf-8 -*-
+#
+# Copyright 2010-2012 Gerhard Lausser.
+# This software is licensed under the
+# GNU Affero General Public License version 3 (see the file LICENSE).
+
+import csv
+import os
+import re
+import logging
+from copy import copy
+import pprint
+import coshsh
+from coshsh.datasource import Datasource, DatasourceNotAvailable
+from coshsh.host import Host
+from coshsh.application import Application
+from coshsh.item import Item
+from coshsh.contactgroup import ContactGroup
+from coshsh.contact import Contact
+from coshsh.monitoringdetail import MonitoringDetail
+from coshsh.templaterule import TemplateRule
+from coshsh.util import compare_attr
+
+logger = logging.getLogger('coshsh')
+
+def __ds_ident__(params={}):
+    if coshsh.util.compare_attr("type", params, "mycmdb"):
+        return MyCMDBClass
+
+class MyCMDBClass(coshsh.datasource.Datasource):
+    def __init__(self, **kwargs):
+        super(self.__class__, self).__init__(**kwargs)
+        self.username = kwargs["username"]
+        self.password = kwargs["password"]
+        self.sid = kwargs["sid"]
+        self.objects = {}
+
+    def open(self):
+        logger.info('open datasource %s' % self.name)
+
+```
 Code inside a datasource (later)
 
 Datasource reads an input line.
@@ -25,6 +95,14 @@ This Host object will be added to the (internal) list of hosts.
         h = Host(row)
         self.add(h)
 
+```
+
+```
+[datasource_mysource]
+type = mycmdb
+hostname = cmdb.mycorp.com
+username = coshshuser
+password = c0$h$h
 ```
 
 
