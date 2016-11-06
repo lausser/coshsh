@@ -1,3 +1,6 @@
+* auto-gen TOC:
+{:toc}
+
 In this tutorial you will learn how to automatically create Nagios configuration files from your own inventory data.  
 In order to reproduce the examples described here you should install [OMD Labs Edition](https://labs.consol.de/omd) and create a site called _cotu_ (coshsh tutorial).
 
