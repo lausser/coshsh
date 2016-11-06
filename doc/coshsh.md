@@ -181,10 +181,82 @@ If your datasource provides more information for a host than name and address, y
                 '_CUSTOMER': row['customer'],
                 '_DATACENTER': row['datacenter'],
                 '_LOCATION_CODE': row['location_code'],
-                '_PROVIDER': row['provider'],
                 '_SERIAL': row['sn'],
             }
 ```
+
+After you run **coshsh-cook** again, there are config files for hostgroups, too.
+
+```
+OMD[cotu]:~$ find var/coshsh/configs/
+var/coshsh/configs/
+var/coshsh/configs/tutorial
+var/coshsh/configs/tutorial/dynamic
+var/coshsh/configs/tutorial/dynamic/hostgroups
+var/coshsh/configs/tutorial/dynamic/hostgroups/hostgroup_location_muc-80-2.cfg
+var/coshsh/configs/tutorial/dynamic/hostgroups/hostgroup_customer_meier.und.co.cfg
+var/coshsh/configs/tutorial/dynamic/hosts
+var/coshsh/configs/tutorial/dynamic/hosts/server-nr1
+var/coshsh/configs/tutorial/dynamic/hosts/server-nr1/host.cfg
+```
+
+The host definition now looks like
+```
+OMD[cotu]:~$ cat var/coshsh/configs/tutorial/dynamic/hosts/server-nr1/host.cfg
+define host {
+    host_name                       server-nr1
+    address                         192.168.14.1
+    alias                           server-nr1
+    hostgroups                      customer_meier.und.co,location_muc-80-2
+    check_command                   check_host_alive
+    notification_options            d,u,r
+    _SSH_PORT                       22
+  _LOCATION_CODE                  muc-80-2
+  _CUSTOMER                       meier.und.co
+  _SERIAL                         37HX23463Z
+  _DATACENTER                     rz2
+}
+
+```
+
+Remember, in the datasource code we passed a dict to the constructor of the Host class. Every item of this dict will be an attribute of the resulting host object and can be used in the tpl-file to modify the rendered cfg-file.
+Copy _share/coshsh/recipes/default/templated/host.tpl_ to _etc/coshsh/recipes/tutorial/templates_.
+You can now edit the template-file and implement two variants of the host-check.
+
+```
+{% if 'location_southpole' in host.hostgroups %}
+    check_command                   check_host_alive!--timeout 60
+{% else %}
+    check_command                   check_host_alive!--timeout 10
+{% endif %}
+```
+
+Alternatively you could write
+
+```
+    check_command                   check_host_alive!--timeout {{ host.ping_timeout }}
+```
+
+and in the datasource
+
+```
+    if row["location"] == "southpole":
+        row["ping_timeput"] = 60
+    else:
+        row["ping_timeput"] = 10
+```
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
