@@ -131,7 +131,10 @@ Coshsh just created a nagios configuration consisting of one host. For demonstra
 
 ```
         database_or_csv_or_whatever = [
-            { 'host_name': 'server-nr1', 'address': '192.168.14.1' },
+            { 'host_name': 'server-nr1', 'address': '192.168.14.1',
+              'location': 'muenchen-ost', 'customer': 'meier.und.co',
+              'datacenter': 'rz2', 'location_code': 'muc-80-2',
+              'sn': '37HX23463Z' },
         ]
 ```
 
@@ -248,6 +251,62 @@ and in the datasource
     else:
         row["ping_timeput"] = 10
 ```
+
+
+### How coshsh handles applications and creates services
+
+First it is important to emphasize that coshsh does not know about Nagios services. Instead it has the concept of applications. (Of course there will be services in the end, as we will see later)
+As coshsh was meant to work with input sources like cmdbs, meaning systems which have no idea of Nagios' service definitions, it expects hosts and applications. The operating system or firmware is also seen as an application.
+
+#### Data collection
+Let's go back to the datasource. Like we provided a dict with a host_name and an address to the Host() constructor, we will do the same with applications.  
+For example, if we want to add a Windows operating system to a linux host, we achive this with the following code:
+
+~~~
+    ...
+        database_or_csv_or_whatever = [
+            { 'host_name': 'server-nr1', 'address': '192.168.14.1',
+              'location': 'muenchen-ost', 'customer': 'meier.und.co',
+              'datacenter': 'rz2', 'location_code': 'muc-80-2',
+              'sn': '37HX23463Z', 'system': 'Windows2012', 'layout': 'fileserver'},
+        ]
+        for row in database_or_csv_or_whatever:
+            # row must have row["host_name"] and row["address"]
+            h = Host(row)
+            # this host object will be added to the (internal) list of hosts
+            self.add('hosts', h)
+            row['name'] = 'os'
+            row['type'] = row['system']
+            a = Application(row)
+            self.add('applications', row)
+            ...
+~~~
+
+The minimum of information we must feed into an Application constructor is *host_name*, *name* and *type*, where *name* is a string which describes best the purpose of an application. (For example *type = Apache*, *name = Intranet* or *type = Oracle*, *name = BillingDB*)
+The magic happens inside the Application constructor. We saw that a datasource-file has a function *__ds_ident_\_* which returns a Datasource-like class.
+The same applies to applications. In the *classes_dir*, coshsh looks for files called _os\_\*.py_ or _app\_\*.py_ respectively *__mi_ident_\_*-functions inside them.
+If an application matching the row["type"] is known to coshsh, then one of the *__mi_ident_\_* will return the suitable class. Adding applications to coshsh is as easy as putting a small Python file in the *classes_dir*. For example, the file handling Windows looks like this:
+
+~~~
+from application import Application
+from templaterule import TemplateRule
+from util import compare_attr
+
+def __mi_ident__(params={}):
+    if compare_attr("type", params, ".*windows.*"):
+        return Windows
+
+
+class Windows(Application):
+    template_rules = [
+        TemplateRule(needsattr=None,
+            template="os_windows_default"),
+        TemplateRule(needsattr="filesystems",
+            template="os_windows_fs"),
+    ]
+~~~
+
+
 
 
 
