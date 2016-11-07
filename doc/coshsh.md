@@ -285,7 +285,8 @@ For example, if we want to add a Windows operating system to a linux host, we ac
 The minimum of information we must feed into an Application constructor is *host_name*, *name* and *type*, where *name* is a string which describes best the purpose of an application. (For example *type = Apache*, *name = Intranet* or *type = Oracle*, *name = BillingDB*)
 The magic happens inside the Application constructor. We saw that a datasource-file has a function *__ds_ident_\_* which returns a Datasource-like class.
 The same applies to applications. In the *classes_dir*, coshsh looks for files called _os\_\*.py_ or _app\_\*.py_ respectively *__mi_ident_\_*-functions inside them.
-If an application matching the row["type"] is known to coshsh, then one of the *__mi_ident_\_* will return the suitable class. Adding applications to coshsh is as easy as putting a small Python file in the *classes_dir*. For example, the file handling Windows looks like this:
+If an application matching the row["type"] is known to coshsh, then one of the *__mi_ident_\_* will return the suitable class. Out of the generic Application constructor comes an instance of a more specific class.
+Adding applications to coshsh is as easy as putting a small Python file in the *classes_dir*. For example, the file handling Windows looks like this:
 
 ~~~
 from application import Application
@@ -306,6 +307,33 @@ class Windows(Application):
     ]
 ~~~
 
+In the above example...
+~~~
+            a = Application(row)
+            self.add('applications', row)
+            print "application is", a.__class__.__name__
+            # application is Windows
+~~~
+
+This is a minimalistic example which does nothing more than to point coshsh to two files, *os_windows_default.tpl* and *os_windows_fs.tpl*. They are expected to live in the *templates_dir*.
+
+And here we find the Nagios services.
+
+~~~
+{{ application|service("os_windows_default_check_nsclient") }}
+  host_name                       {{ application.host_name }}
+  use                             os_windows_default
+  check_command                   check_nrpe_arg!60!checkUpTime!MinWarn=5m MinCrit=1m
+}
+
+{{ application|service("os_windows_default_check_cpu") }}
+  host_name                       {{ application.host_name }}
+  use                             os_windows_default,srv-pnp
+  max_check_attempts              10
+  check_command                   check_nrpe_arg!60!checkCPU!warn=80 crit=90 time=5m time=1m time=30s
+}
+...
+~~~
 
 
 
