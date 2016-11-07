@@ -260,7 +260,7 @@ As coshsh was meant to work with input sources like cmdbs, meaning systems which
 
 #### Data collection
 Let's go back to the datasource. Like we provided a dict with a host_name and an address to the Host() constructor, we will do the same with applications.  
-For example, if we want to add a Windows operating system to a linux host, we achive this with the following code:
+For example, if we want to add a Windows operating system to a server, we achive this with the following code:
 
 ~~~
     ...
