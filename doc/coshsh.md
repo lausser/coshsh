@@ -264,6 +264,8 @@ For example, if we want to add a Windows operating system to a server, we achive
 
 ~~~
     ...
+        # this is just for demonstration purposes
+        # These data are supposed to come out of a database etc.
         database_or_csv_or_whatever = [
             { 'host_name': 'server-nr1', 'address': '192.168.14.1',
               'location': 'muenchen-ost', 'customer': 'meier.und.co',
@@ -286,7 +288,7 @@ The minimum of information we must feed into an Application constructor is *host
 The magic happens inside the Application constructor. We saw that a datasource-file has a function *__ds_ident_\_* which returns a Datasource-like class.
 The same applies to applications. In the *classes_dir*, coshsh looks for files called _os\_\*.py_ or _app\_\*.py_ respectively *__mi_ident_\_*-functions inside them.
 If an application matching the row["type"] is known to coshsh, then one of the *__mi_ident_\_* will return the suitable class. Out of the generic Application constructor comes an instance of a more specific class.
-Adding applications to coshsh is as easy as putting a small Python file in the *classes_dir*. For example, the file handling Windows looks like this:
+Adding applications to coshsh is as easy as putting a small Python file *os_windows.py* in the *classes_dir*. For example, the file handling Windows looks like this:
 
 ~~~
 from application import Application
@@ -334,6 +336,61 @@ And here we find the Nagios services.
 }
 ...
 ~~~
+Now, as we added an application to an alreday existing host, if you run **coshsh-cook** again, the result will look like:
+```
+OMD[cotu]:~$ coshsh-cook --cookbook etc/coshsh/conf.d/tutorial.cfg --recipe tutorial
+2016-11-06 22:19:41,920 - INFO - recipe tutorial init
+2016-11-06 22:19:41,920 - INFO - recipe tutorial classes_dir /omd/sites/cotu/etc/coshsh/recipes/tutorial/classes,/omd/sites/cotu/share/coshsh/recipes/default/classes
+2016-11-06 22:19:41,921 - INFO - recipe tutorial templates_dir /omd/sites/cotu/etc/coshsh/recipes/tutorial/templates,/omd/sites/cotu/share/coshsh/recipes/default/templates
+2016-11-06 22:19:41,943 - INFO - recipe tutorial objects_dir /omd/sites/cotu/var/coshsh/configs/tutorial
+2016-11-06 22:19:41,944 - INFO - open datasource mysource
+2016-11-06 22:19:41,944 - INFO - recipe tutorial read from datasource mysource 1 hosts
+2016-11-06 22:19:41,964 - INFO - load template host
+2016-11-06 22:19:41,964 - INFO - load items to datarecipient_coshsh_default
+2016-11-06 22:19:41,964 - INFO - recipe datarecipient_coshsh_default dynamic_dir /omd/sites/cotu/var/coshsh/configs/tutorial/dynamic does not exist
+2016-11-06 22:19:41,964 - INFO - recipient datarecipient_coshsh_default dynamic_dir /omd/sites/cotu/var/coshsh/configs/tutorial/dynamic
+2016-11-06 22:19:41,965 - INFO - number of files before: 1 hosts, 0 applications
+2016-11-06 22:19:41,965 - INFO - number of files after:  1 hosts, 1 applications
+```
+Remember the *template_rules* in *os_windows.py*. They tell coshsh which tpl-files are to be completed and written as cfg-files. Now we have:
+```
+OMD[cotu]:~$ find var/coshsh/configs/
+var/coshsh/configs/
+var/coshsh/configs/tutorial
+...
+var/coshsh/configs/tutorial/dynamic/hosts
+var/coshsh/configs/tutorial/dynamic/hosts/server-nr1
+var/coshsh/configs/tutorial/dynamic/hosts/server-nr1/host.cfg
+var/coshsh/configs/tutorial/dynamic/hosts/server-nr1/os_windows_default.cfg
+```
+
+#### fine-tune applications
+So far every os_windows_default.cfg will exactly look the same as all the others, except for *host_name*. In very rare cases all of your Windows servers look excatly the same. A good example where the might differ are the filesystems/partitions. That's where application details play a role. With application details you can add extra attributes to the application object and use them in the tpl-files to render individual cfg-files.
+There are a lot of predefined application details. In the following example we use the filesystem detail. We saw the creation of an application:
+```
+            row['host_name'] = row['host_name']
+            row['name'] = 'os'
+            row['type'] = row['system'] # Windows2012
+            a = Application(row)
+            self.add('applications', row)
+```
+Let's add a drive C: and a drive D: with their respective thresholds.
+
+```
+            row['monitoring_type'] = 'FILESYSTEM'
+            row['monitoring_0'] = 'FILESYSTEM'
+            row['monitoring_1'] = 'C'
+            row['monitoring_2'] = '75'
+            row['monitoring_3'] = '85'
+            d = MonitoringDetail(row)
+            a.monitoring_details.append(d)
+            row['monitoring_1'] = 'D'
+            row['monitoring_2'] = '5:'
+            row['monitoring_3'] = '2:'
+            row['monitoring_4'] = 'GB'
+            d = MonitoringDetail(row)
+            a.monitoring_details.append(d)`
+```
 
 
 
