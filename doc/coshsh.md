@@ -379,24 +379,56 @@ Let's add a drive C: and a drive D: with their respective thresholds.
 ```
             row['monitoring_type'] = 'FILESYSTEM'
             row['monitoring_0'] = 'FILESYSTEM'
-            row['monitoring_1'] = 'C'
-            row['monitoring_2'] = '75'
-            row['monitoring_3'] = '85'
+            row['monitoring_1'] = 'C'   # drive name
+            row['monitoring_2'] = '75'  # warning threshold
+            row['monitoring_3'] = '85'  # critical threshold
             d = MonitoringDetail(row)
             a.monitoring_details.append(d)
             row['monitoring_1'] = 'D'
             row['monitoring_2'] = '5:'
             row['monitoring_3'] = '2:'
-            row['monitoring_4'] = 'GB'
+            row['monitoring_4'] = 'GB'  # unit
             d = MonitoringDetail(row)
-            a.monitoring_details.append(d)`
+            a.monitoring_details.append(d)
 ```
 
+The detail _FILESYSTEM_ can be added multiple times to an application. Before the configuration files are rendered, coshsh processes all the details attached to an application. In the _FILESYSTEM_'s case we then have an attribute _application.filesystems_ which is of type list. When the application's tpl-file is rendered, this list can be used to create several Nagios services, one for each filesystem.
 
+```
+{% for fs in application.filesystems %}
+{{ application|service("os_windows_fs_check_" + fs.path) }}
+  host_name                       {{ application.host_name }}
+  use                             os_windows,srv-perf
+  check_interval                  15
+  check_command                   check_nscrestc!60!check_drives!\
+      "crit=free<{{ fs.critical }}{{ fs.units }}" \
+      "crit=free<{{ fs.critical }}{{ fs.units }}" \
+      "drive={{ fs.path }}" 
+}
+{% endfor %}
+```
 
+The _FILESYSTEM_ detail is a list-type. The same is true for _PORT_, _INTERFACE_, _DATASTORE_, _TABLESPACE_ and _URL_. They all appear as arrays _application.ports_ etc. which can be processed with jinja2-for-loops.
+There are also scalar application details. Only one of each type can be added to an application. (Adding them twice, they would overwrite each other). Examples are _LOGIN_ and _LOGINSNMPV2_. The latter is used for SNMP communities. Think about a Cisco switch. It will have an application with a name "os" and a type like "ios 12". If all your network devices have the same community, you can hard-code it. But if they differ, then you add a detail in the datasource.
 
+```
+            row['host_name'] = row['host_name']
+            row['name'] = 'os'
+            row['type'] = row['system'] # ios 12
+            a = Application(row)
+            self.add('applications', row)
+            d = MonitoringDetail({
+                'host_name': a.host_name,
+                'name': a.name,
+                'type': a.type,
+                'monitoring_type': 'LOGINSNMPV2',
+                'monitoring_0': 'xxxsecretxxx',
+            })
+            a.monitoring_details.append(d)
+```
 
-
+Now you can use a placeholder _{{ application.snmpv2.community }} in the _os\_ios_-template-file.
+In the example above the dict parameter for the constructor was written as key-value pairs with values coming from the application. You can write the datasource code as you want, but the preferred way is to have a detail table in the cmdb and reading it with a simple _d = MonitoringDetail(row)_ like in the application example.
 
 
 
