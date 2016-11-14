@@ -153,7 +153,7 @@ class Item(object):
 
     def depythonize(self):
         if hasattr(self, "templates"):
-            self.templates = ",".join(sorted(self.templates, cmp=locale.strcoll))
+            self.templates = ",".join(self.templates, cmp=locale.strcoll)
         if hasattr(self, "contactgroups"):
             self.contactgroups = ",".join(sorted(self.contactgroups, cmp=locale.strcoll))
         if hasattr(self, "contact_groups"):
