@@ -280,7 +280,7 @@ For example, if we want to add a Windows operating system to a server, we achive
             row['name'] = 'os'
             row['type'] = row['system']
             a = Application(row)
-            self.add('applications', row)
+            self.add('applications', a)
             ...
 ~~~
 
@@ -312,7 +312,7 @@ class Windows(Application):
 In the above example...
 ~~~
             a = Application(row)
-            self.add('applications', row)
+            self.add('applications', a)
             print "application is", a.__class__.__name__
             # application is Windows
 ~~~
@@ -372,7 +372,7 @@ There are a lot of predefined application details. In the following example we u
             row['name'] = 'os'
             row['type'] = row['system'] # Windows2012
             a = Application(row)
-            self.add('applications', row)
+            self.add('applications', a)
 ```
 Let's add a drive C: and a drive D: with their respective thresholds.
 
@@ -382,13 +382,13 @@ Let's add a drive C: and a drive D: with their respective thresholds.
             row['monitoring_1'] = 'C'   # drive name
             row['monitoring_2'] = '75'  # warning threshold
             row['monitoring_3'] = '85'  # critical threshold
-            d = MonitoringDetail(row)
+            d = MonitoringDetail(a)
             a.monitoring_details.append(d)
             row['monitoring_1'] = 'D'
             row['monitoring_2'] = '5:'
             row['monitoring_3'] = '2:'
             row['monitoring_4'] = 'GB'  # unit
-            d = MonitoringDetail(row)
+            d = MonitoringDetail(a)
             a.monitoring_details.append(d)
 ```
 
@@ -416,7 +416,7 @@ There are also scalar application details. Only one of each type can be added to
             row['name'] = 'os'
             row['type'] = row['system'] # ios 12
             a = Application(row)
-            self.add('applications', row)
+            self.add('applications', a)
             d = MonitoringDetail({
                 'host_name': a.host_name,
                 'name': a.name,
