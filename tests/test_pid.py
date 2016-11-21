@@ -139,14 +139,19 @@ class CoshshTest(unittest.TestCase):
 
     def test_pid_perms(self):
         self.print_header()
-        self.generator.recipes['test1'].pid_dir = "/"
+        #self.generator.recipes['test1'].pid_dir = "/"
+        self.generator.recipes['test1'].pid_dir = os.path.join(os.getcwd(), 'hundsglumpvarreckts')
+        os.mkdir(self.generator.recipes['test1'].pid_dir)
         self.generator.run()
         os.chmod(self.generator.recipes['test1'].pid_dir, 0)
         try:
             pid_file = self.generator.recipes['test1'].pid_protect()
+            os.remove(self.generator.recipes['test1'].pid_file)
         except Exception, exp:
             print "exp is ", exp.__class__.__name__
         self.assert_(exp.__class__.__name__ == "RecipePidNotWritable")
+        os.rmdir(self.generator.recipes['test1'].pid_dir)
+        
 if __name__ == '__main__':
     unittest.main()
 
