@@ -260,7 +260,10 @@ class Recipe(object):
             hg.render(template_cache, self.jinja2)
         # you can put anything in objects (Item class with own templaterules)
         for item in sum([self.objects[itype].values() for itype in self.objects if itype not in ['hosts', 'applications', 'contactgroups', 'contacts', 'hostgroups']], []):
-            if not item.config_files:
+            # first check hasattr, because somebody may accidentially
+            # add objects which are not a subclass of Item.
+            # (And such a stupid mistake crashes coshsh-cook)
+            if hasattr(item, 'config_files') and not item.config_files:
                 # has not been populated with content in the datasource
                 # (like bmw appmon timeperiods)
                 item.render(template_cache, self.jinja2)

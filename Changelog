@@ -1,3 +1,5 @@
+* 2016-11-21 3.2.4.3
+  bugfix in write_config for non-Item objects
 * 2016-11-14 3.2.4.2
   tippfehler
 * 2016-11-14 3.2.4.1
