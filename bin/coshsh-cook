@@ -11,7 +11,6 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 
 from optparse import OptionParser
-import ConfigParser
 import sys
 import os
 import re
@@ -38,6 +37,7 @@ except Exception:
 from coshsh.generator import Generator
 from coshsh.recipe import Recipe
 from coshsh.util import substenv
+from coshsh.configparser import CoshshConfigParser
 
 
 class GeneratorMessage(object):
@@ -87,7 +87,7 @@ if __name__ == '__main__':
         recipe_configs = {}
         datasource_configs = {}
         datarecipient_configs = {}
-        cookbook = ConfigParser.ConfigParser()
+        cookbook = coshsh.configparser.CoshshConfigParser()
         cookbook.read(opts.cookbook_file)
         if cookbook._sections == {}:
             print "Bad or missing cookbook file : %s " % opts.cookbook_file

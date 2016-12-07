@@ -1,3 +1,5 @@
+* 2016-12-08 3.2.5
+  add attribute isa, sections can inherit
 * 2016-11-21 3.2.4.3
   bugfix in write_config for non-Item objects, add travis
 * 2016-11-14 3.2.4.2

@@ -7,7 +7,6 @@
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
 from optparse import OptionParser
-import ConfigParser
 import sys
 import os
 import shutil
@@ -34,6 +33,7 @@ except Exception:
 
 from coshsh.generator import Generator
 from coshsh.util import substenv
+from coshsh.configparser import CoshshConfigParser
 
 
 class GeneratorMessage(object):
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     opts, args = parser.parse_args()
     generator = coshsh.generator.Generator()
     if opts.cookbook_file:
-        cookbook = ConfigParser.ConfigParser()
+        cookbook = coshsh.configparser.CoshshConfigParser()
         cookbook.read(opts.cookbook_file)
         if cookbook._sections == {}:
             print "Bad or missing cookbook file : %s " % opts.cookbook_file

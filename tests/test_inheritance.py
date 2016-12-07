@@ -4,7 +4,6 @@ import sys
 import shutil
 import string
 from optparse import OptionParser
-import ConfigParser
 import logging
 import pprint
 
@@ -24,12 +23,10 @@ class CoshshTest(unittest.TestCase):
         print "#" + " " * 78 + "#\n" + "#" * 80 + "\n"
 
     def setUp(self):
-        self.config = CoshshConfigParser()
+        self.config = coshsh.configparser.CoshshConfigParser()
         self.config.read('etc/coshsh2.cfg')
-        print "CONF", self.config._sections
         pp = pprint.PrettyPrinter(indent=4)
-        print "-------------------------"
-        pp.pprint(self.config._sections.values())
+        #pp.pprint(self.config._sections.values())
                 
         self.generator = coshsh.generator.Generator()
         self.generator.setup_logging()
@@ -40,9 +37,19 @@ class CoshshTest(unittest.TestCase):
     def test_inheritance(self):
         self.print_header()
         recipe = {'classes_dir': '/tmp', 'objects_dir': '/tmp', 'templates_dir': '/tmp', 'datasources': 'datasource' }
-        self.generator.add_recipe(name='cust3', *self.config._sections["recipe_cust3"])
-        print self.generator.recipes['cust3']
-        self.assert_(self.generator.recipes['cust3'].datasources == "CSV10.1,CSV10.2,CSV10.3")
+        self.generator.add_recipe(name='cust', **dict(self.config.items("recipe_cust")))
+        self.generator.add_recipe(name='cust1', **dict(self.config.items("recipe_cust1")))
+        self.generator.add_recipe(name='cust2', **dict(self.config.items("recipe_cust2")))
+        self.generator.add_recipe(name='cust3', **dict(self.config.items("recipe_cust3")))
+        self.assert_(self.generator.recipes['cust'].datasource_names == ['csv10.1', 'csv10.2', 'csv10.3'])
+        self.assert_(self.generator.recipes['cust'].datasource_filters['simplesample'] == 'fff')
+        self.assert_(self.generator.recipes['cust1'].datasource_names == ['csv10.1', 'csv10.2', 'csv10.3'])
+        self.assert_(self.generator.recipes['cust1'].datasource_filters['simplesample'] == 'fff1')
+        self.assert_(self.generator.recipes['cust2'].datasource_names == ['csv10.1', 'csv10.2', 'csv10.3'])
+        self.assert_(self.generator.recipes['cust2'].datasource_filters['simplesample'] == 'fff2')
+        self.assert_(self.generator.recipes['cust3'].datasource_names == ['csv10.1', 'csv10.2', 'csv10.3'])
+        self.assert_(self.generator.recipes['cust3'].datasource_filters['simplesample'] == 'fff3')
+        self.assert_('./recipes/test12/classes' in self.generator.recipes['cust3'].classes_path)
 
 
 if __name__ == '__main__':
