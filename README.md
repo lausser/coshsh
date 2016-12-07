@@ -1,42 +1,39 @@
-coshsh Config-Generator for Shinken / Nagios /Icinga
-====================================================
+# coshsh Config-Generator for Shinken / Nagios /Icinga
 
-What is coshsh?
----------------
+## What is coshsh?
 
 http://coshsh.org is a framework which helps you producing configuration files for open source monitoring systems.
 
-Features
---------
-coshsh is very fast. (~60000 services in 10 seconds)
-coshsh can be extended easily.
-coshsh reads only hosts and applications. Services are added later.
+## Features
 
-Download
---------
+* coshsh is very fast. (~60000 services in 10 seconds)
+* coshsh can be extended easily.
+* coshsh reads only hosts and applications. Services are added later.
+
+## Download
+
 http://labs.consol.de/nagios/coshsh
 
-Support
--------
- * Professional support and consulting is available via http://www.consol.de/open-source-monitoring/support/[www.consol.de]
+## Support
 
-Changelog
----------
+Professional support and consulting is available via [www.consol.de](http://www.consol.de/open-source-monitoring/support)
+
+## Changelog
+
 The changelog is available on
-https://github.com/lausser/coshsh/blob/master/Changelog[github].
+[github](https://github.com/lausser/coshsh/blob/master/Changelog)
 
-How does it work
-----------------
+## How does it work
+
 coshsh reads one or many datasources (which can be files, databases, ldap...) and transforms their contents into host/service/contact-configuration files. Host- and service-definitions are created by filling placeholders in template-files.
 
 
-In the beginning there are hosts and applications. There are no host and service definitions. Why? Because your server admins don't care about. Your windows admin simply wants to enter his new machine in a cmdb. He has no time to configure check_periods or commands or services. He even doesn't want to know what it is.
-The only thing he knows is name, address and model of his new server and the applications he installed.
+In the beginning there are hosts and applications. There are no host and service definitions. Why? Because your server admins don't care about. Your windows admin simply wants to enter his new machine in a cmdb. He has no time to configure check_periods or commands or services. He even doesn't want to know what it is.  
+The only thing he knows is name, address and model of his new server and the applications he installed.  
 
 For example, your datasource is a database table with a column names "type". If you want to handle a value of "windows" or "windows 2008" all you need is a class file for it:
 
-[source]
---------------------------------------
+```python
 from application import Application
 from templaterule import TemplateRule
 from util import compare_attr
@@ -53,13 +50,12 @@ class Windows(Application):
         TemplateRule(needsattr="filesystems",
             template="os_windows_fs"),
     ]
---------------------------------------
+```
 
 The class file will be automatically registered to coshsh. Now whenever a record of type "windows" comes out of your datasource, an object of class Windows is created. (Inside coshsh. You actually won't notice it and you don't have to know about it)
 The only thing you need to know is the relationship between an application's class and some template files. Like this one here:
 
-[source]
---------------------------------------
+```
 {{ application|service("os_windows_default_check_nsclient") }}
   host_name                       {{ application.host_name }}
   use                             os_windows_default
@@ -102,6 +98,8 @@ define servicedependency {
   dependent_service_description    os_windows_.*,\
                                    !os_windows_default_check_nsclient
 }
---------------------------------------
+```
 
 Only a nagios admin will ever see these template files and will have to edit them.
+
+[![Coverage Status](https://coveralls.io/repos/github/lausser/coshsh/badge.svg?branch=master)](https://coveralls.io/github/lausser/coshsh?branch=master)
