@@ -54,10 +54,10 @@ class Contact(coshsh.item.Item):
         self.fingerprint = lambda s=self:s.__class__.fingerprint(params)
         if not hasattr(self, 'host_notification_period') or not self.host_notification_period:
             self.host_notification_period = self.notification_period
-            logger.debug('no column host_notificatin_period found use notification_period instead')
+            logger.debug('no column host_notification_period found use notification_period instead')
         if not hasattr(self, 'service_notification_period') or not self.service_notification_period:
             self.service_notification_period = self.notification_period
-            logger.debug('no column service_notificatin_period found use notification_period instead')
+            logger.debug('no column service_notification_period found use notification_period instead')
         try:
             for from_str, to_str in translations:
                 self.name = self.name.replace(from_str, to_str)
