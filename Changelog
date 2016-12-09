@@ -1,3 +1,5 @@
+* 2016-12-09 3.2.6
+  unknown services with services-attribute are generic now
 * 2016-12-08 3.2.5
   add attribute isa, sections can inherit
 * 2016-11-21 3.2.4.3
