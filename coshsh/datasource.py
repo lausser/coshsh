@@ -83,6 +83,9 @@ class Datasource(object):
         except Exception:
             self.objects[objtype] = {}
             self.objects[objtype][obj.fingerprint()] = obj
+        if objtype == 'applications':
+            if self.find('hosts', obj.host_name):
+                setattr(obj, 'host', self.get('hosts', obj.host_name))
 
     def get(self, objtype, fingerprint):
         try:
