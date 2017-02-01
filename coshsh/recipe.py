@@ -53,6 +53,7 @@ class Recipe(object):
         #self.unset_recipe_sys_path()
 
     def __init__(self, **kwargs):
+        os.environ['RECIPE_NAME'] = kwargs["name"]
         for key in kwargs.iterkeys():
             if isinstance(kwargs[key], basestring):
                 kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
