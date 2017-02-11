@@ -1,3 +1,4 @@
+![Logo](https://labs.consol.de/assets/images/coshsh_logo_small.png)
 # coshsh Config-Generator for Shinken / Nagios /Icinga
 
 ## What is coshsh?
