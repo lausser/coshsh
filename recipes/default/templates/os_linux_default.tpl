@@ -1,53 +1,112 @@
-{{ application|service("os_linux_default_check_ssh") }}
+{{ application|service("os_linux_default_plugin_rollout") }}
   host_name                       {{ application.host_name }}
   use                             os_linux_default
-  check_command                   check_ssh_connect!60!22
+  normal_check_interval           240
+  retry_check_interval            10
+  max_check_attempts              2
+  check_command                   plugin_rollout_linux
+  _WORKER                         local
 }
 
-{#
-{{ application|service("os_linux_default_check_shell") }}
+{{ application|service("os_linux_default_linux_version") }}
   host_name                       {{ application.host_name }}
   use                             os_linux_default
-  max_check_attempts              10
-  check_command                   check_ssh_login!60!22
+  normal_check_interval           240
+  retry_check_interval            240
+  max_check_attempts              1
+  check_command                   check_by_ssh!60!( ( grep -sh PRETTY_NAME /etc/*release || head -1 /etc/SuSE-release ) || cat /etc/redhat-release ) && uname -a
 }
-#}
+
+{{ application|service("os_linux_default_ssh_controlmaster") }}
+  host_name                       {{ application.host_name }}
+  use                             os_linux_default
+  check_command                   check_ssh_controlmaster
+}
+
+{% if not application.filesystems %}
+{{ application|service("os_linux_default_check_all_filesystems") }}
+  host_name                       {{ application.host_name }}
+  use                             os_linux_default,srv-perf
+  check_command                   check_by_ssh!60!$_SERVICESSHPATHPREFIX$/lib/nagios/plugins/check_disk -w 5% -c 2% -e -A -l -x '/dev' -x '/dev/shm' -i '/boot' -x '/home' -i '/var/lib/docker' -i '/run/docker' -i '/data.*/docker.*' -i 'net:'
+}
+{% endif %}
 
 {{ application|service("os_linux_default_check_load") }}
   host_name                       {{ application.host_name }}
-  use                             os_linux_default,srv-pnp
-  check_command                   check_by_ssh!60!$USER10$/lib/nagios/plugins/check_load -w 5.0,5.0,5.0 -c 10.0,10.0,10.0
+  use                             os_linux_default,srv-perf
+  check_command                   check_by_ssh!60!$_SERVICESSHPATHPREFIX$/lib/nagios/plugins/check_load -w 5.0,5.0,5.0 -c 10.0,10.0,10.0 --percpu
 }
+
+{#
+{{ application|service("os_linux_default_check_memory_and_swap") }}
+  host_name                       {{ application.host_name }}
+  use                             os_linux_default,srv-perf
+  check_command                   check_by_ssh!60!$_SERVICESSHPATHPREFIX$/lib/nagios/plugins/check_mem -w 85 -c 95 -W 70 -C 80
+  # Hard state after 2 hours
+  retry_check_interval            10
+  max_check_attempts              12
+}
+#}
 
 {{ application|service("os_linux_default_check_swap") }}
   host_name                       {{ application.host_name }}
-  use                             os_linux_default,srv-pnp
-  check_command                   check_by_ssh!60!$USER10$/lib/nagios/plugins/check_swap -w 15% -c 8%
+  use                             os_linux_default,srv-perf
+  check_command                   check_by_ssh!60!$_SERVICESSHPATHPREFIX$/lib/nagios/plugins/check_swap -w 15% -c 8%
 }
 
-{{ application|service("os_linux_default_check_crond") }}
-  use                             os_linux_default
+{{ application|service("os_linux_default_check_zombies") }}
   host_name                       {{ application.host_name }}
-{% if application.type.startswith('sles') %}
-  check_command                   check_by_ssh!60!$USER10$/lib/nagios/plugins/check_procs -w :10 -c 1: -C cron
-{% else %}
-  check_command                   check_by_ssh!60!$USER10$/lib/nagios/plugins/check_procs -w :10 -c 1: -C crond
-{% endif %}
-}
-
-{% if application.host.virtual == "ps" %}
-{{ application|service("os_linux_default_check_ntp") }}
-  use                             os_linux_default
-  host_name                       {{ application.host_name }}
+  use                             os_linux_default,srv-perf
   check_interval                  60
   retry_interval                  10
-  check_command                   check_by_ssh!60!$USER10$/local/lib/nagios/plugins/check_ntp_health
+  check_command                   check_by_ssh!60!$_SERVICESSHPATHPREFIX$/lib/nagios/plugins/check_procs -s Z -w 1 -c 1
 }
-{% else %}
-{{ application|service("os_linux_default_check_uptime") }}
-  host_name                       {{ application.host_name }}
+
+{{ application|service("os_linux_default_check_process_cron") }}
   use                             os_linux_default
-  check_command                   check_by_ssh!60!$USER10$/lib/nagios/plugins/check_uptime 30        
+  host_name                       {{ application.host_name }}
+  check_command                   check_by_ssh!60!$_SERVICESSHPATHPREFIX$/lib/nagios/plugins/check_procs -w :10 -c 1: --ereg-argument-array='^/usr/sbin/cron|^crond|^cron'
 }
-{% endif %}
+
+{{ application|service("os_linux_default_check_process_syslog") }}
+  use                             os_linux_default
+  host_name                       {{ application.host_name }}
+  check_command                   check_by_ssh!60!$_SERVICESSHPATHPREFIX$/lib/nagios/plugins/check_procs -w :10 -c 1: --ereg-argument-array='^/usr/sbin/rsyslogd|^/sbin/syslog-ng|^rsyslogd|^syslogd|^/sbin/rsyslogd'
+}
+
+
+{#
+{{ application|service("os_linux_if_check_eth0") }}
+  host_name                       {{ application.host_name }}
+  use                             os_linux_default,srv-perf
+  check_command                   check_by_ssh!60!PERL5LIB=$_SERVICESSHPATHPREFIX$/lib/perl5 $_SERVICESSHPATHPREFIX$/lib/nagios/plugins/check_nwc_health \
+      --hostname localhost \
+      --mode interface-health \
+      --name eth0 \
+      --units Mbit \
+      --servertype linuxlocal
+}
+#}
+
+define servicedependency {
+  name                             dependency_os_linux_default_ssh_controlmaster_uc_{{ application.host_name }}
+  host_name                        {{ application.host_name }}
+  service_description              os_linux_default_ssh_controlmaster
+  execution_failure_criteria       u,c,p
+  notification_failure_criteria    u,c
+  dependent_service_description    os_linux_default_plugin_rollout,\
+                                   os_linux_default_linux_version
+}
+
+define servicedependency {
+  name                             dependency_os_linux_default_plugin_rollout_uc_{{ application.host_name }}
+  host_name                        {{ application.host_name }}
+  service_description              os_linux_default_plugin_rollout
+  execution_failure_criteria       u,w,c,p
+  notification_failure_criteria    u,c
+  dependent_service_description    os_linux_.*,\
+                                   !os_linux_default_linux_version,\
+                                   !os_linux_default_plugin_rollout,\
+                                   !os_linux_default_ssh_controlmaster
+}
 

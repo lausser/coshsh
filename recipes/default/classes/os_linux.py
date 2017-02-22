@@ -16,18 +16,10 @@ class Linux(coshsh.application.Application):
             template="os_linux_fs"),
     ]
 
-    def __new__(cls, params={}):
-        if coshsh.util.compare_attr("version", params, ".*embedded.*"):
-            cls = EmbeddedLinux
-        return object.__new__(cls)
-
-
-class RedHat(Linux):
-    pass
-
-
-class SuSE(Linux):
-    pass
+    def wemustrepeat(self):
+        self.SSHPORT = getattr(self, 'SSHPORT', 22)
+        self.SSHUSER = getattr(self, 'SSHUSER', 'mon')
+        self.SSHPATHPREFIX = getattr(self, 'SSHPATHPREFIX', '.')
 
 
 class EmbeddedLinux(Linux):
