@@ -1,0 +1,6 @@
+host_name,name,type,component,version,check_period
+linux_host,os,Red Hat,,6.2,7x24
+aix_host,os,aix,,6.2,7x24
+beos_host,os,beos,,6.2,7x24
+dos_host,os,dos,,6.2,7x24
+windows_host,os,Windows,,6.2,7x24

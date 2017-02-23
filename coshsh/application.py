@@ -98,11 +98,11 @@ class Application(coshsh.item.Item):
     @classmethod
     def get_class(cls, params={}):
         #print "getclass from cache", cls, cls.__name__,  cls.class_factory
-        for path, module, class_func in cls.class_factory:
+        for path, module, class_func in reversed(cls.class_factory):
             try:
                 #print "get_class trys", path, module, class_func
                 newcls = class_func(params)
-                #print "get_class says", newcls
+                #print "get_class says", newcls.__module__, sys.modules[newcls.__module__].__file__
                 if newcls:
                     return newcls
             except Exception:

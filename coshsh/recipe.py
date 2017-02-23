@@ -86,16 +86,14 @@ class Recipe(object):
         else:
             self.classes_path = [os.path.join(os.path.dirname(__file__), '../recipes/default/classes')]
         if self.classes_dir:
-            for path in reversed([p.strip() for p in self.classes_dir.split(',')]):
-                self.classes_path.insert(0, path)
+            self.classes_path = [p.strip() for p in self.classes_dir.split(',')] + self.classes_path
         self.set_recipe_sys_path()
         if 'OMD_ROOT' in os.environ:
             self.templates_path = [os.path.join(os.environ['OMD_ROOT'], 'share/coshsh/recipes/default/templates')]
         else:
             self.templates_path = [os.path.join(os.path.dirname(__file__), '../recipes/default/templates')]
         if self.templates_dir:
-            for path in reversed([p.strip() for p in self.templates_dir.split(',')]):
-                self.templates_path.insert(0, path)
+            self.templates_path = [p.strip() for p in self.templates_dir.split(',')] + self.templates_path
             logger.debug("recipe.templates_path reloaded %s" % ':'.join(self.templates_path))
         logger.info("recipe %s classes_dir %s" % (self.name, ','.join([os.path.abspath(p) for p in self.classes_path])))
         logger.info("recipe %s templates_dir %s" % (self.name, ','.join([os.path.abspath(p) for p in self.templates_path])))
@@ -166,8 +164,7 @@ class Recipe(object):
             self.add_datarecipient(**dict([('type', 'datarecipient_coshsh_default'), ('name', 'datarecipient_coshsh_default'), ('objects_dir', self.objects_dir), ('max_delta', self.max_delta), ('safe_output', self.safe_output)]))
 
     def set_recipe_sys_path(self):
-        for p in [p for p in reversed(self.classes_path) if os.path.exists(p) and os.path.isdir(p)]:
-            sys.path.insert(0, os.path.abspath(p))
+        sys.path[0:0] = self.classes_path
 
     def unset_recipe_sys_path(self):
         for p in [p for p in self.classes_path if os.path.exists(p) and os.path.isdir(p)]:

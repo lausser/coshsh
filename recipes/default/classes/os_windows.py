@@ -19,5 +19,10 @@ class Windows(Application):
     def wemustrepeat(self):
         self.NSCPORT = getattr(self, 'NSCPORT', 18443)
         self.NSCPASSWORD = getattr(self, 'NSCPASSWORD', 'secret')
+        if not hasattr(self, 'custom_macros'):
+            self.custom_macros = {}
+        self.custom_macros['_NSCPORT'] = self.NSCPASSWORD
+        self.custom_macros['_NSCPASSWORD'] = self.NSCPASSWORD
+
 
 
