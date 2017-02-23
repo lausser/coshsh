@@ -121,3 +121,11 @@ define servicedependency {
                                    !os_linux_default_ssh_controlmaster
 }
 
+{% if not application.filesystems %}
+{{ application|service("os_linux_default_check_disks") }}
+  use                             os_linux_default
+  host_name                       {{ application.host_name }}
+  check_command                   check_by_ssh!60!./{{ application.host.environment }}/lib/nagios/plugins/check_disk -w 15% -c 10%
+  check_interval                  30
+}
+{% endif %}

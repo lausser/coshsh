@@ -3,6 +3,10 @@
   more starter kit fixes
 * 2017-02-08 3.3
   rewrite the default templates, use ConSol starter kit checks
+* 2017-02-01 3.2.8
+  modernize templates
+* 2017-02-01 3.2.7
+  new macro %RECIPE_NAME%
 * 2016-12-09 3.2.6
   unknown services with services-attribute are generic now
 * 2016-12-08 3.2.5
