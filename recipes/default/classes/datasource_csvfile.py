@@ -99,7 +99,7 @@ class CsvFile(coshsh.datasource.Datasource):
         except Exception:
             appdetailreader = []
         resolvedrows = []
-        # host_name,application_name,application_type,monitoring_type,monitoring_0,monitoring_1,monitoring_2,monitoring_3,monitoring_4,monitoring_5
+        # host_name,name,type,monitoring_type,monitoring_0,monitoring_1,monitoring_2,monitoring_3,monitoring_4,monitoring_5
         for row in appdetailreader:
             if '[' in row['host_name'] or '*' in row['host_name']:
                 # hostnames can be regular expressions
@@ -110,9 +110,9 @@ class CsvFile(coshsh.datasource.Datasource):
             else:
                 resolvedrows.append(copy(row))
         for row in resolvedrows:
-            for attr in [k for k in row.keys() if k in ['application_name', 'application_type', 'component', 'version']]:
+            for attr in [k for k in row.keys() if k in ['name', 'type', 'component', 'version']]:
                 row[attr] = row[attr].lower()
-            application_id = "%s+%s+%s" % (row["host_name"], row["application_name"], row["application_type"])
+            application_id = "%s+%s+%s" % (row["host_name"], row["name"], row["type"])
             detail = coshsh.monitoringdetail.MonitoringDetail(row)
             if application_id in self.objects['applications']:
                 self.objects['applications'][application_id].monitoring_details.append(detail)
@@ -128,7 +128,7 @@ class CsvFile(coshsh.datasource.Datasource):
         except Exception:
             contactgroupreader = []
         resolvedrows = []
-        # host_name,application_name,application_type,groups
+        # host_name,name,type,groups
         for row in contactgroupreader:
             if '[' in row['host_name'] or '*' in row['host_name']:
                 # hostnames can be regular expressions
@@ -139,11 +139,11 @@ class CsvFile(coshsh.datasource.Datasource):
             else:
                 resolvedrows.append(copy(row))
         for row in resolvedrows:
-            application_id = "%s+%s+%s" % (row["host_name"], row["application_name"], row["application_type"])
+            application_id = "%s+%s+%s" % (row["host_name"], row["name"], row["type"])
             for group in row["groups"].split(":"):
                 if not self.find('contactgroups', group):
                     self.add('contactgroups', coshsh.contactgroup.ContactGroup({ 'contactgroup_name' : group }))
-                if self.find('applications', application_id) and row["application_name"] == "os":
+                if self.find('applications', application_id) and row["name"] == "os":
                     if not group in self.get('applications', application_id).contact_groups:
                         self.get('applications', application_id).contact_groups.append(group)
                     # OS contacts also are host's contacts
@@ -152,7 +152,7 @@ class CsvFile(coshsh.datasource.Datasource):
                 elif self.find('applications', application_id):
                     if not group in self.get('applications', application_id).contact_groups:
                         self.get('applications', application_id).contact_groups.append(group)
-                elif ("application_name" not in row or not row['application_name']) and self.find('hosts', row['host_name']):
+                elif ("name" not in row or not row['name']) and self.find('hosts', row['host_name']):
                     if not group in self.get('hosts', row['host_name']).contact_groups:
                         self.get('hosts', row['host_name']).contact_groups.append(group)
                 else:

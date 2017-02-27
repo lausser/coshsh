@@ -24,7 +24,7 @@ class MonitoringDetailNotImplemented(Exception):
 
 class MonitoringDetail(coshsh.item.Item):
     class_factory = []
-    lower_columns = ['application_name', 'application_type']
+    lower_columns = ['name', 'type']
 
     def __init__(self, params):
         #print "Detail init", self.__class__, self.__class__.__name__, len(self.__class__.class_factory)
@@ -40,7 +40,7 @@ class MonitoringDetail(coshsh.item.Item):
                 self.__class__ = newcls
                 self.__init__(params)
             else:
-                logger.info("monitoring detail of type %s for host %s / appl %s had a problem" % (params["monitoring_type"], params["host_name"], params["application_name"]))
+                logger.info("monitoring detail of type %s for host %s / appl %s had a problem" % (params["monitoring_type"], params["host_name"], params["name"]))
                 raise MonitoringDetailNotImplemented
         else:
             pass

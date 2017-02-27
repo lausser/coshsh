@@ -73,8 +73,8 @@ class CoshshTest(unittest.TestCase):
         })
         url = coshsh.monitoringdetail.MonitoringDetail({
             'host_name': 'test',
-            'application_name': 'test',
-            'application_type': 'generic',
+            'name': 'test',
+            'type': 'generic',
             'monitoring_type': 'URL',
             'monitoring_0': 'oracle://dbadm:pass@dbsrv:1522/svc',
         })
@@ -99,8 +99,8 @@ class CoshshTest(unittest.TestCase):
             os.path.join(os.path.dirname(__file__), '../recipes/default/classes')])
         self.print_header()
         opsys = coshsh.application.Application({'name': 'os', 'type': 'red hat 6.1'})
-        ram = coshsh.monitoringdetail.MonitoringDetail({'application_name': 'os',
-            'application_type': 'red hat 6.1',
+        ram = coshsh.monitoringdetail.MonitoringDetail({'name': 'os',
+            'type': 'red hat 6.1',
             'monitoring_type': 'RAM',
             'monitoring_0': '80',
             'monitoring_1': '90',
@@ -130,8 +130,8 @@ class CoshshTest(unittest.TestCase):
         opsys = coshsh.application.Application({'host_name': 'test_host_0', 'name': 'testapp', 'type': 'webapp'})
         url1 = coshsh.monitoringdetail.MonitoringDetail({
             'host_name': 'test_host_0',
-            'application_name': 'testapp',
-            'application_type': 'webapp',
+            'name': 'testapp',
+            'type': 'webapp',
             'monitoring_type': 'URL',
             'monitoring_0': 'https://uzi75.schoggimaschin.com:5480/login.html',
             'monitoring_1': '10',
@@ -140,8 +140,8 @@ class CoshshTest(unittest.TestCase):
         opsys.monitoring_details.append(url1)
         url2 = coshsh.monitoringdetail.MonitoringDetail({
             'host_name': 'test_host_0',
-            'application_name': 'testapp',
-            'application_type': 'webapp',
+            'name': 'testapp',
+            'type': 'webapp',
             'monitoring_type': 'URL',
             'monitoring_0': 'https://uzi75.schoggimaschin.com/vsphere-client/?csp',
             'monitoring_1': '10',
@@ -165,6 +165,18 @@ class CoshshTest(unittest.TestCase):
             for line in outfile.read().split('\n'):
                 print line
 
+    def test_lazy_datasource(self):
+        self.print_header()
+        cfg = self.config.items("datasource_CSVDETAILS")
+        objects = self.generator.recipes['test14'].objects
+        ds = coshsh.datasource.Datasource(**dict(cfg))
+        ds.read(objects=objects)
+
+        shutil.rmtree("./var/objects/test14", True)
+        os.makedirs("./var/objects/test14/dynamic")
+        self.generator.recipes['test14'].collect()
+        self.generator.recipes['test14'].render()
+        self.generator.recipes['test14'].output()
 
 if __name__ == '__main__':
     unittest.main()

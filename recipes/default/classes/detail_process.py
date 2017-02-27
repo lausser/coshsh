@@ -17,7 +17,7 @@ class MonitoringDetailProcess(coshsh.monitoringdetail.MonitoringDetail):
         try:
             self.monitoring_type = params["monitoring_type"]
             if "monitoring_0" not in params:
-                logger.info("mandatory parameter monitoring_0 missing %s:%s:%s" % (params["host_name"], params["application_name"], params["application_type"]))
+                logger.info("mandatory parameter monitoring_0 missing %s:%s:%s" % (params["host_name"], params["name"], params["type"]))
             self.name = params["monitoring_0"]
             self.warning = params.get("monitoring_1", "1:1")
             self.critical = params.get("monitoring_2", "1:")

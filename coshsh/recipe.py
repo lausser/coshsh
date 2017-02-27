@@ -123,7 +123,7 @@ class Recipe(object):
             'hosts': {},
             'hostgroups': {},
             'applications': {},
-            'appdetails': {},
+            'details': {},
             'contacts': {},
             'contactgroups': {},
             'commands': {},
@@ -203,6 +203,15 @@ class Recipe(object):
             if not data_valid:
                 logger.info("aborting collection phase") 
                 return False
+
+        for details in self.objects['details'].values():
+            application_id = "%s+%s+%s" % (detail.host_name, detail.name, detail.type)
+            if application_id in self.objects['applications']:
+                self.objects['applications'][application_id].monitoring_details.append(detail)
+            elif not detail.name and not detail.type and detail.host_name in self.objects['hosts']:
+                self.objects['hosts'][detail.host_name].monitoring_details.append(detail)
+            else:
+                logger.info("found a detail %s for an unknown application %s" % (detail, application_id))
 
         for host in self.objects['hosts'].values():
             host.resolve_monitoring_details()

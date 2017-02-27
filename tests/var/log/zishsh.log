@@ -1,0 +1,18 @@
+2017-02-27 21:17:33,148 - INFO - Logger initialised.
+2017-02-27 21:17:33,149 - INFO - recipe test4 init
+2017-02-27 21:17:33,149 - INFO - recipe test4 classes_dir /home/lausser/git/coshsh/tests/recipes/test4/classes,/home/lausser/git/coshsh/recipes/default/classes
+2017-02-27 21:17:33,149 - INFO - recipe test4 templates_dir /home/lausser/git/coshsh/tests/recipes/test4/templates,/home/lausser/git/coshsh/recipes/default/templates
+2017-02-27 21:17:33,237 - INFO - recipe test4 objects_dir /home/lausser/git/coshsh/tests/var/objects/test1
+2017-02-27 21:17:33,238 - INFO - recipe datarecipient_coshsh_default dynamic_dir ./var/objects/test1/dynamic does not exist
+2017-02-27 21:17:33,238 - INFO - recipient datarecipient_coshsh_default dynamic_dir ./var/objects/test1/dynamic
+2017-02-27 21:17:33,241 - INFO - read items from simplesample
+2017-02-27 21:17:33,242 - INFO - recipe test4 read from datasource simplesample 2 applications, 1 hosts
+2017-02-27 21:17:33,253 - INFO - load template host
+2017-02-27 21:17:33,267 - INFO - load template os_linux_default
+2017-02-27 21:17:33,273 - INFO - load template os_windows_default
+2017-02-27 21:17:33,276 - INFO - load template os_windows_kaas
+2017-02-27 21:17:33,277 - INFO - load items to datarecipient_coshsh_default
+2017-02-27 21:17:33,277 - INFO - recipe datarecipient_coshsh_default remove dynamic_dir ./var/objects/test1/dynamic
+2017-02-27 21:17:33,280 - INFO - recipient datarecipient_coshsh_default dynamic_dir ./var/objects/test1/dynamic
+2017-02-27 21:17:33,292 - INFO - number of files before: 0 hosts, 0 applications
+2017-02-27 21:17:33,292 - INFO - number of files after:  1 hosts, 3 applications

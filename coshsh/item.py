@@ -112,8 +112,7 @@ class Item(object):
             # This detail has been resolved. Maybe we run resolve_monitoring_details
             # later again, we don't want to repeat ourselves.
             self.monitoring_details.remove(detail)
-        if details:
-            self.wemustrepeat()
+        self.wemustrepeat()
         # example: if we have self.ports
         # and self.ports[0] has an inside property ports
         # and self has d default property port (set in __init__)
@@ -237,9 +236,6 @@ class Item(object):
     def fingerprint(self):
         try:
             return "%s+%s+%s" % (self.host_name, self.name, self.type)
-        except: pass
-        try:
-            return "%s+%s+%s" % (self.host_name, self.application_name, self.application_type)
         except: pass
         try:
             return "%s" % (self.host_name, )
