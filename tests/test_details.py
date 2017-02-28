@@ -167,8 +167,11 @@ class CoshshTest(unittest.TestCase):
 
     def test_lazy_datasource(self):
         self.print_header()
-        cfg = self.config.items("datasource_CSVDETAILS")
+
+        self.generator.add_recipe(name='test14', **dict(self.config.items('recipe_TEST14')))
+        self.config.set("datasource_LAZY", "name", "test14")
         objects = self.generator.recipes['test14'].objects
+        cfg = self.config.items("datasource_LAZY")
         ds = coshsh.datasource.Datasource(**dict(cfg))
         ds.read(objects=objects)
 
@@ -177,6 +180,9 @@ class CoshshTest(unittest.TestCase):
         self.generator.recipes['test14'].collect()
         self.generator.recipes['test14'].render()
         self.generator.recipes['test14'].output()
+        app1 = objects['applications'].values()[0]
+        self.assert_(hasattr(app1, 'huhu'))
+        self.assert_(app1.huhu == 'dada')
 
 if __name__ == '__main__':
     unittest.main()

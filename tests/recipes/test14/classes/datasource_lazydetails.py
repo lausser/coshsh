@@ -30,6 +30,7 @@ class MyHost(coshsh.host.Host):
 class LazyDs(coshsh.datasource.Datasource):
     class_only_the_test_simplesample = True
     def __init__(self, **kwargs):
+        print kwargs
         self.name = kwargs["name"]
         self.dir = kwargs["dir"]
         self.only_the_test_simplesample = True
@@ -41,7 +42,6 @@ class LazyDs(coshsh.datasource.Datasource):
             'host_name': 'test_host_0',
             'address': '127.0.0.9',
             'type': 'test',
-            'os': 'Red Hat 6.3',
             'hardware': 'Vmware',
             'virtual': 'vs',
             'notification_period': '7x24',
@@ -50,16 +50,7 @@ class LazyDs(coshsh.datasource.Datasource):
         }
         self.add('hosts', MyHost(hostdata))
         appdata = {
-            'name': 'os',
-            'type': 'Red Hat',
-            'component': '',
-            'version': '6.3',
-            'patchlevel': '',
             'host_name': 'test_host_0',
-            'check_period': '7x24',
-        }
-        self.add('applications', coshsh.application.Application(appdata))
-        appdata = {
             'name': 'os',
             'type': 'Windows',
             'component': '',
@@ -70,6 +61,7 @@ class LazyDs(coshsh.datasource.Datasource):
         }
         self.add('applications', coshsh.application.Application(appdata))
         detdata = {
+            'host_name': 'test_host_0',
             'name': 'os',
             'type': 'Windows',
             'monitoring_type': 'KEYVALUES',

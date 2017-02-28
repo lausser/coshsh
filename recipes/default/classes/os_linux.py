@@ -19,13 +19,16 @@ class Linux(coshsh.application.Application):
 
     def wemustrepeat(self):
         self.SSHPORT = getattr(self, 'SSHPORT', 22)
-        self.SSHUSER = getattr(self, 'SSHUSER', os.environ.get('OMD_ROLLOUT_USER_LINUX', 'mon'))
-        self.SSHPATHPREFIX = getattr(self, 'SSHPATHPREFIX', os.environ.get('OMD_ROLLOUT_PATH_PREFIX', '.'))
+        self.SSHUSER = getattr(self, 'SSHUSER', os.environ.get('OMD_CLIENT_USER_LINUX', 'mon'))
+        self.SSHPATHPREFIX = getattr(self, 'SSHPATHPREFIX', os.environ.get('OMD_CLIENT_PATH_PREFIX', '.'))
         if not hasattr(self, 'custom_macros'):
             self.custom_macros = {}
         self.custom_macros['_SSHPORT'] = self.SSHPORT
         self.custom_macros['_SSHUSER'] = self.SSHUSER
         self.custom_macros['_SSHPATHPREFIX'] = self.SSHPATHPREFIX
+        self.host.custom_macros['_SSHPORT'] = self.SSHPORT
+        self.host.custom_macros['_SSHUSER'] = self.SSHUSER
+        self.host.custom_macros['_SSHPATHPREFIX'] = self.SSHPATHPREFIX
 
 
 class EmbeddedLinux(Linux):

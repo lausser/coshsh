@@ -204,7 +204,7 @@ class Recipe(object):
                 logger.info("aborting collection phase") 
                 return False
 
-        for details in self.objects['details'].values():
+        for detail in self.objects['details'].values():
             application_id = "%s+%s+%s" % (detail.host_name, detail.name, detail.type)
             if application_id in self.objects['applications']:
                 self.objects['applications'][application_id].monitoring_details.append(detail)
@@ -266,7 +266,7 @@ class Recipe(object):
         for hg in self.objects['hostgroups'].values():
             hg.render(template_cache, self.jinja2)
         # you can put anything in objects (Item class with own templaterules)
-        for item in sum([self.objects[itype].values() for itype in self.objects if itype not in ['hosts', 'applications', 'contactgroups', 'contacts', 'hostgroups']], []):
+        for item in sum([self.objects[itype].values() for itype in self.objects if itype not in ['hosts', 'applications', 'details', 'contactgroups', 'contacts', 'hostgroups']], []):
             # first check hasattr, because somebody may accidentially
             # add objects which are not a subclass of Item.
             # (And such a stupid mistake crashes coshsh-cook)

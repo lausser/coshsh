@@ -23,6 +23,8 @@ class Windows(Application):
             self.custom_macros = {}
         self.custom_macros['_NSCPORT'] = self.NSCPASSWORD
         self.custom_macros['_NSCPASSWORD'] = self.NSCPASSWORD
+        self.host.custom_macros['_NSCPORT'] = self.NSCPASSWORD
+        self.host.custom_macros['_NSCPASSWORD'] = self.NSCPASSWORD
 
 
 
