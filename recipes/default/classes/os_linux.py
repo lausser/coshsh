@@ -26,6 +26,14 @@ class Linux(coshsh.application.Application):
         self.custom_macros['_SSHPORT'] = self.SSHPORT
         self.custom_macros['_SSHUSER'] = self.SSHUSER
         self.custom_macros['_SSHPATHPREFIX'] = self.SSHPATHPREFIX
+        # auch als host-macros, denn damit kann man check_by_ssh mit
+        # $_HOSTSSHUSER$ benutzen und muss irgenwelchen (teils generischen)
+        # app_-Applikationen nicht auch noch diese Macros verpassen.
+        if not hasattr(self.host, 'custom_macros'):
+            self.host.custom_macros = {}
+        self.host.custom_macros['_SSHPORT'] = self.SSHPORT
+        self.host.custom_macros['_SSHUSER'] = self.SSHUSER
+        self.host.custom_macros['_SSHPATHPREFIX'] = self.SSHPATHPREFIX
 
 
 class EmbeddedLinux(Linux):

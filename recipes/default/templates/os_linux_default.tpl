@@ -6,7 +6,6 @@
   max_check_attempts              2
   check_command                   plugin_rollout_linux
   _WORKER                         local
-  {{ application|custom_macros }}
 }
 
 {{ application|service("os_linux_default_linux_version") }}
@@ -16,14 +15,12 @@
   retry_check_interval            240
   max_check_attempts              1
   check_command                   check_by_ssh!60!( ( grep -sh PRETTY_NAME /etc/*release || head -1 /etc/SuSE-release ) || cat /etc/redhat-release ) && uname -a
-  {{ application|custom_macros }}
 }
 
 {{ application|service("os_linux_default_ssh_controlmaster") }}
   host_name                       {{ application.host_name }}
   use                             os_linux_default
   check_command                   check_ssh_controlmaster
-  {{ application|custom_macros }}
 }
 
 {% if not application.filesystems %}
@@ -31,7 +28,6 @@
   host_name                       {{ application.host_name }}
   use                             os_linux_default,srv-perf
   check_command                   check_by_ssh!60!$_SERVICESSHPATHPREFIX$/lib/nagios/plugins/check_disk -w 5% -c 2% -e -A -l -x '/dev' -x '/dev/shm' -i '/boot' -x '/home' -i '/var/lib/docker' -i '/run/docker' -i '/data.*/docker.*' -i 'net:'
-  {{ application|custom_macros }}
 }
 {% endif %}
 
@@ -39,7 +35,6 @@
   host_name                       {{ application.host_name }}
   use                             os_linux_default,srv-perf
   check_command                   check_by_ssh!60!$_SERVICESSHPATHPREFIX$/lib/nagios/plugins/check_load -w 5.0,5.0,5.0 -c 10.0,10.0,10.0 --percpu
-  {{ application|custom_macros }}
 }
 
 {#
@@ -50,7 +45,6 @@
   # Hard state after 2 hours
   retry_check_interval            10
   max_check_attempts              12
-  {{ application|custom_macros }}
 }
 #}
 
@@ -58,7 +52,6 @@
   host_name                       {{ application.host_name }}
   use                             os_linux_default,srv-perf
   check_command                   check_by_ssh!60!$_SERVICESSHPATHPREFIX$/lib/nagios/plugins/check_swap -w 15% -c 8%
-  {{ application|custom_macros }}
 }
 
 {{ application|service("os_linux_default_check_zombies") }}
@@ -67,21 +60,18 @@
   check_interval                  60
   retry_interval                  10
   check_command                   check_by_ssh!60!$_SERVICESSHPATHPREFIX$/lib/nagios/plugins/check_procs -s Z -w 1 -c 1
-  {{ application|custom_macros }}
 }
 
 {{ application|service("os_linux_default_check_process_cron") }}
   use                             os_linux_default
   host_name                       {{ application.host_name }}
   check_command                   check_by_ssh!60!$_SERVICESSHPATHPREFIX$/lib/nagios/plugins/check_procs -w :10 -c 1: --ereg-argument-array='^/usr/sbin/cron|^crond|^cron'
-  {{ application|custom_macros }}
 }
 
 {{ application|service("os_linux_default_check_process_syslog") }}
   use                             os_linux_default
   host_name                       {{ application.host_name }}
   check_command                   check_by_ssh!60!$_SERVICESSHPATHPREFIX$/lib/nagios/plugins/check_procs -w :10 -c 1: --ereg-argument-array='^/usr/sbin/rsyslogd|^/sbin/syslog-ng|^rsyslogd|^syslogd|^/sbin/rsyslogd'
-  {{ application|custom_macros }}
 }
 
 
@@ -95,7 +85,6 @@
       --name eth0 \
       --units Mbit \
       --servertype linuxlocal
-  {{ application|custom_macros }}
 }
 #}
 

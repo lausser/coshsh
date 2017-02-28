@@ -2,7 +2,6 @@
   host_name                       {{ application.host_name }}
   use                             os_windows_default
   check_command                   check_nsc_web!30
-  {{ application|custom_macros }}
 }
 
 {{ application|service("os_windows_default_windows_version") }}
@@ -12,7 +11,6 @@
   retry_check_interval            10
   max_check_attempts              2
   check_command                   check_nsc_web!30!check_os_version
-  {{ application|custom_macros }}
 }
 
 {{ application|service("os_windows_default_check_uptime") }}
@@ -20,7 +18,6 @@
   use                             os_windows_default,srv-perf
   max_check_attempts              10
   check_command                   check_nsc_web!30!check_uptime 'warning=uptime<180s' 'critical=uptime<60s'
-  {{ application|custom_macros }}
 }
 
 define servicedependency {
@@ -38,14 +35,12 @@ define servicedependency {
   use                             os_windows_default,srv-perf
   max_check_attempts              10
   check_command                   check_nsc_web!30!check_cpu 'filter=none' 'warning=load > 85' 'crit=load > 95'
-  {{ application|custom_macros }}
 }
 
 {{ application|service("os_windows_default_check_cpu") }}
   host_name                       {{ application.host_name }}
   use                             os_windows_default,srv-perf
   check_command                   check_nsc_web!30!check_memory 'filter=none' 'warning=free_pct < 10' 'crit=free_pct < 5'
-  {{ application|custom_macros }}
 }
 
 {% if not application.filesystems %}
@@ -53,7 +48,6 @@ define servicedependency {
   host_name                       {{ application.host_name }}
   use                             os_windows_default,srv-perf
   check_command                   check_nsc_web!30!check_drivesize 'warning=used > 95' 'crit=used > 98' "empty-state=unknown" "filter=type in ('fixed') AND mounted=1 AND name not like '\?\'" "show-all"
-  {{ application|custom_macros }}
 }
 {% endif %}
 
@@ -62,7 +56,6 @@ define servicedependency {
   host_name                       {{ application.host_name }}
   use                             os_windows_default
   check_command                   check_nrpe_arg!30!CheckServiceState!CheckAll
-  {{ application|custom_macros }}
 }
 #}
 
@@ -71,7 +64,6 @@ define servicedependency {
   host_name                       {{ application.host_name }}
   use                             os_windows_default
   check_command                   windows-check_time!3600!360000
-  {{ application|custom_macros }}
 }
 {% endif %}
 

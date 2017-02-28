@@ -26,10 +26,8 @@ define host {
 {% else %}
     check_command                   check_host_alive
     notification_options            d,u,r
-    _SSH_PORT                       {{ host.ports[-1] }}
 {% endif %}
 {% if host.icon_image %}
     icon_image                      {{ host.icon_image }}
 {% endif %}
-{{ host|custom_macros() }}}
-
+{{ host|custom_macros }}}

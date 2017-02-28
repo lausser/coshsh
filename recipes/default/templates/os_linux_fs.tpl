@@ -15,7 +15,6 @@ fs.units
     check_command                   check_by_ssh!60!$USER10$/lib/nagios/plugins/check_disk --warning {{ fs.warning }} --critical {{ fs.critical }} --units {{ fs.units }} --path {{ fs.path }}
     check_interval                  15
 {% endif %}
-  {{ application|custom_macros }}
 }
 {% endfor %}
 
