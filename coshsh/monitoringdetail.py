@@ -23,6 +23,8 @@ class MonitoringDetailNotImplemented(Exception):
 
 
 class MonitoringDetail(coshsh.item.Item):
+    id = 1
+    my_type = "detail"
     class_factory = []
     lower_columns = ['name', 'type']
 
@@ -38,6 +40,7 @@ class MonitoringDetail(coshsh.item.Item):
             newcls = self.__class__.get_class(params)
             if newcls:
                 self.__class__ = newcls
+                super(MonitoringDetail, self).__init__(params)
                 self.__init__(params)
             else:
                 logger.info("monitoring detail of type %s for host %s / appl %s had a problem" % (params["monitoring_type"], params["host_name"], params["name"]))
@@ -67,7 +70,7 @@ class MonitoringDetail(coshsh.item.Item):
     @classmethod
     def get_class(cls, params={}):
         #print "getclass from cache", cls, cls.__name__, len(cls.class_factory)
-        for path, module, class_func in cls.class_factory:
+        for path, module, class_func in reversed(cls.class_factory):
             try:
                 #print "get_class trys", path, module, class_func
                 newcls = class_func(params)

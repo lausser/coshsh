@@ -1,5 +1,6 @@
 * 2017-02-27 3.4.1
   we all must repeat
+  use mainly host macros for linux/windows
 * 2017-02-23 3.4
   bugfix in application class_factory
   more starter kit fixes
