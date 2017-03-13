@@ -109,6 +109,12 @@ class DatarecipientCoshshDefault(coshsh.datarecipient.Datarecipient):
             retcode = process.poll()
             print output
             commitmsg = time.strftime("%Y-%m-%d-%H-%M-%S") + " %d hostfiles,%d appfiles" % (self.new_objects[0], self.new_objects[1])
+            if False:
+                process = Popen(["git", "diff"], stdout=PIPE, stderr=STDOUT)
+                output, unused_err = process.communicate()
+                retcode = process.poll()
+                logger.debug("the changes are...")
+                logger.debug(output)
             print "git commit------------------"
             print "commit-comment", commitmsg
             process = Popen(["git", "commit", "-a", "-m", commitmsg], stdout=PIPE, stderr=STDOUT)
