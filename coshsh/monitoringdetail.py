@@ -26,7 +26,7 @@ class MonitoringDetail(coshsh.item.Item):
     id = 1
     my_type = "detail"
     class_factory = []
-    lower_columns = ['name', 'type']
+    lower_columns = ['name', 'type', 'application_name', 'application_type']
 
     def __init__(self, params):
         #print "Detail init", self.__class__, self.__class__.__name__, len(self.__class__.class_factory)
@@ -40,13 +40,35 @@ class MonitoringDetail(coshsh.item.Item):
             newcls = self.__class__.get_class(params)
             if newcls:
                 self.__class__ = newcls
+                # name, type is preferred, because a detail can also be a host detail
+                # application_name, application_type is ok too. in any case these will be internally used
+                if 'name' in params:
+                    params['application_name'] = params['name']
+                    del params['name']
+                if 'type' in params:
+                    params['application_type'] = params['type']
+                    del params['type']
                 super(MonitoringDetail, self).__init__(params)
                 self.__init__(params)
             else:
-                logger.info("monitoring detail of type %s for host %s / appl %s had a problem" % (params["monitoring_type"], params["host_name"], params["name"]))
+                logger.info("monitoring detail of type %s for host %s / appl %s had a problem" % (params["monitoring_type"], params["host_name"], params["application_name"]))
                 raise MonitoringDetailNotImplemented
         else:
             pass
+
+    def fingerprint(self):
+        # it does not make sense to construct an id from the random attributes
+        # id is used in self.add('details')
+        return id(self)
+
+    def application_fingerprint(self):
+        try:
+            return "%s+%s+%s" % (self.host_name, self.application_name, self.application_type)
+        except: pass
+        try:
+            return "%s" % (self.host_name, )
+        except: pass
+        raise "impossible fingerprint"
 
     @classmethod
     def init_classes(cls, classpath):

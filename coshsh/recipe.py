@@ -205,13 +205,13 @@ class Recipe(object):
                 return False
 
         for detail in self.objects['details'].values():
-            application_id = "%s+%s+%s" % (detail.host_name, detail.name, detail.type)
-            if application_id in self.objects['applications']:
-                self.objects['applications'][application_id].monitoring_details.append(detail)
-            elif not detail.name and not detail.type and detail.host_name in self.objects['hosts']:
-                self.objects['hosts'][detail.host_name].monitoring_details.append(detail)
+            fingerprint = detail.application_fingerprint()
+            if fingerprint in self.objects['applications']:
+                self.objects['applications'][fingerprint].monitoring_details.append(detail)
+            elif fingerprint in self.objects['hosts']:
+                self.objects['hosts'][fingerprint].monitoring_details.append(detail)
             else:
-                logger.info("found a detail %s for an unknown application %s" % (detail, application_id))
+                logger.info("found a detail %s for an unknown application %s" % (detail, fingerprint))
 
         for host in self.objects['hosts'].values():
             host.resolve_monitoring_details()
