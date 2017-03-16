@@ -62,12 +62,10 @@ class MonitoringDetail(coshsh.item.Item):
         return id(self)
 
     def application_fingerprint(self):
-        try:
+        if self.application_name and self.application_type:
             return "%s+%s+%s" % (self.host_name, self.application_name, self.application_type)
-        except: pass
-        try:
+        elif self.host_name:
             return "%s" % (self.host_name, )
-        except: pass
         raise "impossible fingerprint"
 
     @classmethod

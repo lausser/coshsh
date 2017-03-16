@@ -1,3 +1,5 @@
+* 2017-03-16 3.4.3.1
+  fix a bug in detail appfingerprint
 * 2017-03-14 3.4.3
   use application_name/type internally for details
 * 2017-02-27 3.4.2
