@@ -103,6 +103,11 @@ class Item(object):
                             getattr(self, property).append(getattr(detail, getattr(detail.__class__, "property_attr")))
                         else:
                             getattr(self, property).append(detail)
+                elif detail.__class__.property_type == dict:
+                    if not hasattr(self, property):
+                        setattr(self, property, {})
+                    if hasattr(detail, "key") and hasattr(detail, "value"):
+                        getattr(self, property)[detail.key] = detail.value
                 else:
                     if getattr(detail.__class__, 'property_flat', False):
                         # ex. MonitoringDetailRole: appl.role == str instead of appl.role.role == str
