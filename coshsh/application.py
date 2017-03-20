@@ -79,7 +79,7 @@ class Application(coshsh.item.Item):
     def init_classes(cls, classpath):
         sys.dont_write_bytecode = True
         for p in [p for p in reversed(classpath) if os.path.exists(p) and os.path.isdir(p)]:
-            for module, path in [(item, p) for item in os.listdir(p) if item[-3:] == ".py" and (item.startswith('app_') or item.startswith('os_'))]:
+            for module, path in [(item, p) for item in sorted(os.listdir(p), reverse=True) if item[-3:] == ".py" and (item.startswith('app_') or item.startswith('os_'))]:
                 try:
                     path = os.path.abspath(path)
                     fp, filename, data = imp.find_module(module.replace('.py', ''), [path])
