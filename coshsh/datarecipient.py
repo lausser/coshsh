@@ -126,8 +126,6 @@ class Datarecipient(object):
         pass
 
     def too_much_delta(self):
-        print "is it too much", self.old_objects
-        print "is it too much", self.new_objects
         if not self.max_delta:
             return False
         # self.old_objects = (hosts_before, apps_before)
