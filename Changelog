@@ -1,3 +1,5 @@
+* 2017-03-21 3.6
+  max_delta can be negative, max_delta_action can handle loss of hosts
 * 2017-03-20 3.5
   add custom-macro detail
 * 2017-03-16 3.4.3.1

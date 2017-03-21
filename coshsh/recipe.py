@@ -45,7 +45,7 @@ class RecipePidGarbage(Exception):
 
 class Recipe(object):
 
-    attributes_for_adapters = ["name", "force", "safe_output", "pid_dir", "pid_file", "templates_dir", "classes_dir", "objects_dir", "max_delta", "classes_path", "templates_path", "filter"]
+    attributes_for_adapters = ["name", "force", "safe_output", "pid_dir", "pid_file", "templates_dir", "classes_dir", "objects_dir", "max_delta", "max_delta_action", "classes_path", "templates_path", "filter"]
 
     def __del__(self):
         pass
@@ -74,7 +74,9 @@ class Recipe(object):
         self.templates_dir = kwargs.get("templates_dir")
         self.classes_dir = kwargs.get("classes_dir")
         self.max_delta = kwargs.get("max_delta", ())
+        self.max_delta_action = kwargs.get("max_delta_action", None)
         if isinstance(self.max_delta, str):
+            print "MAXNNN", self.max_delta
             if ":" in self.max_delta:
                 self.max_delta = tuple(map(int, self.max_delta.split(":")))
             else:
@@ -161,7 +163,7 @@ class Recipe(object):
         # because this is allowed: datarecipients = >>>,SIMPLESAMPLE
         self.datarecipient_names = ['datarecipient_coshsh_default' if dr == '>>>' else dr for dr in self.datarecipient_names]
         if 'datarecipient_coshsh_default' in self.datarecipient_names:
-            self.add_datarecipient(**dict([('type', 'datarecipient_coshsh_default'), ('name', 'datarecipient_coshsh_default'), ('objects_dir', self.objects_dir), ('max_delta', self.max_delta), ('safe_output', self.safe_output)]))
+            self.add_datarecipient(**dict([('type', 'datarecipient_coshsh_default'), ('name', 'datarecipient_coshsh_default'), ('objects_dir', self.objects_dir), ('max_delta', self.max_delta), ('max_delta_action', self.max_delta_action), ('safe_output', self.safe_output)]))
 
     def set_recipe_sys_path(self):
         sys.path[0:0] = self.classes_path

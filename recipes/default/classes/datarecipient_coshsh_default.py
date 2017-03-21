@@ -28,6 +28,7 @@ class DatarecipientCoshshDefault(coshsh.datarecipient.Datarecipient):
         self.name = kwargs["name"]
         self.objects_dir = kwargs.get("objects_dir", kwargs.get("recipe_objects_dir", "/tmp"))
         self.max_delta = kwargs.get("max_delta", ())
+        self.max_delta_action = kwargs.get("max_delta_action", None)
         self.safe_output = kwargs.get("safe_output")
         self.static_dir = os.path.join(self.objects_dir, 'static')
         self.dynamic_dir = os.path.join(self.objects_dir, 'dynamic')
@@ -65,38 +66,51 @@ class DatarecipientCoshshDefault(coshsh.datarecipient.Datarecipient):
     def output(self, filter=None):
         super(self.__class__, self).output(filter)
         self.count_after_objects()
-        try:
-            delta_hosts = 100 * abs(self.new_objects[0] - self.old_objects[0]) / self.old_objects[0]
-            delta_services = 100 * abs(self.new_objects[1] - self.old_objects[1]) / self.old_objects[1]
-        except Exception, e:
-            delta_hosts = 0
-            delta_services = 0
-
         logger.info("number of files before: %d hosts, %d applications" % self.old_objects)
         logger.info("number of files after:  %d hosts, %d applications" % self.new_objects)
-        if self.safe_output and self.max_delta and (delta_hosts > self.max_delta[0] or delta_services > self.max_delta[1]) and os.path.exists(self.dynamic_dir + '/.git'):
+        if self.safe_output and self.too_much_delta and os.path.exists(self.dynamic_dir + '/.git'):
             save_dir = os.getcwd()
             os.chdir(self.dynamic_dir)
-            print "git reset hard------------------"
+            logger.error("git reset --hard")
             process = Popen(["git", "reset", "--hard"], stdout=PIPE, stderr=STDOUT)
             output, unused_err = process.communicate()
             retcode = process.poll()
-            print output
+            logger.info(output)
+            logger.error("git clean untracked files")
+            process = Popen(["git", "clean", "-f", "-d"], stdout=PIPE, stderr=STDOUT)
+            output, unused_err = process.communicate()
+            retcode = process.poll()
+            logger.info(output)
             os.chdir(save_dir)
             self.analyze_output(output)
             logger.error("the last commit was revoked")
 
-        elif self.max_delta and (delta_hosts > self.max_delta[0] or delta_services > self.max_delta[1]):
-            print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-            print "number of hosts changed by %.2f percent" % delta_hosts
-            print "number of applications changed by %.2f percent" % delta_services
-            print "please check your datasource before activating this config."
-            print "if you use a git repository, you can go back to the last"
-            print "valid configuration with the following commands:"
-            print "cd %s" % self.dynamic_dir
-            print "git reset --hard"
-            print "git checkout ."
-            print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        elif self.too_much_delta():
+            logger.error("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            logger.error("number of hosts changed by %.2f percent" % self.delta_hosts)
+            logger.error("number of applications changed by %.2f percent" % self.delta_services)
+            logger.error("please check your datasource before activating this config.")
+            logger.error("if you use a git repository, you can go back to the last")
+            logger.error("valid configuration with the following commands:")
+            logger.error("cd %s" % self.dynamic_dir)
+            logger.error("git reset --hard")
+            logger.error("git checkout .")
+            logger.error("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            if self.max_delta_action:
+                logger.error("running command %s" % self.max_delta_action)
+                if os.path.exists(self.max_delta_action) and os.path.isfile(self.max_delta_action) and os.access(self.max_delta_action, os.X_OK):
+                    self.max_delta_action = os.path.abspath(self.max_delta_action)
+                    save_dir = os.getcwd()
+                    os.chdir(self.dynamic_dir)
+                    process = Popen([self.max_delta_action], stdout=PIPE, stderr=STDOUT)
+                    output, errput = process.communicate()
+                    retcode = process.poll()
+                    logger.error("cmd says: %s" % output)
+                    logger.error("cmd warns: %s" % errput)
+                    logger.error("cmd exits with: %d" % retcode)
+                    os.chdir(save_dir)
+                else:
+                    logger.error("command %s is not executable. now you're screwed" % self.max_delta_action)
 
         elif os.path.exists(self.dynamic_dir + '/.git'):
             logger.debug("dynamic_dir is a git repository")

@@ -125,6 +125,45 @@ class Datarecipient(object):
     def cleanup_target_dir(self):
         pass
 
+    def too_much_delta(self):
+        print "is it too much", self.old_objects
+        print "is it too much", self.new_objects
+        if not self.max_delta:
+            return False
+        # self.old_objects = (hosts_before, apps_before)
+        # self.new_objects = (hosts_after, apps_after)
+        # self.max_delta = (%hosts, %apps)
+        # if %hosts or %apps is negative, then accept an increase of any size
+        # only shrinking numbers are a problem
+        try:
+            self.delta_hosts = 100 * (self.new_objects[0] - self.old_objects[0]) / self.old_objects[0]
+        except Exception, e:
+            # before we had 0 hosts. accept this initial increase
+            self.delta_hosts = 0
+        try:
+            self.delta_services = 100 * (self.new_objects[1] - self.old_objects[1]) / self.old_objects[1]
+        except Exception, e:
+            # before we had 0 applications
+            self.delta_services = 0
+        print "deltas", self.delta_hosts, self.delta_services
+        print "max", self.max_delta
+        #
+        #  before  after  delta
+        #  0       10     0
+        #  10      0      -100
+        #  10      8      -20
+        if self.max_delta[0] < 0 and self.delta_hosts < self.max_delta[0]:
+            print "neg and shruink"
+            return True
+        if self.max_delta[1] < 0 and self.delta_services < self.max_delta[1]:
+            return True
+        if self.max_delta[0] >= 0 and abs(self.delta_hosts) > self.max_delta[0]:
+            return True
+        if self.max_delta[1] >= 0 and abs(self.delta_services) > self.max_delta[1]:
+            return True
+        return False
+
+
     @classmethod
     def init_classes(cls, classpath):
         sys.dont_write_bytecode = True

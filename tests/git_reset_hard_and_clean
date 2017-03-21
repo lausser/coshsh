@@ -1,0 +1,9 @@
+#! /bin/bash
+echo i am in 
+pwd
+ls hosts
+git clean -d -f
+git checkout .
+ls hosts
+exit 1
+
