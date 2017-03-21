@@ -90,7 +90,6 @@ def filter_service(application, service_description):
             snippet += "\n  contact_groups %s" % (application.contact_groups, )
     else:
         snippet = "define service {\n  service_description             %s\n" % service_description
-        raise "arsch"
         for detail in relevant_details:
             snippet += "  %-31s %s\n" % (detail.attribute, detail.value)
         snippet += "  use                             %s\n}\n" % (service_description + "_" + application.host_name, )
