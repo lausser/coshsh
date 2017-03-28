@@ -10,9 +10,9 @@ fs.units
     use                             os_linux_fs,srv-pnp
     host_name                       {{ application.host_name }}
 {% if fs.units == "%" %}
-    check_command                   check_by_ssh!60!$USER10$/lib/nagios/plugins/check_disk --warning {{ fs.warning }}% --critical {{ fs.critical }}% --path {{ fs.path }}
+    check_command                   check_by_ssh!60!$_HOSTSSHPATHPREFIX$/lib/nagios/plugins/check_disk --warning {{ fs.warning }}% --critical {{ fs.critical }}% --path {{ fs.path }}
 {% else %}
-    check_command                   check_by_ssh!60!$USER10$/lib/nagios/plugins/check_disk --warning {{ fs.warning }} --critical {{ fs.critical }} --units {{ fs.units }} --path {{ fs.path }}
+    check_command                   check_by_ssh!60!$_HOSTSSHPATHPREFIX$/lib/nagios/plugins/check_disk --warning {{ fs.warning }} --critical {{ fs.critical }} --units {{ fs.units }} --path {{ fs.path }}
     check_interval                  15
 {% endif %}
 }

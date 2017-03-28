@@ -23,25 +23,17 @@
   check_command                   check_ssh_controlmaster
 }
 
-{% if not application.filesystems %}
-{{ application|service("os_linux_default_check_all_filesystems") }}
-  host_name                       {{ application.host_name }}
-  use                             os_linux_default,srv-perf
-  check_command                   check_by_ssh!60!$_SERVICESSHPATHPREFIX$/lib/nagios/plugins/check_disk -w 5% -c 2% -e -A -l -x '/dev' -x '/dev/shm' -i '/boot' -x '/home' -i '/var/lib/docker' -i '/run/docker' -i '/data.*/docker.*' -i 'net:'
-}
-{% endif %}
-
 {{ application|service("os_linux_default_check_load") }}
   host_name                       {{ application.host_name }}
   use                             os_linux_default,srv-perf
-  check_command                   check_by_ssh!60!$_SERVICESSHPATHPREFIX$/lib/nagios/plugins/check_load -w 5.0,5.0,5.0 -c 10.0,10.0,10.0 --percpu
+  check_command                   check_by_ssh!60!$_HOSTSSHPATHPREFIX$/lib/nagios/plugins/check_load -w 5.0,5.0,5.0 -c 10.0,10.0,10.0 --percpu
 }
 
 {#
 {{ application|service("os_linux_default_check_memory_and_swap") }}
   host_name                       {{ application.host_name }}
   use                             os_linux_default,srv-perf
-  check_command                   check_by_ssh!60!$_SERVICESSHPATHPREFIX$/lib/nagios/plugins/check_mem -w 85 -c 95 -W 70 -C 80
+  check_command                   check_by_ssh!60!$_HOSTSSHPATHPREFIX$/lib/nagios/plugins/check_mem -w 85 -c 95 -W 70 -C 80
   # Hard state after 2 hours
   retry_check_interval            10
   max_check_attempts              12
@@ -51,7 +43,7 @@
 {{ application|service("os_linux_default_check_swap") }}
   host_name                       {{ application.host_name }}
   use                             os_linux_default,srv-perf
-  check_command                   check_by_ssh!60!$_SERVICESSHPATHPREFIX$/lib/nagios/plugins/check_swap -w 15% -c 8%
+  check_command                   check_by_ssh!60!$_HOSTSSHPATHPREFIX$/lib/nagios/plugins/check_swap -w 15% -c 8%
 }
 
 {{ application|service("os_linux_default_check_zombies") }}
@@ -59,19 +51,19 @@
   use                             os_linux_default,srv-perf
   check_interval                  60
   retry_interval                  10
-  check_command                   check_by_ssh!60!$_SERVICESSHPATHPREFIX$/lib/nagios/plugins/check_procs -s Z -w 1 -c 1
+  check_command                   check_by_ssh!60!$_HOSTSSHPATHPREFIX$/lib/nagios/plugins/check_procs -s Z -w 1 -c 1
 }
 
 {{ application|service("os_linux_default_check_process_cron") }}
   use                             os_linux_default
   host_name                       {{ application.host_name }}
-  check_command                   check_by_ssh!60!$_SERVICESSHPATHPREFIX$/lib/nagios/plugins/check_procs -w :10 -c 1: --ereg-argument-array='^/usr/sbin/cron|^crond|^cron'
+  check_command                   check_by_ssh!60!$_HOSTSSHPATHPREFIX$/lib/nagios/plugins/check_procs -w :10 -c 1: --ereg-argument-array='^/usr/sbin/cron|^crond|^cron'
 }
 
 {{ application|service("os_linux_default_check_process_syslog") }}
   use                             os_linux_default
   host_name                       {{ application.host_name }}
-  check_command                   check_by_ssh!60!$_SERVICESSHPATHPREFIX$/lib/nagios/plugins/check_procs -w :10 -c 1: --ereg-argument-array='^/usr/sbin/rsyslogd|^/sbin/syslog-ng|^rsyslogd|^syslogd|^/sbin/rsyslogd'
+  check_command                   check_by_ssh!60!$_HOSTSSHPATHPREFIX$/lib/nagios/plugins/check_procs -w :10 -c 1: --ereg-argument-array='^/usr/sbin/rsyslogd|^/sbin/syslog-ng|^rsyslogd|^syslogd|^/sbin/rsyslogd'
 }
 
 
@@ -79,7 +71,7 @@
 {{ application|service("os_linux_if_check_eth0") }}
   host_name                       {{ application.host_name }}
   use                             os_linux_default,srv-perf
-  check_command                   check_by_ssh!60!PERL5LIB=$_SERVICESSHPATHPREFIX$/lib/perl5 $_SERVICESSHPATHPREFIX$/lib/nagios/plugins/check_nwc_health \
+  check_command                   check_by_ssh!60!PERL5LIB=$_HOSTSSHPATHPREFIX$/lib/perl5 $_HOSTSSHPATHPREFIX$/lib/nagios/plugins/check_nwc_health \
       --hostname localhost \
       --mode interface-health \
       --name eth0 \
@@ -114,7 +106,7 @@ define servicedependency {
 {{ application|service("os_linux_default_check_disks") }}
   use                             os_linux_default
   host_name                       {{ application.host_name }}
-  check_command                   check_by_ssh!60!./{{ application.host.environment }}/lib/nagios/plugins/check_disk -w 15% -c 10%
+  check_command                   check_by_ssh!60!$_HOSTSSHPATHPREFIX$/lib/nagios/plugins/check_disk -w 5% -c 2% -e -A -l -x '/dev' -x '/dev/shm' -i '/boot' -x '/home' -i '/var/lib/docker' -i '/run/docker' -i '/data.*/docker.*' -i 'net:'
   check_interval                  30
 }
 {% endif %}
