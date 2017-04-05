@@ -38,7 +38,10 @@ class Item(object):
 
         for key in params:
             #print "set key", self.__class__.__name__, key
-            setattr(self, key, params[key])
+            if isinstance(params[key], basestring):
+                setattr(self, key, params[key].strip())
+            else:
+                setattr(self, key, params[key])
 
         if not hasattr(self, "monitoring_details"):
             # if not pre-set through the class
