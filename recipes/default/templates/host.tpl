@@ -30,4 +30,4 @@ define host {
 {% if host.icon_image %}
     icon_image                      {{ host.icon_image }}
 {% endif %}
-{{ host|custom_macros }}
+{{ host|custom_macros }}}
