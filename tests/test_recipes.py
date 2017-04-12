@@ -82,7 +82,7 @@ class CoshshTest(unittest.TestCase):
         # resolve the templates and attach the result as config_files to host/app
         self.generator.recipes['test10'].render()
         self.assert_(hasattr(self.generator.recipes['test10'].objects['hosts']['test_host_0'], 'config_files'))
-        self.assert_('host.cfg' in self.generator.recipes['test10'].objects['hosts']['test_host_0'].config_files)
+        self.assert_('host.cfg' in self.generator.recipes['test10'].objects['hosts']['test_host_0'].config_files['nagios'])
 
         # write hosts/apps to the filesystem
         self.generator.recipes['test10'].output()

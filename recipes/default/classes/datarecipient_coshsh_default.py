@@ -64,7 +64,7 @@ class DatarecipientCoshshDefault(coshsh.datarecipient.Datarecipient):
             logger.info("recipe %s dynamic_dir %s does not exist" % (self.name, self.dynamic_dir))
 
     def output(self, filter=None):
-        super(self.__class__, self).output(filter)
+        super(self.__class__, self).output(filter, "nagios")
         self.count_after_objects()
         logger.info("number of files before: %d hosts, %d applications" % self.old_objects)
         logger.info("number of files after:  %d hosts, %d applications" % self.new_objects)

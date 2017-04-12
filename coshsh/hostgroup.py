@@ -35,14 +35,17 @@ class HostGroup(coshsh.item.Item):
         return True
 
 
-    def write_config(self, target_dir):
+    def write_config(self, target_dir, want_tool=None):
         my_target_dir = os.path.join(target_dir, "hostgroups", self.hostgroup_name)
         if not os.path.exists(my_target_dir):
-            os.mkdir(my_target_dir)
-        for file in self.config_files:
-            content = self.config_files[file]
-            with open(os.path.join(my_target_dir, file), "w") as f:
-                f.write(content)
+            os.makedirs(my_target_dir)
+        for tool in self.config_files:
+            if not want_tool or want_tool == tool:
+                for file in self.config_files[tool]:
+                    content = self.config_files[tool][file]
+                    with open(os.path.join(my_target_dir, file), "w") as f:
+                        f.write(content)
+
 
 
     def create_members(self):

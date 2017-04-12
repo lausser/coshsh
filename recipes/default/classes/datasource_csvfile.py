@@ -69,7 +69,7 @@ class CsvFile(coshsh.datasource.Datasource):
         try:
             appreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_applications.csv'))))
             logger.info('read applications from %s' % os.path.join(self.dir, self.name+'_applications.csv'))
-        except Exception:
+        except Exception, e:
             appreader = []
         resolvedrows = []
         # name,type,component,version,host_name,check_period

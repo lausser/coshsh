@@ -56,12 +56,16 @@ class Item(object):
         new_obj.id = save_id
         return new_obj
 
-    def write_config(self, target_dir):
+    def write_config(self, target_dir, want_tool=None):
         my_target_dir = os.path.join(target_dir, "hosts", self.host_name)
-        for file in self.config_files:
-            content = self.config_files[file]
-            with open(os.path.join(my_target_dir, file), "w") as f:
-                f.write(content)
+        if not os.path.exists(my_target_dir):
+            os.makedirs(my_target_dir)
+        for tool in self.config_files:
+            if not want_tool or want_tool == tool:
+                for file in self.config_files[tool]:
+                    content = self.config_files[tool][file]
+                    with open(os.path.join(my_target_dir, file), "w") as f:
+                        f.write(content)
 
     def resolve_monitoring_details(self):
         details = [d for d in self.monitoring_details]
@@ -177,7 +181,7 @@ class Item(object):
         if hasattr(self, "service_notification_commands"):
             self.service_notification_commands = ",".join(sorted(self.service_notification_commands, cmp=locale.strcoll))
 
-    def render_cfg_template(self, jinja2, template_cache, name, output_name, suffix, **kwargs):
+    def render_cfg_template(self, jinja2, template_cache, name, output_name, suffix, for_tool, **kwargs):
         try:
             if not name in template_cache:
                 template_cache[name] = jinja2.env.get_template(name + ".tpl")
@@ -193,7 +197,9 @@ class Item(object):
             # transform hostgroups, contacts, etc. from list to string
             self.depythonize()
             try:
-                self.config_files[output_name + "." + suffix] = template_cache[name].render(kwargs)
+                if not for_tool in self.config_files:
+                    self.config_files[for_tool] = {}
+                self.config_files[for_tool][output_name + "." + suffix] = template_cache[name].render(kwargs)
             except Exception as exp:
                 if hasattr(self, "fingerprint"):
                     logger.critical("render exception in template %s for %s %s: %s" % (name, self, self.fingerprint(), exp))
@@ -232,11 +238,11 @@ class Item(object):
 
             if render_this:
                 if rule.unique_config and isinstance(rule.unique_attr, basestring) and hasattr(self, rule.unique_attr):
-                    self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % getattr(self, rule.unique_attr), rule.suffix, **dict([(rule.self_name, self)]))
+                    self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % getattr(self, rule.unique_attr), rule.suffix, rule.for_tool, **dict([(rule.self_name, self)]))
                 elif rule.unique_config and isinstance(rule.unique_attr, list) and reduce(lambda x, y: x and y, [hasattr(self, ua) for ua in rule.unique_attr]):
-                    self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % tuple([getattr(self, a) for a in rule.unique_attr]), rule.suffix, **dict([(rule.self_name, self)]))
+                    self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % tuple([getattr(self, a) for a in rule.unique_attr]), rule.suffix, rule.for_tool, **dict([(rule.self_name, self)]))
                 else:
-                    self.render_cfg_template(jinja2, template_cache, rule.template, rule.template, rule.suffix, **dict([(rule.self_name, self)]))
+                    self.render_cfg_template(jinja2, template_cache, rule.template, rule.template, rule.suffix, rule.for_tool, **dict([(rule.self_name, self)]))
 
     def fingerprint(self):
         try:

@@ -77,9 +77,9 @@ class CoshshTest(unittest.TestCase):
         # resolve the templates and attach the result as config_files to host/app
         self.generator.recipes['test15'].render()
         self.assert_(hasattr(self.generator.recipes['test15'].objects['hosts']['test_host_000'], 'config_files'))
-        self.assert_('host.cfg' in self.generator.recipes['test15'].objects['hosts']['test_host_000'].config_files)
+        self.assert_('host.cfg' in self.generator.recipes['test15'].objects['hosts']['test_host_000'].config_files['nagios'])
         self.assert_(hasattr(self.generator.recipes['test15'].objects['hosts']['test_host_009'], 'config_files'))
-        self.assert_('host.cfg' in self.generator.recipes['test15'].objects['hosts']['test_host_009'].config_files)
+        self.assert_('host.cfg' in self.generator.recipes['test15'].objects['hosts']['test_host_009'].config_files['nagios'])
 
         # write hosts/apps to the filesystem
         self.generator.recipes['test15'].output()
@@ -119,9 +119,9 @@ class CoshshTest(unittest.TestCase):
         self.generator.recipes['test15'].render()
 
         self.assert_(hasattr(self.generator.recipes['test15'].objects['hosts']['test_host_010'], 'config_files'))
-        self.assert_('host.cfg' in self.generator.recipes['test15'].objects['hosts']['test_host_010'].config_files)
+        self.assert_('host.cfg' in self.generator.recipes['test15'].objects['hosts']['test_host_010'].config_files['nagios'])
         self.assert_(hasattr(self.generator.recipes['test15'].objects['hosts']['test_host_019'], 'config_files'))
-        self.assert_('host.cfg' in self.generator.recipes['test15'].objects['hosts']['test_host_019'].config_files)
+        self.assert_('host.cfg' in self.generator.recipes['test15'].objects['hosts']['test_host_019'].config_files['nagios'])
 
         # write hosts/apps to the filesystem
         self.generator.recipes['test15'].output()
@@ -173,9 +173,9 @@ class CoshshTest(unittest.TestCase):
         # resolve the templates and attach the result as config_files to host/app
         self.generator.recipes['test16'].render()
         self.assert_(hasattr(self.generator.recipes['test16'].objects['hosts']['test_host_000'], 'config_files'))
-        self.assert_('host.cfg' in self.generator.recipes['test16'].objects['hosts']['test_host_000'].config_files)
+        self.assert_('host.cfg' in self.generator.recipes['test16'].objects['hosts']['test_host_000'].config_files['nagios'])
         self.assert_(hasattr(self.generator.recipes['test16'].objects['hosts']['test_host_009'], 'config_files'))
-        self.assert_('host.cfg' in self.generator.recipes['test16'].objects['hosts']['test_host_009'].config_files)
+        self.assert_('host.cfg' in self.generator.recipes['test16'].objects['hosts']['test_host_009'].config_files['nagios'])
 
         # write hosts/apps to the filesystem
         self.generator.recipes['test16'].output()
@@ -216,9 +216,9 @@ class CoshshTest(unittest.TestCase):
         self.generator.recipes['test16'].render()
 
         self.assert_(hasattr(self.generator.recipes['test16'].objects['hosts']['test_host_010'], 'config_files'))
-        self.assert_('host.cfg' in self.generator.recipes['test16'].objects['hosts']['test_host_010'].config_files)
+        self.assert_('host.cfg' in self.generator.recipes['test16'].objects['hosts']['test_host_010'].config_files['nagios'])
         self.assert_(hasattr(self.generator.recipes['test16'].objects['hosts']['test_host_019'], 'config_files'))
-        self.assert_('host.cfg' in self.generator.recipes['test16'].objects['hosts']['test_host_019'].config_files)
+        self.assert_('host.cfg' in self.generator.recipes['test16'].objects['hosts']['test_host_019'].config_files['nagios'])
 
         # write hosts/apps to the filesystem
         self.generator.recipes['test16'].output()
@@ -268,9 +268,9 @@ class CoshshTest(unittest.TestCase):
         # resolve the templates and attach the result as config_files to host/app
         self.generator.recipes['test16'].render()
         self.assert_(hasattr(self.generator.recipes['test16'].objects['hosts']['test_host_000'], 'config_files'))
-        self.assert_('host.cfg' in self.generator.recipes['test16'].objects['hosts']['test_host_000'].config_files)
+        self.assert_('host.cfg' in self.generator.recipes['test16'].objects['hosts']['test_host_000'].config_files['nagios'])
         self.assert_(hasattr(self.generator.recipes['test16'].objects['hosts']['test_host_009'], 'config_files'))
-        self.assert_('host.cfg' in self.generator.recipes['test16'].objects['hosts']['test_host_009'].config_files)
+        self.assert_('host.cfg' in self.generator.recipes['test16'].objects['hosts']['test_host_009'].config_files['nagios'])
 
         # write hosts/apps to the filesystem
         self.generator.recipes['test16'].output()
@@ -312,7 +312,7 @@ class CoshshTest(unittest.TestCase):
         self.generator.recipes['test16'].render()
 
         self.assert_(hasattr(self.generator.recipes['test16'].objects['hosts']['test_host_000'], 'config_files'))
-        self.assert_('host.cfg' in self.generator.recipes['test16'].objects['hosts']['test_host_000'].config_files)
+        self.assert_('host.cfg' in self.generator.recipes['test16'].objects['hosts']['test_host_000'].config_files['nagios'])
         self.assert_('test_host_001' in self.generator.recipes['test16'].objects['hosts'])
         self.assert_('test_host_002' not in self.generator.recipes['test16'].objects['hosts'])
 

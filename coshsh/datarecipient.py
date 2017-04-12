@@ -84,26 +84,28 @@ class Datarecipient(object):
     def find(self, objtype, fingerprint):
         return objtype in self.objects and fingerprint in self.objects[objtype]
 
-    def item_write_config(self, obj, dynamic_dir, objtype):
+    def item_write_config(self, obj, dynamic_dir, objtype, want_tool=None):
         my_target_dir = os.path.join(dynamic_dir, objtype)
         if not os.path.exists(my_target_dir):
             os.makedirs(my_target_dir)
-        for file in obj.config_files:
-            content = obj.config_files[file]
-            with open(os.path.join(my_target_dir, file), "w") as f:
-                f.write(content)
+        for tool in obj.config_files:
+            if not want_tool or want_tool == tool:
+                for file in obj.config_files[tool]:
+                    content = obj.config_files[tool][file]
+                    with open(os.path.join(my_target_dir, file), "w") as f:
+                        f.write(content)
 
-    def output(self, filter=None):
+    def output(self, filter=None, want_tool=None):
         for hostgroup in self.objects['hostgroups'].values():
-            self.item_write_config(hostgroup, self.dynamic_dir, "hostgroups")
+            self.item_write_config(hostgroup, self.dynamic_dir, "hostgroups", want_tool)
         for host in self.objects['hosts'].values():
-            self.item_write_config(host, self.dynamic_dir, os.path.join("hosts", host.host_name))
+            self.item_write_config(host, self.dynamic_dir, os.path.join("hosts", host.host_name), want_tool)
         for app in self.objects['applications'].values():
-            self.item_write_config(app, self.dynamic_dir, os.path.join("hosts", app.host_name))
+            self.item_write_config(app, self.dynamic_dir, os.path.join("hosts", app.host_name), want_tool)
         for cg in self.objects['contactgroups'].values():
-            self.item_write_config(cg, self.dynamic_dir, "contactgroups")
+            self.item_write_config(cg, self.dynamic_dir, "contactgroups", want_tool)
         for c in self.objects['contacts'].values():
-            self.item_write_config(c, self.dynamic_dir, "contacts")
+            self.item_write_config(c, self.dynamic_dir, "contacts", want_tool)
 
     def count_objects(self):
         try:
