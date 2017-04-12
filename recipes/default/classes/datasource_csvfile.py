@@ -62,7 +62,10 @@ class CsvFile(coshsh.datasource.Datasource):
         for row in hostreader:
             row["templates"] = ["generic-host"]
             for attr in [k for k in row.keys() if k in ['type', 'os', 'hardware', 'virtual']]:
-                row[attr] = row[attr].lower()
+                try:
+                    row[attr] = row[attr].lower()
+                except Exception:
+                    pass
             h = coshsh.host.Host(row)
             self.add('hosts', h)
 
@@ -75,7 +78,10 @@ class CsvFile(coshsh.datasource.Datasource):
         # name,type,component,version,host_name,check_period
         for row in appreader:
             for attr in [k for k in row.keys() if k in ['name', 'type', 'component', 'version']]:
-                row[attr] = row[attr].lower()
+                try:
+                    row[attr] = row[attr].lower()
+                except Exception:
+                    pass
             if '[' in row['host_name'] or '*' in row['host_name']:
                 # hostnames can be regular expressions
                 matching_hosts = [h for h in self.objects['hosts'].keys() if re.match('^('+row['host_name']+')', h)]
@@ -114,13 +120,7 @@ class CsvFile(coshsh.datasource.Datasource):
                 row[attr] = row[attr].lower()
             application_id = "%s+%s+%s" % (row["host_name"], row["name"], row["type"])
             detail = coshsh.monitoringdetail.MonitoringDetail(row)
-            if application_id in self.objects['applications']:
-                self.objects['applications'][application_id].monitoring_details.append(detail)
-            elif row["host_name"] in self.objects['hosts']:
-                self.objects['hosts'][row["host_name"]].monitoring_details.append(detail)
-            else:
-                logger.info("found a detail %s for an unknown application %s" % (detail, application_id))
-                raise
+            self.add('details', detail)
         
         try:
             contactgroupreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_contactgroups.csv'))))

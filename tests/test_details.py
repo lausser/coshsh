@@ -42,9 +42,9 @@ class CoshshTest(unittest.TestCase):
     def test_detail_keyvalues(self):
         self.print_header()
         cfg = self.config.items("datasource_CSVDETAILS")
+        self.generator.recipes['test6'].add_datasource(**dict(cfg))
+        self.generator.recipes['test6'].collect()
         objects = self.generator.recipes['test6'].objects
-        ds = coshsh.datasource.Datasource(**dict(cfg))
-        ds.read(objects=objects)
         app1 = objects['applications'].values()[0]
         app1.resolve_monitoring_details()
         app2 = objects['applications'].values()[1]

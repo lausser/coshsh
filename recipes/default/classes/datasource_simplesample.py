@@ -28,6 +28,8 @@ def __ds_ident__(params={}):
 class SimpleSample(coshsh.datasource.Datasource):
     def __init__(self, **kwargs):
         super(self.__class__, self).__init__(**kwargs)
+        # default name is taken from the ini-section
+        # [datasource_thisisthename]
         #self.name = kwargs["name"]
         self.dir = kwargs.get("dir", "/tmp")
         self.objects = {}
@@ -38,5 +40,12 @@ class SimpleSample(coshsh.datasource.Datasource):
 
     def read(self, filter=None, objects={}, force=None, **kwargs):
         logger.info('read items from simplesample')
+        # if the recipe has read other datasources before, then these
+        # are the objects collected so far:
+        self.objects = objects
         #self.add('hosts', Host(...))
+
+    def close(self):
+        # close a database, file, ...
+        pass
 
