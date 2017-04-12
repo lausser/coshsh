@@ -91,11 +91,6 @@ class CsvFile(coshsh.datasource.Datasource):
             else:
                 resolvedrows.append(copy(row))
         for row in resolvedrows:
-            if not "virtual" in row:
-                try:
-                    row["virtual"] = self.objects['hosts'][row["host_name"]].virtual
-                except KeyError:
-                    logger.error('host %s not found for application %s' % (row["host_name"], row["name"]))
             a = coshsh.application.Application(row)
             self.add('applications', a)
 

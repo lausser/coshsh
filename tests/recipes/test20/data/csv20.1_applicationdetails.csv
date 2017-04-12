@@ -1,0 +1,4 @@
+host_name,name,type,monitoring_type,monitoring_0,monitoring_1
+switch1,os,ios 12,LOGINSNMPV2,public
+switch2,os,ios 11,LOGINSNMPV2,public
+
