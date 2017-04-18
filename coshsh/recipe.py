@@ -15,7 +15,7 @@ import logging
 import errno
 from jinja2 import FileSystemLoader, Environment, TemplateSyntaxError, TemplateNotFound
 import coshsh
-from coshsh.jinja2_extensions import is_re_match, filter_re_sub, filter_re_escape, filter_service, filter_custom_macros
+from coshsh.jinja2_extensions import is_re_match, filter_re_sub, filter_re_escape, filter_host, filter_service, filter_custom_macros
 from coshsh.item import Item
 from coshsh.application import Application
 from coshsh.hostgroup import HostGroup
@@ -108,6 +108,7 @@ class Recipe(object):
         self.jinja2.env.filters['re_sub'] = filter_re_sub
         self.jinja2.env.filters['re_escape'] = filter_re_escape
         self.jinja2.env.filters['service'] = filter_service
+        self.jinja2.env.filters['host'] = filter_host
         self.jinja2.env.filters['custom_macros'] = filter_custom_macros
 
         if self.my_jinja2_extensions:

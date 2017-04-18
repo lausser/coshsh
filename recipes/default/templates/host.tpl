@@ -1,4 +1,4 @@
-define host {
+{{ host|host }}
 {% if host.templates %}
     use                             {{ host.templates }}
 {% endif %}
@@ -10,9 +10,6 @@ define host {
 {% endif %}
 {% if host.hostgroups %}
     hostgroups                      {{ host.hostgroups }}
-{% endif %}
-{% if host.contact_groups %}
-    contact_groups                  {{ host.contact_groups }}
 {% endif %}
 {% if host.check_period %}
     check_period                    {{ host.check_period }}
@@ -30,4 +27,4 @@ define host {
 {% if host.icon_image %}
     icon_image                      {{ host.icon_image }}
 {% endif %}
-{{ host|custom_macros }}}
+}

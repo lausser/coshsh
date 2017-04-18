@@ -93,10 +93,35 @@ def filter_service(application, service_description):
         for detail in relevant_details:
             snippet += "  %-31s %s\n" % (detail.attribute, detail.value)
         snippet += "  use                             %s\n}\n" % (service_description + "_" + application.host_name, )
-        snippet += "define service {\n  name                            %s\n" % (service_description + "_" + application.host_name, )
+        snippet += "define service {\n  name                            %s\n" % service_description + "_" + application.host_name
         snippet += "  register                        0"
         if len(application.contact_groups) > 0:
-            snippet += "\n  contact_groups %s" % (application.contact_groups, )
+            snippet += "\n  contact_groups %s" % application.contact_groups
+    for k, v in [x if x[0].startswith("_") else ("_" + x[0], x[1]) \
+        for x in getattr(application, "custom_macros", {}).items() + \
+                 getattr(application, "macros", {}).items()]:
+        snippet += "\n  %-31s %s\n" % (k, v)
+    return snippet
+
+def filter_host(host):
+    relevant_details = [d for d in host.monitoring_details if d.monitoring_type == "NAGIOSCONF"]
+    if not relevant_details:
+        snippet = "define host {\n  host_name                         %s" % host.host_name
+        if len(host.contact_groups) > 0:
+            snippet += "\n  contact_groups %s" % host.contact_groups
+    else:
+        snippet = "define host {\n  host_name                         %s\n" % host.host_name
+        for detail in relevant_details:
+            snippet += "  %-31s %s\n" % (detail.attribute, detail.value)
+        snippet += "  use                             %s\n}\n" % (host.host_name + "_coshsh", )
+        snippet += "define host {\n  name                            %s\n" % (host.host_name + "_coshsh", )
+        snippet += "  register                        0"
+        if len(host.contact_groups) > 0:
+            snippet += "\n  contact_groups %s" % host.contact_groups
+    for k, v in [x if x[0].startswith("_") else ("_" + x[0], x[1]) \
+        for x in getattr(host, "custom_macros", {}).items() + \
+                 getattr(host, "macros", {}).items()]:
+        snippet += "\n  %-31s %s\n" % (k, v)
     return snippet
 
 def filter_custom_macros(application):

@@ -1,3 +1,5 @@
+* 2017-04-18 3.6.1
+  add a host filter
 * 2017-03-25 3.6.0.1
   sort details before rendering, fix sample templates
 * 2017-03-21 3.6
