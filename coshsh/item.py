@@ -212,6 +212,8 @@ class Item(object):
             self.pythonize()
 
     def render(self, template_cache, jinja2):
+        if not hasattr(self, 'template_rules'):
+            return
         for rule in self.template_rules:
             render_this = False
             try:

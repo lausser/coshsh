@@ -37,21 +37,21 @@ class MonitoringDetail(coshsh.item.Item):
                 except Exception:
                     if c in params:
                         params[c] = None
+            # name, type is preferred, because a detail can also be a host detail
+            # application_name, application_type is ok too. in any case these will be internally used
+            if 'name' in params:
+                params['application_name'] = params['name']
+                del params['name']
+            if 'type' in params:
+                params['application_type'] = params['type']
+                del params['type']
             newcls = self.__class__.get_class(params)
             if newcls:
                 self.__class__ = newcls
-                # name, type is preferred, because a detail can also be a host detail
-                # application_name, application_type is ok too. in any case these will be internally used
-                if 'name' in params:
-                    params['application_name'] = params['name']
-                    del params['name']
-                if 'type' in params:
-                    params['application_type'] = params['type']
-                    del params['type']
                 super(MonitoringDetail, self).__init__(params)
                 self.__init__(params)
             else:
-                logger.info("monitoring detail of type %s for host %s / appl %s had a problem" % (params["monitoring_type"], params["host_name"], params["application_name"]))
+                logger.info("monitoring detail of type %s for host %s / appl %s had a problem" % (params["monitoring_type"], params.get("host_name", "unkn. host"), params.get("application_name", "unkn. application")))
                 raise MonitoringDetailNotImplemented
         else:
             pass
