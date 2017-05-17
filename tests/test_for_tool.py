@@ -47,7 +47,8 @@ class CoshshTest(unittest.TestCase):
         self.generator.recipes['test20'].collect()
         self.generator.recipes['test20'].render()
         self.generator.recipes['test20'].output()
-        self.assert_(os.path.exists('var/objects/test20/dynamic/snmp_switch1.json'))
+        self.assert_(os.path.exists('var/objects/test20se/dynamic/snmp_switch1.json'))
+        self.assert_(not os.path.exists('var/objects/test20/dynamic/snmp_switch1.json'))
 
 
 if __name__ == '__main__':
