@@ -217,8 +217,9 @@ class Recipe(object):
                 logger.info("found a detail %s for an unknown application %s" % (detail, fingerprint))
 
         for host in self.objects['hosts'].values():
-            host.monitoring_details.sort()
             host.resolve_monitoring_details()
+            for key in [k for k in host.__dict__.keys() if not k.startswith("__") and isinstance(getattr(host, k), (list, tuple))]:
+                getattr(host, key).sort()
             host.create_templates()
             host.create_hostgroups()
             host.create_contacts()
@@ -227,8 +228,9 @@ class Recipe(object):
         for app in self.objects['applications'].values():
             try:
                 setattr(app, 'host', self.objects['hosts'][app.host_name])
-                app.monitoring_details.sort()
                 app.resolve_monitoring_details()
+                for key in [k for k in app.__dict__.keys() if not k.startswith("__") and isinstance(getattr(app, k), (list, tuple))]:
+                    getattr(app, key).sort()
                 app.create_templates()
                 app.create_servicegroups()
                 app.create_contacts()
