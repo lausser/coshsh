@@ -110,7 +110,7 @@ class Datarecipient(object):
     def count_objects(self):
         try:
             hosts = len([name for name in os.listdir(os.path.join(self.dynamic_dir, 'hosts')) if os.path.isdir(os.path.join(self.dynamic_dir, 'hosts', name))])
-            apps = len([app for host in os.listdir(os.path.join(self.dynamic_dir, 'hosts')) if os.path.isdir(os.path.join(self.dynamic_dir, 'hosts', host)) for app in os.listdir(os.path.join(self.dynamic_dir, 'hosts', host)) if app != 'host.cfg'])
+            apps = len([app for host in os.listdir(os.path.join(self.dynamic_dir, 'hosts')) if os.path.isdir(os.path.join(self.dynamic_dir, 'hosts', host)) for app in os.listdir(os.path.join(self.dynamic_dir, 'hosts', host)) if app != 'host.cfg' and os.path.getsize(os.path.join(self.dynamic_dir, 'hosts', host, app)) != 0])
             return (hosts, apps)
         except Exception:
             return (0, 0)
@@ -168,14 +168,14 @@ class Datarecipient(object):
     def init_classes(cls, classpath):
         sys.dont_write_bytecode = True
         for p in [p for p in reversed(classpath) if os.path.exists(p) and os.path.isdir(p)]:
-            for module, path in [(item, p) for item in os.listdir(p) if item[-3:] == ".py" and item.startswith('datarecipient_')]:
+            for module, path in [(item, p) for item in sorted(os.listdir(p), reverse=True) if item[-3:] == ".py" and item.startswith('datarecipient_')]:
                 try:
                     #print "try dr", module, path
                     path = os.path.abspath(path)
                     fp, filename, data = imp.find_module(module.replace('.py', ''), [path])
                     toplevel = imp.load_source(module.replace(".py", ""), filename)
                     for cl in inspect.getmembers(toplevel, inspect.isfunction):
-                        if cl[0] ==  "__ds_ident__":
+                        if cl[0] ==  "__dr_ident__":
                             cls.class_factory.append([path, module, cl[1]])
                 except Exception, exp:
                     logger.critical("could not load datarecipient %s from %s: %s" % (module, path, exp))
@@ -187,7 +187,7 @@ class Datarecipient(object):
     @classmethod
     def get_class(cls, params={}):
         #print "get_classhoho", cls, len(cls.class_factory), cls.class_factory
-        for path, module, class_func in cls.class_factory:
+        for path, module, class_func in reversed(cls.class_factory):
             try:
                 #print "try", path, module, class_func
                 newcls = class_func(params)
