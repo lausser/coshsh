@@ -16,7 +16,7 @@ from coshsh.util import compare_attr
 
 logger = logging.getLogger('coshsh')
 
-def __ds_ident__(params={}):
+def __dr_ident__(params={}):
     if coshsh.util.compare_attr("type", params, "simplesample"):
         return DrSimpleSample
 

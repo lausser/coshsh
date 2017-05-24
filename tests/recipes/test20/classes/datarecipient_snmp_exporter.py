@@ -16,8 +16,8 @@ from coshsh.util import compare_attr
 
 logger = logging.getLogger('coshsh')
 
-def __ds_ident__(params={}):
-    if coshsh.util.compare_attr("type", params, "snmp_exporter"):
+def __dr_ident__(params={}):
+    if coshsh.util.compare_attr("type", params, "snmp_exporteir"):
         return DrSnmpExporter
 
 
@@ -37,8 +37,7 @@ class DrSnmpExporter(coshsh.datarecipient.Datarecipient):
             # will not have been removed with a .git inside
             pass
         try:
-            os.mkdir(os.path.join(self.dynamic_dir, 'hosts'))
-            os.mkdir(os.path.join(self.dynamic_dir, 'hostgroups'))
+            os.mkdir(os.path.join(self.dynamic_dir, 'targets'))
         except Exception:
             pass
 
@@ -61,19 +60,17 @@ class DrSnmpExporter(coshsh.datarecipient.Datarecipient):
 
 
     def output(self, filter=None, want_tool="prometheus"):
+        sd_dir = os.path.join(self.dynamic_dir, 'targets')
         for app in self.objects['applications'].values():
-            self.item_write_config(app, self.dynamic_dir, app.host_name, want_tool)
+            self.item_write_config(app, sd_dir, app.host_name, want_tool)
 
-    def item_write_config(self, obj, dynamic_dir, objtype, want_tool=None):
+    def item_write_config(self, obj, sd_dir, objtype, want_tool=None):
         # ohne objecttype, hier soll keine autom. zwischenschicht "hosts" etc. rein
-        my_target_dir = dynamic_dir
-        if not os.path.exists(my_target_dir):
-            os.makedirs(my_target_dir)
         for tool in obj.config_files:
             if not want_tool or want_tool == tool:
                 for file in obj.config_files[tool]:
                     content = obj.config_files[tool][file]
-                    with open(os.path.join(my_target_dir, file), "w") as f:
+                    with open(os.path.join(sd_dir, file), "w") as f:
                         f.write(content)
 
 

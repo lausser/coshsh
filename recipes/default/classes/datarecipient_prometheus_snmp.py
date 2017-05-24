@@ -26,6 +26,7 @@ class DatarecipientPrometheusSnmpExporter(coshsh.datarecipient.Datarecipient):
     def __init__(self, **kwargs):
         super(self.__class__, self).__init__(**kwargs)
         self.name = kwargs["name"]
+        self.want_tool = kwargs.get("want_tool", "prometheus")
         self.objects_dir = kwargs.get("objects_dir", kwargs.get("recipe_objects_dir", "/tmp"))
         self.max_delta = kwargs.get("max_delta", ())
         self.max_delta_action = kwargs.get("max_delta_action", None)
@@ -62,7 +63,8 @@ class DatarecipientPrometheusSnmpExporter(coshsh.datarecipient.Datarecipient):
         else:
             logger.info("recipe %s dynamic_dir %s does not exist" % (self.name, self.dynamic_dir))
 
-    def output(self, filter=None, want_tool="prometheus"):
+    def output(self, filter=None, want_tool=None):
+        want_tool = self.want_tool
         sd_dir = os.path.join(self.dynamic_dir, 'targets')
         for app in self.objects['applications'].values():
             self.item_write_config(app, sd_dir, app.host_name, want_tool)
