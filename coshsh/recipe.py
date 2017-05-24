@@ -76,7 +76,6 @@ class Recipe(object):
         self.max_delta = kwargs.get("max_delta", ())
         self.max_delta_action = kwargs.get("max_delta_action", None)
         if isinstance(self.max_delta, str):
-            print "MAXNNN", self.max_delta
             if ":" in self.max_delta:
                 self.max_delta = tuple(map(int, self.max_delta.split(":")))
             else:
@@ -230,6 +229,7 @@ class Recipe(object):
                 setattr(app, 'host', self.objects['hosts'][app.host_name])
                 app.resolve_monitoring_details()
                 for key in [k for k in app.__dict__.keys() if not k.startswith("__") and isinstance(getattr(app, k), (list, tuple))]:
+                    # sort monitoring_type/monitoring_0 to bring some order into services,filesystems etc.
                     getattr(app, key).sort()
                 app.create_templates()
                 app.create_servicegroups()

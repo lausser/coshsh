@@ -102,4 +102,24 @@ class MonitoringDetail(coshsh.item.Item):
         logger.debug("found no matching class for this monitoring detail %s" % params)
         return None
 
+    def __eq__(self, other):
+        return ((self.monitoring_type, self.monitoring_0) == (other.monitoring_type, other.monitoring_0))
+
+    def __ne__(self, other):
+        return ((self.monitoring_type, self.monitoring_0) != (other.monitoring_type, other.monitoring_0))
+
+    def __lt__(self, other):
+        return ((self.monitoring_type, self.monitoring_0) < (other.monitoring_type, other.monitoring_0))
+
+    def __le__(self, other):
+        return ((self.monitoring_type, self.monitoring_0) <= (other.monitoring_type, other.monitoring_0))
+
+    def __gt__(self, other):
+        return ((self.monitoring_type, self.monitoring_0) > (other.monitoring_type, other.monitoring_0))
+
+    def __ge__(self, other):
+        return ((self.monitoring_type, self.monitoring_0) >= (other.monitoring_type, other.monitoring_0))
+
+    def __repr__(self):
+        return "%s %s" % (self.monitoring_type, self.monitoring_0)
 

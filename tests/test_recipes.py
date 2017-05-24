@@ -92,7 +92,9 @@ class CoshshTest(unittest.TestCase):
         self.assert_(os.path.exists("var/objects/test10/dynamic/hosts/test_host_1/os_windows_default.cfg"))
         os_windows_default_cfg = open("var/objects/test10/dynamic/hosts/test_host_1/os_windows_default.cfg").read()
         self.assert_('os_windows_default_check_' in os_windows_default_cfg)
-        self.assert_(len(self.generator.recipes['test10'].objects['applications']['test_host_1+os+windows2k8r2'].filesystems) == 3)
+        self.assert_(len(self.generator.recipes['test10'].objects['applications']['test_host_1+os+windows2k8r2'].filesystems) == 5)
+        # must be sorted
+        self.assert_([f.path for f in self.generator.recipes['test10'].objects['applications']['test_host_1+os+windows2k8r2'].filesystems] == ['C', 'D', 'F', 'G', 'Z'])
 
 if __name__ == '__main__':
     unittest.main()
