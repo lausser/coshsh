@@ -1,3 +1,5 @@
+* 2017-05-29 3.7.0.1
+  fix nscport macro in default class
 * 2017-05-22 3.7
   fix snmp_exporter datarecipient
   dont count empty application files

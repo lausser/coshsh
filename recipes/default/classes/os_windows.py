@@ -21,10 +21,10 @@ class Windows(Application):
         self.NSCPASSWORD = getattr(self, 'NSCPASSWORD', 'secret')
         if not hasattr(self, 'custom_macros'):
             self.custom_macros = {}
-        self.custom_macros['_NSCPORT'] = self.NSCPASSWORD
+        self.custom_macros['_NSCPORT'] = self.NSCPORT
         self.custom_macros['_NSCPASSWORD'] = self.NSCPASSWORD
         if not hasattr(self.host, 'custom_macros'):
             self.host.custom_macros = {}
-        self.host.custom_macros['_NSCPORT'] = self.NSCPASSWORD
+        self.host.custom_macros['_NSCPORT'] = self.NSCPORT
         self.host.custom_macros['_NSCPASSWORD'] = self.NSCPASSWORD
 
