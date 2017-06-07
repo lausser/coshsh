@@ -2,7 +2,6 @@
 {% if host.templates %}
     use                             {{ host.templates }}
 {% endif %}
-    host_name                       {{ host.host_name }}
     address                         {{ host.address }}
     alias                           {{ host.alias }}
 {% if host.parents %}

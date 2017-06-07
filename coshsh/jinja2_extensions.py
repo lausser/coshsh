@@ -100,7 +100,8 @@ def filter_service(application, service_description):
     for k, v in [x if x[0].startswith("_") else ("_" + x[0], x[1]) \
         for x in getattr(application, "custom_macros", {}).items() + \
                  getattr(application, "macros", {}).items()]:
-        snippet += "\n  %-31s %s\n" % (k, v)
+        if v != "":
+            snippet += "\n  %-31s %s\n" % (k, v)
     return snippet
 
 def filter_host(host):
@@ -121,7 +122,8 @@ def filter_host(host):
     for k, v in [x if x[0].startswith("_") else ("_" + x[0], x[1]) \
         for x in getattr(host, "custom_macros", {}).items() + \
                  getattr(host, "macros", {}).items()]:
-        snippet += "\n  %-31s %s\n" % (k, v)
+        if v != "":
+            snippet += "\n  %-31s %s\n" % (k, v)
     return snippet
 
 def filter_custom_macros(application):
@@ -129,5 +131,6 @@ def filter_custom_macros(application):
     for k, v in [x if x[0].startswith("_") else ("_" + x[0], x[1]) \
         for x in getattr(application, "custom_macros", {}).items() + \
                  getattr(application, "macros", {}).items()]:
-        snippet += "  %-31s %s\n" % (k, v)
+        if v != "":
+            snippet += "  %-31s %s\n" % (k, v)
     return snippet

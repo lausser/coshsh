@@ -145,8 +145,6 @@ class Datarecipient(object):
         except Exception, e:
             # before we had 0 applications
             self.delta_services = 0
-        print "deltas", self.delta_hosts, self.delta_services
-        print "max", self.max_delta
         #
         #  before  after  delta
         #  0       10     0
