@@ -1,3 +1,5 @@
+* 2017-06-07 3.7.0.2
+  bugfix in safe_output, remove duplicate host_name from host.tpl, no empty custom macros
 * 2017-05-29 3.7.0.1
   fix nscport macro in default class
 * 2017-05-22 3.7
