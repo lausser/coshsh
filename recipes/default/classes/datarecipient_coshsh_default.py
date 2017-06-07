@@ -68,7 +68,7 @@ class DatarecipientCoshshDefault(coshsh.datarecipient.Datarecipient):
         self.count_after_objects()
         logger.info("number of files before: %d hosts, %d applications" % self.old_objects)
         logger.info("number of files after:  %d hosts, %d applications" % self.new_objects)
-        if self.safe_output and self.too_much_delta and os.path.exists(self.dynamic_dir + '/.git'):
+        if self.safe_output and self.too_much_delta() and os.path.exists(self.dynamic_dir + '/.git'):
             save_dir = os.getcwd()
             os.chdir(self.dynamic_dir)
             logger.error("git reset --hard")
