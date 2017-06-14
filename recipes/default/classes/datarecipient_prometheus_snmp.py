@@ -171,6 +171,6 @@ class DatarecipientPrometheusSnmpExporter(coshsh.datarecipient.Datarecipient):
             if not want_tool or want_tool == tool:
                 for file in obj.config_files[tool]:
                     content = obj.config_files[tool][file]
-                    with open(os.path.join(sd_dir, obj.host_name+"_"+file), "w") as f:
+                    with open(os.path.join(sd_dir, file), "w") as f:
                         f.write(content)
 

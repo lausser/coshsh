@@ -1,3 +1,5 @@
+* 2017-06-14 3.7.1.1
+  clean dynamic dirs only once (if datarecipients write in the same dir)
 * 2017-06-14 3.7.1
   use target subdir for prometheus, use hostname+template as json name
 * 2017-06-07 3.7.0.2

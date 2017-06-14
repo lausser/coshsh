@@ -301,10 +301,14 @@ class Recipe(object):
             datarecipient.prepare_target_dir()
 
     def output(self):
+        cleaned_dirs = []
         for datarecipient in self.datarecipients:
             datarecipient.count_before_objects()
             datarecipient.load(None, self.objects)
-            datarecipient.cleanup_target_dir()
+            if hasattr(datarecipient, 'dynamic_dir') and datarecipient.dynamic_dir not in cleaned_dirs:
+                # do not clean a target dir where another datarecipient already wrote it's files
+                datarecipient.cleanup_target_dir()
+                cleaned_dirs.append(datarecipient.dynamic_dir)
             datarecipient.prepare_target_dir()
             datarecipient.output()
 
