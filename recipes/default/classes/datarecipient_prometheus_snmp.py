@@ -125,7 +125,7 @@ class DatarecipientPrometheusSnmpExporter(coshsh.datarecipient.Datarecipient):
             output, unused_err = process.communicate()
             retcode = process.poll()
             print output
-            commitmsg = time.strftime("%Y-%m-%d-%H-%M-%S") + " %d hostfiles,%d appfiles" % (self.new_objects[0], self.new_objects[1])
+            commitmsg = time.strftime("%Y-%m-%d-%H-%M-%S") + " %d targets" % (self.new_objects,)
             if False:
                 process = Popen(["git", "diff"], stdout=PIPE, stderr=STDOUT)
                 output, unused_err = process.communicate()
