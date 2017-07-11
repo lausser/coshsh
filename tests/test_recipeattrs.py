@@ -78,6 +78,7 @@ class CoshshTest(unittest.TestCase):
         self.assert_(dr_default.recipe_objects_dir == self.generator.recipes['test12'].objects_dir)
 
         self.generator.recipes['test12'].collect()
+        self.generator.recipes['test12'].assemble()
         self.generator.recipes['test12'].render()
         self.generator.recipes['test12'].output()
         # written by datarecipient_coshsh_default
@@ -127,6 +128,7 @@ class CoshshTest(unittest.TestCase):
         self.assert_(dr_default.recipe_objects_dir == self.generator.recipes['test12a'].objects_dir)
 
         self.generator.recipes['test12a'].collect()
+        self.generator.recipes['test12a'].assemble()
         self.generator.recipes['test12a'].render()
         self.generator.recipes['test12a'].output()
         # written by datarecipient_coshsh_default

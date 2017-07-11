@@ -44,6 +44,7 @@ class CoshshTest(unittest.TestCase):
         cfg = self.config.items("datasource_CSVDETAILS")
         self.generator.recipes['test6'].add_datasource(**dict(cfg))
         self.generator.recipes['test6'].collect()
+        self.generator.recipes['test6'].assemble()
         objects = self.generator.recipes['test6'].objects
         app1 = objects['applications'].values()[0]
         app1.resolve_monitoring_details()
@@ -158,6 +159,7 @@ class CoshshTest(unittest.TestCase):
         shutil.rmtree("./var/objects/test6", True)
         os.makedirs("./var/objects/test6/dynamic")
         self.generator.recipes['test6'].collect()
+        self.generator.recipes['test6'].assemble()
         self.generator.recipes['test6'].render()
         self.generator.recipes['test6'].output()
         self.assert_(os.path.exists('var/objects/test6/dynamic/hosts/test_host_0/app_generic_web.cfg'))
@@ -178,6 +180,7 @@ class CoshshTest(unittest.TestCase):
         shutil.rmtree("./var/objects/test14", True)
         os.makedirs("./var/objects/test14/dynamic")
         self.generator.recipes['test14'].collect()
+        self.generator.recipes['test14'].assemble()
         self.generator.recipes['test14'].render()
         self.generator.recipes['test14'].output()
         app1 = objects['applications'].values()[0]

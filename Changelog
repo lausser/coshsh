@@ -1,3 +1,5 @@
+* 2017-07-11 3.8
+  implement generic details
 * 2017-06-19 3.7.1.2
   fix before/after target counter for prometheus-datarecipient
 * 2017-06-14 3.7.1.1

@@ -41,6 +41,7 @@ class Generator(object):
             try:
                 if recipe.pid_protect():
                     if recipe.collect():
+                        recipe.assemble()
                         recipe.render()
                         recipe.output()
                     recipe.pid_remove()

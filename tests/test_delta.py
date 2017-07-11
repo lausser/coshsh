@@ -71,6 +71,7 @@ class CoshshTest(unittest.TestCase):
 
         # read the datasources
         self.generator.recipes['test15'].collect()
+        self.generator.recipes['test15'].assemble()
 
         # for each host, application get the corresponding template files
         # get the template files and cache them in a struct owned by the recipe
@@ -116,6 +117,7 @@ class CoshshTest(unittest.TestCase):
         self.generator.recipes['test15'].add_datasource(**dict(cfg))
 
         self.generator.recipes['test15'].collect()
+        self.generator.recipes['test15'].assemble()
         self.generator.recipes['test15'].render()
 
         self.assert_(hasattr(self.generator.recipes['test15'].objects['hosts']['test_host_010'], 'config_files'))
@@ -167,6 +169,7 @@ class CoshshTest(unittest.TestCase):
 
         # read the datasources
         self.generator.recipes['test16'].collect()
+        self.generator.recipes['test16'].assemble()
 
         # for each host, application get the corresponding template files
         # get the template files and cache them in a struct owned by the recipe
@@ -213,6 +216,7 @@ class CoshshTest(unittest.TestCase):
         self.generator.recipes['test16'].add_datasource(**dict(cfg))
 
         self.generator.recipes['test16'].collect()
+        self.generator.recipes['test16'].assemble()
         self.generator.recipes['test16'].render()
 
         self.assert_(hasattr(self.generator.recipes['test16'].objects['hosts']['test_host_010'], 'config_files'))
@@ -262,6 +266,7 @@ class CoshshTest(unittest.TestCase):
 
         # read the datasources
         self.generator.recipes['test16'].collect()
+        self.generator.recipes['test16'].assemble()
 
         # for each host, application get the corresponding template files
         # get the template files and cache them in a struct owned by the recipe
@@ -309,6 +314,7 @@ class CoshshTest(unittest.TestCase):
         self.generator.recipes['test16'].add_datasource(**dict(cfg))
 
         self.generator.recipes['test16'].collect()
+        self.generator.recipes['test16'].assemble()
         self.generator.recipes['test16'].render()
 
         self.assert_(hasattr(self.generator.recipes['test16'].objects['hosts']['test_host_000'], 'config_files'))

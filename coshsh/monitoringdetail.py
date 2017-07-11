@@ -62,7 +62,7 @@ class MonitoringDetail(coshsh.item.Item):
         return id(self)
 
     def application_fingerprint(self):
-        if self.application_name and self.application_type:
+        if hasattr(self, 'application_name') and self.application_name and hasattr(self, 'application_type') and self.application_type:
             return "%s+%s+%s" % (self.host_name, self.application_name, self.application_type)
         elif self.host_name:
             return "%s" % (self.host_name, )

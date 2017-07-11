@@ -60,6 +60,7 @@ class CoshshTest(unittest.TestCase):
 
         # read the datasources
         self.generator.recipes['test4'].collect()
+        self.generator.recipes['test4'].assemble()
 
         # for each host, application get the corresponding template files
         # get the template files and cache them in a struct owned by the recipe

@@ -206,14 +206,30 @@ class Recipe(object):
                 logger.info("aborting collection phase") 
                 return False
 
+    def assemble(self):
+        generic_details = []
         for detail in self.objects['details'].values():
             fingerprint = detail.application_fingerprint()
+            print "fingerprint", fingerprint
             if fingerprint in self.objects['applications']:
                 self.objects['applications'][fingerprint].monitoring_details.append(detail)
             elif fingerprint in self.objects['hosts']:
                 self.objects['hosts'][fingerprint].monitoring_details.append(detail)
+            elif fingerprint.startswith('*'):
+                generic_details.append(detail)
             else:
                 logger.info("found a detail %s for an unknown application %s" % (detail, fingerprint))
+        for detail in generic_details:
+            dfingerprint = detail.application_fingerprint()
+            if dfingerprint == '*':
+                for host in self.objects['hosts'].values():
+                    host.monitoring_details.insert(0, detail)
+            else:
+                for app in self.objects['applications'].values():
+                    afingerprint = app.fingerprint()
+                    if dfingerprint[1:] == afingerprint[afingerprint.index('+'):]:
+                        app.monitoring_details.insert(0, detail)
+
 
         for host in self.objects['hosts'].values():
             host.resolve_monitoring_details()

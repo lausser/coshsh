@@ -44,6 +44,7 @@ class CoshshTest(unittest.TestCase):
         #cfg = self.config.items("datarecipient_SIMPLESAMPLE")
         #self.generator.recipes['test11'].add_datarecipient(**dict(cfg))
         self.generator.recipes['test11'].collect()
+        self.generator.recipes['test11'].assemble()
         self.generator.recipes['test11'].render()
         self.generator.recipes['test11'].output()
         self.assert_(os.path.exists('var/objects/test11/dynamic/hosts/test_host_0/nrpe_os_windows_fs.conf'))

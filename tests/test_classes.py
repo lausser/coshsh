@@ -115,6 +115,7 @@ class CoshshTest(unittest.TestCase):
 
         # read the datasources
         self.generator.recipes['test4'].collect()
+        self.generator.recipes['test4'].assemble()
 
         # for each host, application get the corresponding template files
         # get the template files and cache them in a struct owned by the recipe
@@ -153,6 +154,7 @@ class CoshshTest(unittest.TestCase):
 
         # read the datasources
         self.generator.recipes['test4'].collect()
+        self.generator.recipes['test4'].assemble()
         
         # for each host, application get the corresponding template files
         # get the template files and cache them in a struct owned by the recipe
@@ -185,6 +187,7 @@ class CoshshTest(unittest.TestCase):
         self.generator.recipes['test8'].add_datasource(**dict(cfg))
         coll_success = self.generator.recipes['test8'].collect()
         self.assert_(coll_success == False)
+        self.generator.recipes['test8'].assemble()
 
     def xtest_rebless_class(self):
         self.print_header()

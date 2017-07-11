@@ -81,6 +81,7 @@ class CoshshTest(unittest.TestCase):
         exporter.count_before_objects()
         self.assert_(exporter.old_objects == (0, 0))
         self.generator.recipes['test9a'].collect()
+        self.generator.recipes['test9a'].assemble()
         # fill items.[cfgfiles]
         self.generator.recipes['test9a'].render()
         self.generator.recipes['test9a'].output()
@@ -96,6 +97,7 @@ class CoshshTest(unittest.TestCase):
         self.generator.recipes['recp'].add_datasource(**datasource)
         self.generator.recipes['recp'].add_datarecipient(**datareceiver)
         self.generator.recipes['recp'].collect()
+        self.generator.recipes['recp'].assemble()
         mcid = 1
         for host in self.generator.recipes['recp'].objects['hosts'].values():
             setattr(host, "mcid", "%010d" % mcid)
@@ -116,6 +118,7 @@ class CoshshTest(unittest.TestCase):
         cfg = self.config.items("datarecipient_SIMPLESAMPLE")
         self.generator.recipes['test9'].add_datarecipient(**dict(cfg))
         self.generator.recipes['test9'].collect()
+        self.generator.recipes['test9'].assemble()
         self.generator.recipes['test9'].output()
 
 

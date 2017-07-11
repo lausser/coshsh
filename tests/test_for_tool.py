@@ -48,6 +48,7 @@ class CoshshTest(unittest.TestCase):
         recipe = self.generator.recipes['test20']
         recipe.add_datarecipient(**dict([('type', 'datarecipient_coshsh_default'), ('name', 'datarecipient_coshsh_default'), ('objects_dir', recipe.objects_dir), ('max_delta', recipe.max_delta), ('max_delta_action', recipe.max_delta_action), ('safe_output', recipe.safe_output)]))
         self.generator.recipes['test20'].collect()
+        self.generator.recipes['test20'].assemble()
         self.generator.recipes['test20'].render()
         self.generator.recipes['test20'].output()
         self.assert_(os.path.exists('var/objects/test20se/dynamic/targets/snmp_switch1.json'))
@@ -68,6 +69,7 @@ class CoshshTest(unittest.TestCase):
         recipe = self.generator.recipes['test20']
         recipe.add_datarecipient(**dict([('type', 'datarecipient_coshsh_default'), ('name', 'datarecipient_coshsh_default'), ('objects_dir', recipe.objects_dir), ('max_delta', recipe.max_delta), ('max_delta_action', recipe.max_delta_action), ('safe_output', recipe.safe_output)]))
         self.generator.recipes['test20'].collect()
+        self.generator.recipes['test20'].assemble()
         self.generator.recipes['test20'].render()
         self.generator.recipes['test20'].output()
         self.assert_(os.path.exists('var/objects/test21/dynamic/hosts/switch1/os_ios_default.cfg'))
