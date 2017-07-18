@@ -188,7 +188,6 @@ class Recipe(object):
                 pre_count.update(dict.fromkeys([k for k in post_count if not k in pre_count], 0))
                 chg_keys = [(key, post_count[key] - pre_count[key]) for key in set(pre_count.keys() + post_count.keys()) if post_count[key] != pre_count[key]]
                 logger.info("recipe %s read from datasource %s %s" % (self.name, ds.name, ", ".join(["%d %s" % (k[1], k[0]) for k in chg_keys])))
-
                 ds.close()
             except DatasourceNotCurrent:
                 data_valid = False
@@ -205,6 +204,7 @@ class Recipe(object):
             if not data_valid:
                 logger.info("aborting collection phase") 
                 return False
+        return data_valid
 
     def assemble(self):
         generic_details = []
