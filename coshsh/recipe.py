@@ -18,6 +18,7 @@ import coshsh
 from coshsh.jinja2_extensions import is_re_match, filter_re_sub, filter_re_escape, filter_host, filter_service, filter_custom_macros
 from coshsh.item import Item
 from coshsh.application import Application
+from coshsh.contact import Contact
 from coshsh.hostgroup import HostGroup
 from coshsh.monitoringdetail import MonitoringDetail
 from coshsh.datasource import Datasource, DatasourceCorrupt, DatasourceNotReady, DatasourceNotAvailable, DatasourceNotCurrent
@@ -210,7 +211,6 @@ class Recipe(object):
         generic_details = []
         for detail in self.objects['details'].values():
             fingerprint = detail.application_fingerprint()
-            print "fingerprint", fingerprint
             if fingerprint in self.objects['applications']:
                 self.objects['applications'][fingerprint].monitoring_details.append(detail)
             elif fingerprint in self.objects['hosts']:
@@ -341,6 +341,8 @@ class Recipe(object):
         logger.debug("init Application classes (%d)" % len(Application.class_factory))
         MonitoringDetail.init_classes(self.classes_path)
         logger.debug("init MonitoringDetail classes (%d)" % len(MonitoringDetail.class_factory))
+        Contact.init_classes(self.classes_path)
+        logger.debug("init Contact classes (%d)" % len(Contact.class_factory))
 
     def add_datasource(self, **kwargs):
         for key in [k for k in kwargs.iterkeys() if isinstance(kwargs[k], str)]:
