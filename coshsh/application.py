@@ -12,7 +12,6 @@ import imp
 import inspect
 import logging
 import coshsh
-from coshsh.util import compare_attr, is_attr
 from coshsh.item import Item
 from coshsh.templaterule import TemplateRule
 
@@ -24,12 +23,8 @@ class ApplicationNotImplemented(Exception):
 
 class Application(coshsh.item.Item):
 
-    id = 1 #0 is reserved for host (primary node for parents)
-    my_type = 'application'
-    app_template = "app.tpl"
     class_factory = []
     lower_columns = ['name', 'type', 'component', 'version', 'patchlevel']
-
 
     def __init__(self, params):
         #print "Application init", self.__class__, self.__class__.__name__, len(self.__class__.class_factory)
@@ -118,11 +113,7 @@ class GenericApplication(Application):
             unique_attr=['type', 'name'], unique_config="app_%s_%s_default"),
     ]
 
-    def x__new__(cls, params={}):
-        return object.__new__(cls)
-
     def __init__(self, params={}):
-        self.name = params["name"]
         super(GenericApplication, self).__init__(params)
 
     def render(self, template_cache, jinja2):

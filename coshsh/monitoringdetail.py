@@ -23,8 +23,7 @@ class MonitoringDetailNotImplemented(Exception):
 
 
 class MonitoringDetail(coshsh.item.Item):
-    id = 1
-    my_type = "detail"
+
     class_factory = []
     lower_columns = ['name', 'type', 'application_name', 'application_type']
 

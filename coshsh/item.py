@@ -30,10 +30,6 @@ class Item(object):
 
     def __init__(self, params={}):
         #print "Item.__init__(", self.__class__.__name__
-        cls = self.__class__
-        self.id = cls.id
-        cls.id += 1
-
         self.log = logger
 
         for key in params:
@@ -49,15 +45,6 @@ class Item(object):
         else:
             setattr(self, "monitoring_details", list(self.__class__.monitoring_details))
         self.config_files = {}
-
-    def clone(self):
-        """ Return a copy of the item, but give him a new id """
-        cls = self.__class__
-        i = cls({})# Dummy item but with it's own running properties
-        save_id = i.id
-        new_obj = copy(self)
-        new_obj.id = save_id
-        return new_obj
 
     def write_config(self, target_dir, want_tool=None):
         my_target_dir = os.path.join(target_dir, "hosts", self.host_name)

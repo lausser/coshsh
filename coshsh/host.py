@@ -14,7 +14,6 @@ from coshsh.templaterule import TemplateRule
 
 class Host(coshsh.item.Item):
 
-    id = 1 #0 is reserved for host (primary node for parents)
     template_rules = [
         coshsh.templaterule.TemplateRule(needsattr=None, 
             template="host", 

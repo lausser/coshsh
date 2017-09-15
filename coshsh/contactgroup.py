@@ -13,10 +13,6 @@ from coshsh.templaterule import TemplateRule
 
 class ContactGroup(coshsh.item.Item):
 
-    id = 1 #0 is reserved for host (primary node for parents)
-    my_type = 'contact_group'
-    app_template = "app.tpl"
-
     template_rules = [
         coshsh.templaterule.TemplateRule(
             template="contactgroup",
@@ -24,7 +20,6 @@ class ContactGroup(coshsh.item.Item):
             unique_attr="contactgroup_name", unique_config="contactgroup_%s",
         )
     ]
-
 
     def __init__(self, params={}):
         self.members = []
