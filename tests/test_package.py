@@ -61,8 +61,11 @@ class CoshshTest(unittest.TestCase):
 
     def test_create_contact(self):
         self.print_header()
-        self.contact = coshsh.contact.Contact({"type": "WEB", "name": "sepp", "userid": "test", "notification_period": "5x8"})
-        self.assert_(self.contact.contact_name == "test")
+        self.contact = coshsh.contact.Contact({"type": "WEBREADONLY", "name": "sepp", "userid": "test", "notification_period": "5x8"})
+        # the name is unknown... because we didn't init the class factory
+        # so it becomes a generic contact
+        print self.contact.__dict__
+        self.assert_(self.contact.contact_name == "unknown_WEBREADONLY_sepp_5x8")
         self.assert_(self.contact.host_notification_period == "5x8")
 
     def test_create_host(self):
