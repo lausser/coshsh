@@ -92,4 +92,17 @@ def normalize_dict(the_dict, titles=[]):
         except Exception:
             pass
 
+def clean_umlauts(text):
+    translations = (
+        (u'\N{LATIN SMALL LETTER SHARP S}', u'ss'),
+        (u'\N{LATIN SMALL LETTER O WITH DIAERESIS}', u'oe'),
+        (u'\N{LATIN SMALL LETTER U WITH DIAERESIS}', u'ue'),
+        (u'\N{LATIN CAPITAL LETTER A WITH DIAERESIS}', u'Ae'),
+        (u'\N{LATIN CAPITAL LETTER O WITH DIAERESIS}', u'Oe'),
+        (u'\N{LATIN CAPITAL LETTER U WITH DIAERESIS}', u'Ue'),
+        # et cetera
+    )
+    for from_str, to_str in translations:
+        text = text.replace(from_str, to_str)
+    return text
 
