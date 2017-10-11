@@ -45,7 +45,10 @@ class Datasource(object):
         #print "datasourceinit with", self.__class__
         for key in [k for k in params if k.startswith("recipe_")]:
             setattr(self, key, params[key])
-        for key in params.iterkeys():
+            short = key.replace("recipe_", "")
+            if not short in params:
+                params[short] = params[key]
+        for key in params.keys():
             if isinstance(params[key], basestring):
                 params[key] = re.sub('%.*?%', substenv, params[key])
         if self.__class__ == Datasource:
