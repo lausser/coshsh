@@ -84,7 +84,7 @@ class CoshshTest(unittest.TestCase):
         self.assert_(utick.__class__.__name__ == "GenericContact")
 
         self.generator.recipes['test221'].output()
-        self.assert_(os.path.exists("var/objects/test10/dynamic/hosts"))
+        self.assert_(os.path.exists("var/objects/test22/dynamic/hosts"))
 
     def test_create_bmc_contact(self):
         self.print_header()
