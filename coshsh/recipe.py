@@ -88,14 +88,14 @@ class Recipe(object):
         else:
             self.classes_path = [os.path.join(os.path.dirname(__file__), '../recipes/default/classes')]
         if self.classes_dir:
-            self.classes_path = [p.strip() for p in self.classes_dir.split(',')] + self.classes_path
+            self.classes_path = [p.strip() for p in self.classes_dir.split(',') if os.path.basename(p.strip()) != 'catchall'] + self.classes_path + [p.strip() for p in self.classes_dir.split(',') if os.path.basename(p.strip()) == 'catchall']
         self.set_recipe_sys_path()
         if 'OMD_ROOT' in os.environ:
             self.templates_path = [os.path.join(os.environ['OMD_ROOT'], 'share/coshsh/recipes/default/templates')]
         else:
             self.templates_path = [os.path.join(os.path.dirname(__file__), '../recipes/default/templates')]
         if self.templates_dir:
-            self.templates_path = [p.strip() for p in self.templates_dir.split(',')] + self.templates_path
+            self.templates_path = [p.strip() for p in self.templates_dir.split(',') if os.path.basename(p.strip()) != 'catchall'] + self.templates_path + [p.strip() for p in self.templates_dir.split(',') if os.path.basename(p.strip()) == 'catchall']
             logger.debug("recipe.templates_path reloaded %s" % ':'.join(self.templates_path))
         logger.info("recipe %s classes_dir %s" % (self.name, ','.join([os.path.abspath(p) for p in self.classes_path])))
         logger.info("recipe %s templates_dir %s" % (self.name, ','.join([os.path.abspath(p) for p in self.templates_path])))
@@ -218,7 +218,7 @@ class Recipe(object):
             elif fingerprint.startswith('*'):
                 generic_details.append(detail)
             else:
-                logger.info("found a detail %s for an unknown application %s" % (detail, fingerprint))
+                logger.info("found a %s detail %s for an unknown application %s" % (detail.__class__.__name__, detail, fingerprint))
         for detail in generic_details:
             dfingerprint = detail.application_fingerprint()
             if dfingerprint == '*':

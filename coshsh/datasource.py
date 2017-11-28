@@ -92,6 +92,7 @@ class Datasource(object):
             return self.objects[objtype][fingerprint]
         except Exception:
             # should be None
+            return None
             return 'i do not exist. no. no!'
 
     def getall(self, objtype):

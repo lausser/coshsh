@@ -82,3 +82,6 @@ class Generator(object):
 
         self._logging_on = True
         logger = logging.getLogger('coshsh')
+
+    def get_logger(self, name="coshsh"):
+        return logging.getLogger(name)

@@ -128,8 +128,6 @@ class Datarecipient(object):
         pass
 
     def too_much_delta(self):
-        if not self.max_delta:
-            return False
         # self.old_objects = (hosts_before, apps_before)
         # self.new_objects = (hosts_after, apps_after)
         # self.max_delta = (%hosts, %apps)
@@ -145,6 +143,8 @@ class Datarecipient(object):
         except Exception, e:
             # before we had 0 applications
             self.delta_services = 0
+        if not self.max_delta:
+            return False
         #
         #  before  after  delta
         #  0       10     0
