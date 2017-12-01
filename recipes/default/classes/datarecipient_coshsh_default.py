@@ -31,7 +31,10 @@ class DatarecipientCoshshDefault(coshsh.datarecipient.Datarecipient):
         self.max_delta_action = kwargs.get("max_delta_action", None)
         self.safe_output = kwargs.get("safe_output")
         self.static_dir = os.path.join(self.objects_dir, 'static')
-        self.dynamic_dir = os.path.join(self.objects_dir, 'dynamic')
+        if self.objects_dir.endswith("//"):
+            self.dynamic_dir = self.objects_dir.rstrip("//")
+        else:
+            self.dynamic_dir = os.path.join(self.objects_dir, 'dynamic')
 
     def prepare_target_dir(self):
         logger.info("recipient %s dynamic_dir %s" % (self.name, self.dynamic_dir))

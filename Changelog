@@ -1,3 +1,5 @@
+* 2017-12-01 4.1.0.1
+  object_dir which ends with // gets no dynamic subdir
 * 2017-11-28 4.1
   check for a catchall directory to allow own GenericApplications
 * 2017-09-15 4.0
