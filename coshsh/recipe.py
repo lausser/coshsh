@@ -46,7 +46,7 @@ class RecipePidGarbage(Exception):
 
 class Recipe(object):
 
-    attributes_for_adapters = ["name", "force", "safe_output", "pid_dir", "pid_file", "templates_dir", "classes_dir", "objects_dir", "max_delta", "max_delta_action", "classes_path", "templates_path", "filter"]
+    attributes_for_adapters = ["name", "force", "safe_output", "pid_dir", "pid_file", "templates_dir", "classes_dir", "objects_dir", "max_delta", "max_delta_action", "classes_path", "templates_path", "filter", "git_init"]
 
     def __del__(self):
         pass
@@ -82,6 +82,7 @@ class Recipe(object):
             else:
                 self.max_delta = tuple(map(int, (self.max_delta, self.max_delta)))
         self.my_jinja2_extensions = kwargs.get("my_jinja2_extensions", None)
+        self.git_init = False if kwargs.get("git_init", "yes") == "no" else True
 
         if 'OMD_ROOT' in os.environ:
             self.classes_path = [os.path.join(os.environ['OMD_ROOT'], 'share/coshsh/recipes/default/classes')]
