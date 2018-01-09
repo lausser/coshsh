@@ -4,7 +4,6 @@ import sys
 import shutil
 import string
 from optparse import OptionParser
-import ConfigParser
 import logging
 
 
@@ -14,6 +13,7 @@ import coshsh
 from coshsh.generator import Generator
 from coshsh.datasource import Datasource
 from coshsh.application import Application
+from coshsh.configparser import CoshshConfigParser
 
 class CoshshTest(unittest.TestCase):
     def print_header(self):
@@ -22,12 +22,13 @@ class CoshshTest(unittest.TestCase):
         print "#" + " " * 78 + "#\n" + "#" * 80 + "\n"
 
     def setUp(self):
-        self.config = ConfigParser.ConfigParser()
+        self.config = coshsh.configparser.CoshshConfigParser()
         self.config.read('etc/coshsh.cfg')
         self.generator = coshsh.generator.Generator()
         self.generator.setup_logging()
 
     def tearDown(self):
+        shutil.rmtree("./var/objects/test10", True)
         pass
 
     def test_recipe_max_deltas_default(self):
@@ -66,7 +67,6 @@ class CoshshTest(unittest.TestCase):
         self.generator.recipes['test10'].add_datasource(**dict(cfg))
         cfg = self.config.items("datasource_CSV10.3")
         self.generator.recipes['test10'].add_datasource(**dict(cfg))
-        exit
         # remove target dir / create empty
         self.generator.recipes['test10'].count_before_objects()
         self.generator.recipes['test10'].cleanup_target_dir()
@@ -96,6 +96,26 @@ class CoshshTest(unittest.TestCase):
         self.assert_(len(self.generator.recipes['test10'].objects['applications']['test_host_1+os+windows2k8r2'].filesystems) == 5)
         # must be sorted
         self.assert_([f.path for f in self.generator.recipes['test10'].objects['applications']['test_host_1+os+windows2k8r2'].filesystems] == ['C', 'D', 'F', 'G', 'Z'])
+        # git_init is yes by default
+        self.assert_(os.path.exists("var/objects/test10/dynamic/.git"))
+
+    def test_create_recipe_multiple_sources_no_git(self):
+        self.print_header()
+        self.generator.add_recipe(name='test10nogit', **dict(self.config.items('recipe_TEST10nogit')))
+        self.config.set("datasource_CSV10.1", "name", "csv1")
+        self.config.set("datasource_CSV10.2", "name", "csv2")
+        self.config.set("datasource_CSV10.3", "name", "csv3")
+        cfg = self.config.items("datasource_CSV10.1")
+        self.generator.recipes['test10nogit'].add_datasource(**dict(cfg))
+        cfg = self.config.items("datasource_CSV10.2")
+        self.generator.recipes['test10nogit'].add_datasource(**dict(cfg))
+        cfg = self.config.items("datasource_CSV10.3")
+        self.generator.recipes['test10nogit'].add_datasource(**dict(cfg))
+        # remove target dir / create empty
+        self.generator.run()
+        self.assert_(os.path.exists("var/objects/test10/dynamic/hosts/test_host_1/os_windows_default.cfg"))
+        # git_init is yes by default
+        self.assert_(not os.path.exists("var/objects/test10/dynamic/.git"))
 
 if __name__ == '__main__':
     unittest.main()
