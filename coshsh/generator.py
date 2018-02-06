@@ -58,6 +58,7 @@ class Generator(object):
 
     def setup_logging(self, logdir=".", logfile="coshsh.log", scrnloglevel=logging.INFO, txtloglevel=logging.INFO):
         logdir = os.path.abspath(logdir)
+	print "---->", logdir
         if not os.path.exists(logdir):
             os.mkdir(logdir)
     

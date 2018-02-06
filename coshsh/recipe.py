@@ -62,6 +62,17 @@ class Recipe(object):
         self.force = kwargs.get("force")
         self.safe_output = kwargs.get("safe_output")
         self.pid_dir = kwargs.get("pid_dir")
+        self.log_file = kwargs.get("log_file", None)
+	if self.log_file:
+	    pass
+	    # mit setup_logging den coshsh-logger ueberschreiben
+	    # mit logfile=log_file
+	    # oder get_logger und modifizieren
+	    log = logging.getLogger()  # root logger
+for hdlr in log.handlers[:]:  # remove all old handlers
+    log.removeHandler(hdlr)
+log.addHandler(fileh)      # set the new handler
+
         if not self.pid_dir:
             if 'OMD_ROOT' in os.environ:
                 self.pid_dir = os.path.join(os.environ['OMD_ROOT'], 'tmp/run')
