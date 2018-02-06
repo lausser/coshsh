@@ -32,7 +32,7 @@ except Exception:
         sys.exit(3)
 
 from coshsh.generator import Generator
-from coshsh.util import substenv
+from coshsh.util import substenv, setup_logging
 from coshsh.configparser import CoshshConfigParser
 
 
@@ -100,9 +100,9 @@ if __name__ == '__main__':
             log_dir = gettempdir()
 
         if opts.default_log_level and opts.default_log_level.lower() == "debug" or "defaults" in cookbook.sections() and "log_level" in [c[0] for c in cookbook.items("defaults")] and cookbook.items("defaults")["log_level"].lower() == "debug":
-            generator.setup_logging(logdir=log_dir, scrnloglevel=DEBUG)
+            setup_logging(logdir=log_dir, scrnloglevel=DEBUG)
         else:
-            generator.setup_logging(logdir=log_dir, scrnloglevel=INFO)
+            setup_logging(logdir=log_dir, scrnloglevel=INFO)
 
         for recipe in [section for section in cookbook.sections() if section.startswith('recipe_')]:
             if recipe.replace("recipe_", "", 1).lower() in recipes:
