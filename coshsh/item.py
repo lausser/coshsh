@@ -189,7 +189,11 @@ class Item(object):
             try:
                 if not for_tool in self.config_files:
                     self.config_files[for_tool] = {}
-                self.config_files[for_tool][output_name + "." + suffix] = template_cache[name].render(kwargs)
+                if suffix:
+                    self.config_files[for_tool][output_name + "." + suffix] = template_cache[name].render(kwargs)
+                else:
+                    # files without suffix
+                    self.config_files[for_tool][output_name] = template_cache[name].render(kwargs)
             except Exception as exp:
                 if hasattr(self, "fingerprint"):
                     logger.critical("render exception in template %s for %s %s: %s" % (name, self, self.fingerprint(), exp))

@@ -97,11 +97,9 @@ def filter_service(application, service_description):
         snippet += "  register                        0"
         if len(application.contact_groups) > 0:
             snippet += "\n  contact_groups %s" % application.contact_groups
-    for k, v in [x if x[0].startswith("_") else ("_" + x[0], x[1]) \
-        for x in getattr(application, "custom_macros", {}).items() + \
-                 getattr(application, "macros", {}).items()]:
-        if v != "":
-            snippet += "\n  %-31s %s\n" % (k, v)
+    macros = filter_custom_macros(application)
+    if macros:
+        snippet += macros
     return snippet
 
 def filter_host(host):
@@ -119,18 +117,17 @@ def filter_host(host):
         snippet += "  register                        0"
         if len(host.contact_groups) > 0:
             snippet += "\n  contact_groups %s" % host.contact_groups
-    for k, v in [x if x[0].startswith("_") else ("_" + x[0], x[1]) \
-        for x in getattr(host, "custom_macros", {}).items() + \
-                 getattr(host, "macros", {}).items()]:
-        if v != "":
-            snippet += "\n  %-31s %s\n" % (k, v)
+    macros = filter_custom_macros(host)
+    if macros:
+        snippet += macros
     return snippet
 
-def filter_custom_macros(application):
+def filter_custom_macros(obj):
     snippet = ""
-    for k, v in [x if x[0].startswith("_") else ("_" + x[0], x[1]) \
-        for x in getattr(application, "custom_macros", {}).items() + \
-                 getattr(application, "macros", {}).items()]:
-        if v != "":
-            snippet += "  %-31s %s\n" % (k, v)
+    macros = "\n".join("  %-31s %s" % (k, v) for k, v in 
+        sorted([x if x[0].startswith("_") else ("_" + x[0], x[1]) \
+            for x in getattr(obj, "custom_macros", {}).items() + \
+                 getattr(obj, "macros", {}).items()], key=lambda x: x[0]))
+    if macros:
+        snippet += "\n" + macros
     return snippet
