@@ -17,6 +17,7 @@ from coshsh.generator import Generator
 from coshsh.datasource import Datasource
 from coshsh.application import Application
 from coshsh.monitoringdetail import MonitoringDetail
+from coshsh.util import setup_logging
 
 
 class CoshshTest(unittest.TestCase):
@@ -31,7 +32,7 @@ class CoshshTest(unittest.TestCase):
         self.config = ConfigParser.ConfigParser()
         self.config.read('etc/coshsh.cfg')
         self.generator = coshsh.generator.Generator()
-        self.generator.setup_logging(scrnloglevel=DEBUG)
+        setup_logging(scrnloglevel=DEBUG)
         self.generator.add_recipe(name='test6', **dict(self.config.items('recipe_TEST6')))
         self.config.set("datasource_CSVDETAILS", "name", "test6")
 

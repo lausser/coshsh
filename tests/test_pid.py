@@ -17,7 +17,7 @@ import coshsh
 from coshsh.generator import Generator
 from coshsh.datasource import Datasource
 from coshsh.application import Application
-from coshsh.util import substenv
+from coshsh.util import substenv, setup_logging
 
 class CoshshTest(unittest.TestCase):
     def print_header(self):

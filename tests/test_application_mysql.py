@@ -13,13 +13,14 @@ from coshsh.generator import Generator
 from coshsh.host import Host
 from coshsh.application import Application
 from coshsh.monitoringdetail import MonitoringDetail
+from coshsh.util import setup_logging
 
 logger = logging.getLogger('coshsh')
 
 class CoshshTest(unittest.TestCase):
     def setUp(self):
         self.generator = Generator()
-        self.generator.setup_logging()
+        setup_logging()
         self.hosts = {}
         self.applications = {}
         coshsh.application.Application.init_classes([

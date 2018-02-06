@@ -124,7 +124,7 @@ def filter_host(host):
 
 def filter_custom_macros(obj):
     snippet = ""
-    macros = "\n".join("  %-31s %s" % (k, v) for k, v in 
+    macros = "\n".join("  %-31s %s" % (k, v) for k, v in
         sorted([x if x[0].startswith("_") else ("_" + x[0], x[1]) \
             for x in getattr(obj, "custom_macros", {}).items() + \
                  getattr(obj, "macros", {}).items()], key=lambda x: x[0]))

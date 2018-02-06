@@ -15,6 +15,7 @@ from coshsh.host import Host
 from coshsh.application import Application
 from coshsh.hostgroup import HostGroup
 from coshsh.generator import Generator
+from coshsh.util import setup_logging
 
 sys.dont_write_bytecode = True
 
@@ -42,12 +43,12 @@ class CoshshTest(unittest.TestCase):
     def test_create_generator(self):
         self.print_header()
         self.generator = coshsh.generator.Generator()
-        self.generator.setup_logging(scrnloglevel=logging.DEBUG)
+        setup_logging(scrnloglevel=logging.DEBUG)
 
     def xtest_create_generator_by_coshsh(self):
         self.print_header()
         self.generator = coshsh.Generator()
-        self.generator.setup_logging(scrnloglevel=logging.DEBUG)
+        setup_logging(scrnloglevel=logging.DEBUG)
 
     def test_create_hostgroup(self):
         self.print_header()

@@ -23,7 +23,7 @@ from coshsh.hostgroup import HostGroup
 from coshsh.monitoringdetail import MonitoringDetail
 from coshsh.datasource import Datasource, DatasourceCorrupt, DatasourceNotReady, DatasourceNotAvailable, DatasourceNotCurrent
 from coshsh.datarecipient import Datarecipient, DatarecipientCorrupt, DatarecipientNotReady, DatarecipientNotAvailable, DatarecipientNotCurrent
-from coshsh.util import compare_attr, substenv
+from coshsh.util import compare_attr, substenv, switch_logging
 
 logger = logging.getLogger('coshsh')
 
@@ -59,20 +59,10 @@ class Recipe(object):
             if isinstance(kwargs[key], basestring):
                 kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
         self.name = kwargs["name"]
+        self.log_file = kwargs.get("log_file", None)
         self.force = kwargs.get("force")
         self.safe_output = kwargs.get("safe_output")
         self.pid_dir = kwargs.get("pid_dir")
-        self.log_file = kwargs.get("log_file", None)
-	if self.log_file:
-	    pass
-	    # mit setup_logging den coshsh-logger ueberschreiben
-	    # mit logfile=log_file
-	    # oder get_logger und modifizieren
-	    log = logging.getLogger()  # root logger
-for hdlr in log.handlers[:]:  # remove all old handlers
-    log.removeHandler(hdlr)
-log.addHandler(fileh)      # set the new handler
-
         if not self.pid_dir:
             if 'OMD_ROOT' in os.environ:
                 self.pid_dir = os.path.join(os.environ['OMD_ROOT'], 'tmp/run')
@@ -82,6 +72,8 @@ log.addHandler(fileh)      # set the new handler
                 self.pid_dir = os.environ.get("%TEMP%", "C:/TEMP")
 
         self.pid_file = os.path.join(self.pid_dir, "coshsh.pid." + re.sub('[/\\\.]', '_', self.name))
+        if self.log_file:
+            switch_logging(logfile=self.log_file)
         logger.info("recipe %s init" % self.name)
         self.templates_dir = kwargs.get("templates_dir")
         self.classes_dir = kwargs.get("classes_dir")

@@ -19,6 +19,7 @@ from coshsh.datasource import Datasource
 from coshsh.host import Host
 from coshsh.application import Application
 from coshsh.monitoringdetail import MonitoringDetail
+from coshsh.util import setup_logging
 
 class CoshshTest(unittest.TestCase):
     def print_header(self):
@@ -30,6 +31,7 @@ class CoshshTest(unittest.TestCase):
         shutil.rmtree("./var/objects/test33", True)
         os.makedirs("./var/objects/test33")
         shutil.rmtree("./var/log/coshshlogs", True)
+        shutil.rmtree("/tmp/coshsh_test34.log", True)
         self.config = ConfigParser.ConfigParser()
         self.config.read('etc/coshsh5.cfg')
 	print self.config.__dict__
@@ -41,19 +43,23 @@ class CoshshTest(unittest.TestCase):
             log_dir = os.path.join(os.environ['OMD_ROOT'], "var", "coshsh")
         else:
             log_dir = gettempdir()
-        self.generator.setup_logging(logdir=log_dir, scrnloglevel=logging.DEBUG)
+        setup_logging(logdir=log_dir, scrnloglevel=logging.DEBUG)
 
     def tearDown(self):
         shutil.rmtree("./var/objects/test33", True)
+        shutil.rmtree("./var/log/coshshlogs", True)
+        shutil.rmtree("/tmp/coshsh_test34.log", True)
         print
 
     def test_generic_app(self):
         self.print_header()
         self.generator.add_recipe(name='test33', **dict(self.config.items('recipe_test33')))
+        # init-meldungen von test33
+	self.assert_(os.path.exists("./var/log/coshshlogs/coshsh_test33.log"))
+        # aber auch vom generator
+	self.assert_(os.path.exists("./var/log/coshshlogs/coshsh.log"))
         self.config.set("datasource_SIMPLESAMPLE", "name", "simplesample")
         cfg = self.config.items("datasource_SIMPLESAMPLE")
-	self.assert_(hasattr(self.generator.recipes['test33'], "log_file"))
-	self.assert_(self.generator.recipes['test33'].log_file == "./var/log/coshsh_test33.log")
         self.generator.recipes['test33'].add_datasource(**dict(cfg))
         self.generator.recipes['test33'].datasources[0].objects = self.generator.recipes['test33'].objects
         host = Host({

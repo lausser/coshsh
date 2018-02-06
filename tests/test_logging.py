@@ -16,6 +16,7 @@ import coshsh
 from coshsh.generator import Generator
 from coshsh.datasource import Datasource
 from coshsh.application import Application
+from coshsh.util import setup_logging
 
 class CoshshTest(unittest.TestCase):
     def print_header(self):
@@ -31,7 +32,7 @@ class CoshshTest(unittest.TestCase):
         self.config = ConfigParser.ConfigParser()
         self.config.read('etc/coshsh.cfg')
         self.generator = coshsh.generator.Generator()
-        self.generator.setup_logging(logfile="zishsh.log", logdir="./var/log", scrnloglevel=logging.DEBUG)
+        setup_logging(logfile="zishsh.log", logdir="./var/log", scrnloglevel=logging.DEBUG)
 
     def tearDown(self):
         #shutil.rmtree("./var/objects/test1", True)

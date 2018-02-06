@@ -15,6 +15,7 @@ from coshsh.configparser import CoshshConfigParser
 from coshsh.generator import Generator
 from coshsh.datasource import Datasource
 from coshsh.application import Application
+from coshsh.util import setup_logging
 
 class CoshshTest(unittest.TestCase):
     def print_header(self):
@@ -29,7 +30,7 @@ class CoshshTest(unittest.TestCase):
         #pp.pprint(self.config._sections.values())
                 
         self.generator = coshsh.generator.Generator()
-        self.generator.setup_logging()
+        setup_logging()
 
     def tearDown(self):
         pass

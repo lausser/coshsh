@@ -14,6 +14,7 @@ from coshsh.generator import Generator
 from coshsh.datasource import Datasource
 from coshsh.application import Application
 from coshsh.configparser import CoshshConfigParser
+from coshsh.util import setup_logging
 
 class CoshshTest(unittest.TestCase):
     def print_header(self):
@@ -25,7 +26,7 @@ class CoshshTest(unittest.TestCase):
         self.config = coshsh.configparser.CoshshConfigParser()
         self.config.read('etc/coshsh.cfg')
         self.generator = coshsh.generator.Generator()
-        self.generator.setup_logging()
+        setup_logging()
 
     def tearDown(self):
         shutil.rmtree("./var/objects/test10", True)
