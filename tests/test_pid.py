@@ -9,6 +9,7 @@ import tempfile
 from optparse import OptionParser
 import ConfigParser
 import logging
+from logging import INFO, DEBUG
 
 
 sys.dont_write_bytecode = True
@@ -63,6 +64,7 @@ class CoshshTest(unittest.TestCase):
         else:
             pid_dir = os.path.join(os.environ['COSHSH_HOME'], "..")
         self.generator = coshsh.generator.Generator()
+	setup_logging(scrnloglevel=DEBUG)
         for recipe in recipes:
             if recipe == 'test1':
                 recipe_configs[recipe].append(('pid_dir', pid_dir))

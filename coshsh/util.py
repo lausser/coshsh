@@ -113,7 +113,6 @@ def clean_umlauts(text):
 def setup_logging(logdir=".", logfile="coshsh.log", scrnloglevel=logging.INFO, txtloglevel=logging.INFO):
     logdir = os.path.abspath(logdir)
     abs_logfile = logfile if os.path.isabs(logfile) else os.path.join(logdir, logfile)
-    print "->setup_logging %s/%s", logdir, logfile
     if not os.path.exists(os.path.dirname(abs_logfile)):
         os.mkdir(os.path.dirname(abs_logfile))
    
@@ -124,8 +123,7 @@ def setup_logging(logdir=".", logfile="coshsh.log", scrnloglevel=logging.INFO, t
     logger.setLevel(logging.DEBUG)
     log_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 
-    txt_handler = RotatingFileHandler(os.path.join(logdir, logfile), backupCount=2, maxBytes=20*1024*1024)
-    #txt_handler.doRollover()
+    txt_handler = RotatingFileHandler(abs_logfile, backupCount=2, maxBytes=20*1024*1024)
     txt_handler.setFormatter(log_formatter)
     txt_handler.setLevel(txtloglevel)
     logger.addHandler(txt_handler)
@@ -149,32 +147,29 @@ def setup_logging(logdir=".", logfile="coshsh.log", scrnloglevel=logging.INFO, t
 def switch_logging(**kwargs):
     logdir = kwargs.get("logdir", setup_logging.logdir)
     logfile = kwargs.get("logfile", setup_logging.logfile)
-    logfile = logfile if os.path.isabs(logfile) else os.path.join(logdir, logfile)
-    print "=====> switch %s/%s to %s" % (setup_logging.logdir, setup_logging.logfile, logfile)
-    logger = logging.getLogger('coshsh')
-    print "logger is", logger.__dict__
-    if logfile == setup_logging.abs_logfile:
+    logdir = setup_logging.logdir if logdir == None else logdir
+    logfile = setup_logging.logfile if logfile == None else logfile
+    abs_logfile = logfile if os.path.isabs(logfile) else os.path.join(logdir, logfile)
+    if abs_logfile == setup_logging.abs_logfile:
         return
-    logger.info("Logger switched to " + logfile)
+    if not os.path.exists(os.path.dirname(abs_logfile)):
+        os.mkdir(os.path.dirname(abs_logfile))
+    logger = logging.getLogger('coshsh')
+    logger.info("Logger switches to " + abs_logfile)
     # remove the txt_handler
-    txt_handler = setup_logging.txt_handler
+    logger.removeHandler(setup_logging.txt_handler)
     for handler in logger.handlers:
-        print type(handler)
         if hasattr(handler, "baseFilename"):
-            txt_handler = handler
-        print "handler:", handler.__dict__
-    print "txt_handler old ", txt_handler
-    logger.removeHandler(txt_handler)
-    txt_handler = RotatingFileHandler(os.path.join(logdir, logfile), backupCount=2, maxBytes=20*1024*1024)
+            logger.removeHandler(handler)
+    txt_handler = RotatingFileHandler(abs_logfile, backupCount=2, maxBytes=20*1024*1024)
     txt_handler.setFormatter(setup_logging.log_formatter)
     txt_handler.setLevel(setup_logging.txtloglevel)
-    print "addHandler", txt_handler
     logger.addHandler(txt_handler)
 
 def restore_logging():
-    print "=====> switch %s/%s to %s/%s" % (setup_logging.logdir, setup_logging.logfile, logdir, logfile)
-    logfile = logfile if os.path.isabs(logfile) else os.path.join(logdir, logfile)
-    print "=====> switch %s/%s to %s" % (setup_logging.logdir, setup_logging.logfile, logfile)
+    switch_logging(logdir=setup_logging.logdir, logfile=setup_logging.logfile)
+    logger = logging.getLogger('coshsh')
+    logger.info("Logger restored to " + setup_logging.abs_logfile)
 
 def get_logger(self, name="coshsh"):
     return logging.getLogger(name)

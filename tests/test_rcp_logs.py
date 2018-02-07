@@ -28,10 +28,12 @@ class CoshshTest(unittest.TestCase):
         print "#" + " " * 78 + "#\n" + "#" * 80 + "\n"
 
     def setUp(self):
+        Application.class_factory = [] # da nutzt alles rmtree nix
         shutil.rmtree("./var/objects/test33", True)
         os.makedirs("./var/objects/test33")
         shutil.rmtree("./var/log/coshshlogs", True)
         shutil.rmtree("/tmp/coshsh_test34.log", True)
+        shutil.rmtree("/tmp/coshsh5/coshsh.log", True)
         self.config = ConfigParser.ConfigParser()
         self.config.read('etc/coshsh5.cfg')
 	print self.config.__dict__
@@ -49,6 +51,7 @@ class CoshshTest(unittest.TestCase):
         shutil.rmtree("./var/objects/test33", True)
         shutil.rmtree("./var/log/coshshlogs", True)
         shutil.rmtree("/tmp/coshsh_test34.log", True)
+        shutil.rmtree("/tmp/coshsh5/coshsh.log", True)
         print
 
     def test_generic_app(self):
@@ -87,6 +90,10 @@ class CoshshTest(unittest.TestCase):
     def test_mygeneric_app(self):
         self.print_header()
         self.generator.add_recipe(name='test34', **dict(self.config.items('recipe_test34')))
+        # init-meldungen von test34
+	self.assert_(os.path.exists("/tmp/coshsh_test34.log"))
+        # aber auch vom generator
+	self.assert_(os.path.exists("./var/log/coshshlogs/coshsh.log"))
         self.config.set("datasource_SIMPLESAMPLE", "name", "simplesample")
         cfg = self.config.items("datasource_SIMPLESAMPLE")
         self.generator.recipes['test34'].add_datasource(**dict(cfg))
@@ -130,4 +137,17 @@ class CoshshTest(unittest.TestCase):
         self.assert_(os.path.exists("var/objects/test33/dynamic/hosts/testhost/host.cfg"))
         self.assert_(os.path.exists("var/objects/test33/dynamic/hosts/testhost/app_my_generic_fs.cfg"))
         self.assert_(os.path.exists("var/objects/test33/dynamic/hosts/testhost/app_my_generic_ports.cfg"))
+
+    def test_everything_default(self):
+        self.print_header()
+        self.generator.add_recipe(name='test35', **dict(self.config.items('recipe_test35')))
+        self.assert_(os.path.exists("./var/log/coshshlogs/coshsh.log"))
+
+    def test_extra_dir(self):
+        self.print_header()
+        self.generator.add_recipe(name='test36', **dict(self.config.items('recipe_test36')))
+        # init-meldungen von test34
+        self.assert_(os.path.exists("/tmp/coshsh5/coshsh.log"))
+        # aber auch vom generator
+        self.assert_(os.path.exists("./var/log/coshshlogs/coshsh.log"))
 

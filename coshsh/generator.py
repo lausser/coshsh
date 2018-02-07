@@ -11,7 +11,7 @@ import re
 import logging
 import coshsh
 from coshsh.recipe import Recipe, RecipePidAlreadyRunning, RecipePidNotWritable, RecipePidGarbage
-from coshsh.util import odict
+from coshsh.util import odict, switch_logging, restore_logging
 
 logger = logging.getLogger('coshsh')
 
@@ -32,10 +32,9 @@ class Generator(object):
         pass
 
     def run(self):
-        if not self._logging_on:
-            self.setup_logging(logdir=".")
         for recipe in self.recipes.values():
             try:
+	        switch_logging(logfile=recipe.log_file)
                 if recipe.pid_protect():
                     if recipe.collect():
                         recipe.assemble()
@@ -52,4 +51,4 @@ class Generator(object):
                 logger.error("skipping recipe %s (%s)" % (recipe.name, exp))
             else:
                 pass
-
+            restore_logging()

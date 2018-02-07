@@ -1,3 +1,5 @@
+* 2018-02-07 4.2
+  a recipe can have it's own log_dir and log_file
 * 2017-12-04 4.1.1
   auto-create a git repo in dynamic (if not git_init = no in the recipe)
 * 2017-12-01 4.1.0.1
