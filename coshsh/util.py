@@ -127,7 +127,7 @@ def setup_logging(logdir=".", logfile="coshsh.log", scrnloglevel=logging.INFO, t
     txt_handler.setFormatter(log_formatter)
     txt_handler.setLevel(txtloglevel)
     logger.addHandler(txt_handler)
-    logger.info("Logger initialised.")
+    logger.debug("Logger initialized.")
 
     console_handler = logging.StreamHandler(sys.stderr)
     console_handler.setFormatter(log_formatter)
@@ -155,7 +155,7 @@ def switch_logging(**kwargs):
     if not os.path.exists(os.path.dirname(abs_logfile)):
         os.mkdir(os.path.dirname(abs_logfile))
     logger = logging.getLogger('coshsh')
-    logger.info("Logger switches to " + abs_logfile)
+    logger.debug("Logger switches to " + abs_logfile)
     # remove the txt_handler
     logger.removeHandler(setup_logging.txt_handler)
     for handler in logger.handlers:
@@ -169,7 +169,7 @@ def switch_logging(**kwargs):
 def restore_logging():
     switch_logging(logdir=setup_logging.logdir, logfile=setup_logging.logfile)
     logger = logging.getLogger('coshsh')
-    logger.info("Logger restored to " + setup_logging.abs_logfile)
+    logger.debug("Logger restored to " + setup_logging.abs_logfile)
 
 def get_logger(self, name="coshsh"):
     return logging.getLogger(name)

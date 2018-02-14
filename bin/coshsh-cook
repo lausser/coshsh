@@ -88,6 +88,7 @@ if __name__ == '__main__':
         recipe_configs = {}
         datasource_configs = {}
         datarecipient_configs = {}
+        recipes = []
         cookbook = coshsh.configparser.CoshshConfigParser()
         cookbook.read(opts.cookbook_file)
         if cookbook._sections == {}:
@@ -101,14 +102,13 @@ if __name__ == '__main__':
         for recipe in [section for section in cookbook.sections() if section.startswith('recipe_')]:
             recipe_configs[recipe.replace("recipe_", "", 1).lower()] = cookbook.items(recipe) + [('name', recipe.replace("recipe_", "", 1).lower())]
 
-        recipes = []
         if opts.default_recipe:
             recipes = [r.lower() for r in opts.default_recipe.split(",")]
         else:
             if "defaults" in cookbook.sections() and "recipes" in [c[0] for c in cookbook.items("defaults")]:
                 recipes = [recipe.lower() for recipe in dict(cookbook.items("defaults"))["recipes"].split(",")]
             else:
-                recipes = recipe_configs.keys()
+                recipes = filter( lambda r: not r.startswith("_"), recipe_configs.keys())
         if "defaults" in cookbook.sections() and "log_dir" in [c[0] for c in cookbook.items("defaults")]:
             log_dir = dict(cookbook.items("defaults"))["log_dir"]
             log_dir = re.sub('%.*?%', coshsh.util.substenv, log_dir)
