@@ -56,7 +56,7 @@ class CsvFile(coshsh.datasource.Datasource):
             hostreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_hosts.csv'))))
             logger.info('read hosts from %s' % os.path.join(self.dir, self.name+'_hosts.csv'))
         except Exception, exp:
-            print "except", exp
+            logger.debug(exp)
             hostreader = []
         # host_name,address,type,os,hardware,virtual,notification_period,location,department
         for row in hostreader:
@@ -72,7 +72,8 @@ class CsvFile(coshsh.datasource.Datasource):
         try:
             appreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_applications.csv'))))
             logger.info('read applications from %s' % os.path.join(self.dir, self.name+'_applications.csv'))
-        except Exception, e:
+        except Exception, exp:
+            logger.debug(exp)
             appreader = []
         resolvedrows = []
         # name,type,component,version,host_name,check_period
@@ -97,7 +98,8 @@ class CsvFile(coshsh.datasource.Datasource):
         try:
             appdetailreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_applicationdetails.csv'))))
             logger.info('read appdetails from %s' % os.path.join(self.dir, self.name+'_applicationdetails.csv'))
-        except Exception:
+        except Exception, exp:
+            logger.debug(exp)
             appdetailreader = []
         resolvedrows = []
         # host_name,name,type,monitoring_type,monitoring_0,monitoring_1,monitoring_2,monitoring_3,monitoring_4,monitoring_5
@@ -120,7 +122,8 @@ class CsvFile(coshsh.datasource.Datasource):
         try:
             contactgroupreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_contactgroups.csv'))))
             logger.info('read contactgroups from %s' % os.path.join(self.dir, self.name+'_contactgroups.csv'))
-        except Exception:
+        except Exception, exp:
+            logger.debug(exp)
             contactgroupreader = []
         resolvedrows = []
         # host_name,name,type,groups
@@ -157,7 +160,8 @@ class CsvFile(coshsh.datasource.Datasource):
         try:
             contactreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_contacts.csv'))))
             logger.info('read contacts from %s' % os.path.join(self.dir, self.name+'_contacts.csv'))
-        except Exception:
+        except Exception, exp:
+            logger.debug(exp)
             contactreader = []
         # name,type,address,userid,notification_period,groups
         for row in contactreader:

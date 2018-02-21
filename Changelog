@@ -1,3 +1,5 @@
+* 2018-02-21 4.2.2
+  better error messages for datasource_csv
 * 2018-02-14 4.2.1
   drop recipes named recipe__***
 * 2018-02-07 4.2
