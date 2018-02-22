@@ -74,6 +74,13 @@ class Item(object):
                                     setattr(getattr(self, dictname), key, detail.dictionary[dictname + ":" + key])
                             else:
                                 setattr(self, key, detail.dictionary[key])
+                elif detail.__class__.property_type == list:
+                    for key in detail.dictionary:
+                        if key:
+                            try:
+                                getattr(self, key).extend(detail.dictionary[key])
+                            except Exception:
+                                setattr(self, key, detail.dictionary[key])
                 else:
                     setattr(self, detail.attribute, detail.value)
             else:

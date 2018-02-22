@@ -66,6 +66,27 @@ class CoshshTest(unittest.TestCase):
         self.assert_(hasattr(app2.thresholds, "cron_warning"))
         self.assert_(app2.thresholds.cron_warning == "31")
 
+    def test_detail_keyvaluearrays(self):
+        self.print_header()
+        cfg = self.config.items("datasource_CSVDETAILS")
+        self.generator.recipes['test6'].add_datasource(**dict(cfg))
+        self.generator.recipes['test6'].collect()
+        self.generator.recipes['test6'].assemble()
+        objects = self.generator.recipes['test6'].objects
+        app1 = objects['applications'].values()[0]
+        app1.resolve_monitoring_details()
+        app2 = objects['applications'].values()[1]
+        app2.resolve_monitoring_details()
+        self.assert_(hasattr(app2, "roles"))
+        self.assert_("dach" in app2.roles)
+        self.assert_("prod" in app2.roles)
+        self.assert_("dmz" in app2.roles)
+        self.assert_("master" in app2.roles)
+        self.assert_(hasattr(app2, "parents"))
+        self.assert_("sw1" in app2.parents)
+        self.assert_("sw2" in app2.parents)
+
+
     def test_detail_url(self):
         self.print_header()
         oracle = coshsh.application.Application({
