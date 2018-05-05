@@ -1,3 +1,5 @@
+* 2018-05-05 4.2.4
+  allow other programs to use the coshsh logging utils
 * 2018-02-22 4.2.3
   add detail type KEYVALUESARRAY
 * 2018-02-21 4.2.2

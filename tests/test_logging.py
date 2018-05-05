@@ -32,20 +32,32 @@ class CoshshTest(unittest.TestCase):
         self.config = ConfigParser.ConfigParser()
         self.config.read('etc/coshsh.cfg')
         self.generator = coshsh.generator.Generator()
-        setup_logging(logfile="zishsh.log", logdir="./var/log", scrnloglevel=logging.DEBUG)
+        setup_logging(logfile="zishsh.log", logdir="./var/log", scrnloglevel=logging.DEBUG, txtloglevel=logging.INFO)
+	# default, wie im coshsh-cook
+        setup_logging(logdir="./var/log", scrnloglevel=logging.INFO)
 
     def tearDown(self):
         #shutil.rmtree("./var/objects/test1", True)
         print 
 
     def test_log(self):
-        logger = logging.getLogger('coshsh')
+        logger = logging.getLogger('zishsh')
+	print logger.__dict__
+	print
+	for h in logger.handlers:
+	    print h.__dict__
+	    print
         logger.warn("i warn you")
         logger.info("i inform you")
         logger.debug("i spam you")
         self.assert_(os.path.exists("./var/log/zishsh.log"))
+	with open('./var/log/zishsh.log') as x: zishshlog = x.read()
+	self.assert_("WARNING" in zishshlog)
+	self.assert_("INFO" in zishshlog)
+	self.assert_("DEBUG" not in zishshlog)
 
     def test_write(self):
+        # innendrin im Code wird logging.getLogger('coshsh') aufgerufen
         self.print_header()
         self.generator.add_recipe(name='test4', **dict(self.config.items('recipe_TEST4')))
         self.config.set("datasource_SIMPLESAMPLE", "name", "simplesample")
@@ -78,7 +90,9 @@ class CoshshTest(unittest.TestCase):
         self.assert_(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg"))
         os_windows_default_cfg = open("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg").read()
         self.assert_('os_windows_default_check_unittest' in os_windows_default_cfg)
-        self.assert_(os.path.exists("./var/log/zishsh.log"))
+        self.assert_(os.path.exists("./var/log/coshsh.log"))
+	with open('./var/log/coshsh.log') as x: coshshlog = x.read()
+	self.assert_("test_host_0" in coshshlog)
 
 
 if __name__ == '__main__':

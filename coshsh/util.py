@@ -116,7 +116,9 @@ def setup_logging(logdir=".", logfile="coshsh.log", scrnloglevel=logging.INFO, t
     if not os.path.exists(os.path.dirname(abs_logfile)):
         os.mkdir(os.path.dirname(abs_logfile))
    
-    logger = logging.getLogger('coshsh')
+    setup_logging.logger_name = os.path.basename(abs_logfile).replace(".log", "")
+    logger = logging.getLogger(setup_logging.logger_name)
+
     if logger.handlers:
         # this method can be called multiple times in the unittests
         logger.handlers = []
@@ -154,7 +156,7 @@ def switch_logging(**kwargs):
         return
     if not os.path.exists(os.path.dirname(abs_logfile)):
         os.mkdir(os.path.dirname(abs_logfile))
-    logger = logging.getLogger('coshsh')
+    logger = logging.getLogger(setup_logging.logger_name)
     logger.debug("Logger switches to " + abs_logfile)
     # remove the txt_handler
     logger.removeHandler(setup_logging.txt_handler)
