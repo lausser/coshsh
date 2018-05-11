@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#-*- encoding: utf-8 -*-
+#-*- coding: utf-8 -*-
 #
 # This file belongs to coshsh.
 # Copyright Gerhard Lausser.
@@ -197,7 +197,7 @@ class Item(object):
                 if not for_tool in self.config_files:
                     self.config_files[for_tool] = {}
                 if suffix:
-                    self.config_files[for_tool][output_name + "." + suffix] = template_cache[name].render(kwargs)
+                    self.config_files[for_tool][output_name + "." + suffix] = template_cache[name].render(kwargs).encode('utf-8')
                 else:
                     # files without suffix
                     self.config_files[for_tool][output_name] = template_cache[name].render(kwargs)
@@ -209,7 +209,7 @@ class Item(object):
             # transform hostgroups, contacts, etc. back to lists
             self.pythonize()
 
-    def render(self, template_cache, jinja2):
+    def render(self, template_cache, jinja2, recipe):
         if not hasattr(self, 'template_rules'):
             return
         for rule in self.template_rules:
@@ -241,11 +241,11 @@ class Item(object):
 
             if render_this:
                 if rule.unique_config and isinstance(rule.unique_attr, basestring) and hasattr(self, rule.unique_attr):
-                    self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % getattr(self, rule.unique_attr), rule.suffix, rule.for_tool, **dict([(rule.self_name, self)]))
+                    self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % getattr(self, rule.unique_attr), rule.suffix, rule.for_tool, **dict([(rule.self_name, self), ("recipe", recipe)]))
                 elif rule.unique_config and isinstance(rule.unique_attr, list) and reduce(lambda x, y: x and y, [hasattr(self, ua) for ua in rule.unique_attr]):
-                    self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % tuple([getattr(self, a) for a in rule.unique_attr]), rule.suffix, rule.for_tool, **dict([(rule.self_name, self)]))
+                    self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % tuple([getattr(self, a) for a in rule.unique_attr]), rule.suffix, rule.for_tool, **dict([(rule.self_name, self), ("recipe", recipe)]))
                 else:
-                    self.render_cfg_template(jinja2, template_cache, rule.template, rule.template, rule.suffix, rule.for_tool, **dict([(rule.self_name, self)]))
+                    self.render_cfg_template(jinja2, template_cache, rule.template, rule.template, rule.suffix, rule.for_tool, **dict([(rule.self_name, self), ("recipe", recipe)]))
 
     def fingerprint(self):
         try:

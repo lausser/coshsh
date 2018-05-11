@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#-*- encoding: utf-8 -*-
+#-*- coding: utf-8 -*-
 #
 # Copyright 2010-2012 Gerhard Lausser.
 # This software is licensed under the

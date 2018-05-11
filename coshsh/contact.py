@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#-*- encoding: utf-8 -*-
+#-*- coding: utf-8 -*-
 #
 # This file belongs to coshsh.
 # Copyright Gerhard Lausser.
@@ -129,8 +129,8 @@ class GenericContact(Contact):
         self.clean_name()
         self.contact_name = "unknown_" + self.type + "_" + self.name + "_" + self.notification_period.replace("/", "_")
 
-    def render(self, template_cache, jinja2):
+    def render(self, template_cache, jinja2, recipe):
         # Maybe we find some useful attributes in the future which can
         # be used like in GenericApplication
-        super(GenericContact, self).render(template_cache, jinja2)
+        super(GenericContact, self).render(template_cache, jinja2, recipe)
 

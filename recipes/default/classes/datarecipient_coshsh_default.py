@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#-*- encoding: utf-8 -*-
+#-*- coding: utf-8 -*-
 #
 # Copyright 2010-2012 Gerhard Lausser.
 # This software is licensed under the
@@ -27,9 +27,9 @@ class DatarecipientCoshshDefault(coshsh.datarecipient.Datarecipient):
         super(self.__class__, self).__init__(**kwargs)
         self.name = kwargs["name"]
         self.objects_dir = kwargs.get("objects_dir", kwargs.get("recipe_objects_dir", "/tmp"))
-        self.max_delta = kwargs.get("max_delta", ())
-        self.max_delta_action = kwargs.get("max_delta_action", None)
-        self.safe_output = kwargs.get("safe_output")
+        self.max_delta = kwargs.get("max_delta", kwargs.get("recipe_max_delta", ()))
+        self.max_delta_action = kwargs.get("max_delta_action", kwargs.get("recipe_max_delta_action", None))
+        self.safe_output = kwargs.get("safe_output", kwargs.get("recipe_safe_output", False))
         self.static_dir = os.path.join(self.objects_dir, 'static')
         if self.objects_dir.endswith("//"):
             self.dynamic_dir = self.objects_dir.rstrip("//")

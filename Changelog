@@ -1,3 +1,6 @@
+* 2018-05-11 4.3
+  make the recipe object visible in tpl files
+  fix coding
 * 2018-05-05 4.2.4
   allow other programs to use the coshsh logging utils
 * 2018-02-22 4.2.3

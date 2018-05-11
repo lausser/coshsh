@@ -1,3 +1,4 @@
+#-*- coding: utf-8 -*-
 import unittest
 import os
 import sys
@@ -6,6 +7,8 @@ import string
 from optparse import OptionParser
 import ConfigParser
 import logging
+import pprint
+import urllib
 
 
 sys.dont_write_bytecode = True
@@ -17,6 +20,7 @@ import coshsh
 from coshsh.generator import Generator
 from coshsh.datasource import Datasource
 from coshsh.datarecipient import Datarecipient
+from coshsh.host import Host
 from coshsh.application import Application
 from coshsh.util import setup_logging
 
@@ -35,6 +39,7 @@ class CoshshTest(unittest.TestCase):
         self.config.read('etc/coshsh.cfg')
         self.generator = coshsh.generator.Generator()
         setup_logging()
+        self.pp = pprint.PrettyPrinter(indent=4)
 
     def tearDown(self):
         shutil.rmtree("./var/objects/test12", True)
@@ -145,6 +150,38 @@ class CoshshTest(unittest.TestCase):
         self.assert_(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0/os_linux_default.cfg"))
         self.assert_(os.path.exists("var/objects/test1/dynamic/hosts/test_host_1/os_windows_default.cfg"))
 
+    def test_datasource_attributes_in_tpl(self):
+        self.print_header()
+        bash_breaker = u"*(;!&haha,friss!das!du!blöde!shell!"
+        bash_breaker_encoded = 'rfc3986://' + urllib.pathname2url(bash_breaker.encode('utf-8'))
+        self.generator.add_recipe(name='oracleds2tpl', **dict(self.config.items('recipe_ORACLEDS2TPL')))
+        self.config.set("datasource_CSV10.1", "name", "csv1")
+        cfg = self.config.items("datasource_CSV10.1")
+        self.generator.recipes['oracleds2tpl'].add_datasource(**dict(cfg))
+        setattr(self.generator.recipes['oracleds2tpl'].datasources[0], "sid", "ORCL1234")
+        setattr(self.generator.recipes['oracleds2tpl'].datasources[0], "username", "zosch")
+        setattr(self.generator.recipes['oracleds2tpl'].datasources[0], "password", bash_breaker)
+
+        host = Host({
+            'host_name': 'testhost',
+            'address': '127.0.0.1',
+            'alias': 'hosttest',
+        })
+        app = Application({
+            'host_name': 'testhost',
+            'name': 'eventhandlerdb',
+            'type': 'oraappindsdb',
+        })
+        self.generator.recipes['oracleds2tpl'].collect()
+        self.generator.recipes['oracleds2tpl'].datasources[0].add('hosts', host)
+        self.generator.recipes['oracleds2tpl'].datasources[0].add('applications', app)
+        self.generator.recipes['oracleds2tpl'].assemble()
+        self.generator.recipes['oracleds2tpl'].render()
+        self.assert_(len(self.generator.recipes['oracleds2tpl'].objects['applications']) == 3)
+        self.generator.recipes['oracleds2tpl'].output()
+        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts/testhost/app_oraappindsdb_default.cfg"))
+        app_oraappindsdb_default_cfg = open("var/objects/test1/dynamic/hosts/testhost/app_oraappindsdb_default.cfg").read()
+        self.assert_("!"+bash_breaker_encoded+" --sql" in app_oraappindsdb_default_cfg)
 
 if __name__ == '__main__':
     unittest.main()

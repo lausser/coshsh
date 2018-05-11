@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#-*- encoding: utf-8 -*-
+#-*- coding: utf-8 -*-
 #
 # This file belongs to coshsh.
 # Copyright Gerhard Lausser.
@@ -144,6 +144,7 @@ def setup_logging(logdir=".", logfile="coshsh.log", scrnloglevel=logging.INFO, t
     setup_logging.log_formatter = log_formatter
     setup_logging.txt_handler = txt_handler
     setup_logging.console_handler = console_handler
+    return logger
 
 
 def switch_logging(**kwargs):

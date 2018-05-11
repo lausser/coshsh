@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#-*- encoding: utf-8 -*-
+#-*- coding: utf-8 -*-
 #
 # This file belongs to coshsh.
 # Copyright Gerhard Lausser.
@@ -7,6 +7,7 @@
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
 import re
+import urllib
 
 # Jinja2 extensions
 """
@@ -131,3 +132,7 @@ def filter_custom_macros(obj):
     if macros:
         snippet += "\n" + macros
     return snippet
+
+def filter_rfc3986(text):
+    return 'rfc3986://' + urllib.pathname2url(text.encode('utf-8'))
+

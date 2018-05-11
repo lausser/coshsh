@@ -47,7 +47,7 @@ A datasource's job is to open and read the inventories and to create Host and Ap
 
 ```
 #!/usr/bin/env python
-#-*- encoding: utf-8 -*-
+#-*- coding: utf-8 -*-
 
 import logging
 import coshsh

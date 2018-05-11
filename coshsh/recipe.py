@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#-*- encoding: utf-8 -*-
+#-*- coding: utf-8 -*-
 #
 # This file belongs to coshsh.
 # Copyright Gerhard Lausser.
@@ -15,7 +15,7 @@ import logging
 import errno
 from jinja2 import FileSystemLoader, Environment, TemplateSyntaxError, TemplateNotFound
 import coshsh
-from coshsh.jinja2_extensions import is_re_match, filter_re_sub, filter_re_escape, filter_host, filter_service, filter_custom_macros
+from coshsh.jinja2_extensions import is_re_match, filter_re_sub, filter_re_escape, filter_host, filter_service, filter_custom_macros, filter_rfc3986
 from coshsh.item import Item
 from coshsh.application import Application
 from coshsh.contact import Contact
@@ -114,6 +114,7 @@ class Recipe(object):
         self.jinja2.env.filters['service'] = filter_service
         self.jinja2.env.filters['host'] = filter_host
         self.jinja2.env.filters['custom_macros'] = filter_custom_macros
+        self.jinja2.env.filters['rfc3986'] = filter_rfc3986
 
         if self.my_jinja2_extensions:
             for extension in [e.strip() for e in self.my_jinja2_extensions.split(",")]:
@@ -281,17 +282,17 @@ class Recipe(object):
     def render(self):
         template_cache = {}
         for host in self.objects['hosts'].values():
-            host.render(template_cache, self.jinja2)
+            host.render(template_cache, self.jinja2, self)
         for app in self.objects['applications'].values():
             # because of this __new__ construct the Item.searchpath is
             # not inherited. Needs to be done explicitely
-            app.render(template_cache, self.jinja2)
+            app.render(template_cache, self.jinja2, self)
         for cg in self.objects['contactgroups'].values():
-            cg.render(template_cache, self.jinja2)
+            cg.render(template_cache, self.jinja2, self)
         for c in self.objects['contacts'].values():
-            c.render(template_cache, self.jinja2)
+            c.render(template_cache, self.jinja2, self)
         for hg in self.objects['hostgroups'].values():
-            hg.render(template_cache, self.jinja2)
+            hg.render(template_cache, self.jinja2, self)
         # you can put anything in objects (Item class with own templaterules)
         for item in sum([self.objects[itype].values() for itype in self.objects if itype not in ['hosts', 'applications', 'details', 'contactgroups', 'contacts', 'hostgroups']], []):
             # first check hasattr, because somebody may accidentially
@@ -300,7 +301,7 @@ class Recipe(object):
             if hasattr(item, 'config_files') and not item.config_files:
                 # has not been populated with content in the datasource
                 # (like bmw appmon timeperiods)
-                item.render(template_cache, self.jinja2)
+                item.render(template_cache, self.jinja2, self)
             
     def count_before_objects(self):
         for datarecipient in self.datarecipients:

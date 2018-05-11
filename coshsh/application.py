@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#-*- encoding: utf-8 -*-
+#-*- coding: utf-8 -*-
 #
 # This file belongs to coshsh.
 # Copyright Gerhard Lausser.
@@ -116,11 +116,11 @@ class GenericApplication(Application):
     def __init__(self, params={}):
         super(GenericApplication, self).__init__(params)
 
-    def render(self, template_cache, jinja2):
+    def render(self, template_cache, jinja2, recipe):
         # Maybe we find some processes, ports, filesystems in the
         # monitoring_details so we can output generic services
         if (hasattr(self, "processes") and self.processes) or (hasattr(self, "filesystems") and self.filesystems) or (hasattr(self, "cfgfiles") and self.cfgfiles) or (hasattr(self, "files") and self.files) or (hasattr(self, "ports") and self.ports) or (hasattr(self, "urls") and self.urls) or (hasattr(self, "services") and self.services):
-            super(GenericApplication, self).render(template_cache, jinja2)
+            super(GenericApplication, self).render(template_cache, jinja2, recipe)
         else:
             return ()
 
