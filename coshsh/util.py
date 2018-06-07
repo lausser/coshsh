@@ -110,7 +110,7 @@ def clean_umlauts(text):
         text = text.replace(from_str, to_str)
     return text
 
-def setup_logging(logdir=".", logfile="coshsh.log", scrnloglevel=logging.INFO, txtloglevel=logging.INFO):
+def setup_logging(logdir=".", logfile="coshsh.log", scrnloglevel=logging.INFO, txtloglevel=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"):
     logdir = os.path.abspath(logdir)
     abs_logfile = logfile if os.path.isabs(logfile) else os.path.join(logdir, logfile)
     if not os.path.exists(os.path.dirname(abs_logfile)):
@@ -123,7 +123,7 @@ def setup_logging(logdir=".", logfile="coshsh.log", scrnloglevel=logging.INFO, t
         # this method can be called multiple times in the unittests
         logger.handlers = []
     logger.setLevel(logging.DEBUG)
-    log_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    log_formatter = logging.Formatter(format)
 
     txt_handler = RotatingFileHandler(abs_logfile, backupCount=2, maxBytes=20*1024*1024)
     txt_handler.setFormatter(log_formatter)

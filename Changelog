@@ -1,3 +1,5 @@
+* 2018-06-07 4.3.1
+  setup_logging gets a format parameter
 * 2018-05-11 4.3
   make the recipe object visible in tpl files
   fix coding
