@@ -70,7 +70,7 @@ class Datasource(object):
         # i find a suitable class
         # i rebless
         # i call __init__
-        
+
     def open(self, **kwargs):
         pass
 
@@ -137,7 +137,9 @@ class Datasource(object):
                 if newcls:
                     return newcls
             except Exception ,exp:
-                print "Datasource.get_class exception", exp
+                dsname = 'INVALID' if 'name' not in params else params['name']
+                print 'Datasource.get_class exception while trying module "%s" for datasource "%s": %s %s' % \
+                      (os.path.join(path, module), dsname, type(exp), exp)
                 pass
         logger.debug("found no matching class for this datasource %s" % params)
 
