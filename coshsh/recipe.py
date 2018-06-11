@@ -357,7 +357,6 @@ class Recipe(object):
             kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
         newcls = Datasource.get_class(kwargs)
         if newcls:
-
             for key in [attr for attr in self.attributes_for_adapters if hasattr(self, attr)]:
                 kwargs['recipe_'+key] = getattr(self, key)
             for key, value in self.additional_recipe_fields.iteritems():
