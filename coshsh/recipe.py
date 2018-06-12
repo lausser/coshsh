@@ -55,9 +55,12 @@ class Recipe(object):
 
     def __init__(self, **kwargs):
         os.environ['RECIPE_NAME'] = kwargs["name"]
+        self.additional_recipe_fields = {}
         for key in kwargs.iterkeys():
             if isinstance(kwargs[key], basestring):
                 kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
+                if key not in self.attributes_for_adapters:
+                    self.additional_recipe_fields[key] = re.sub('%.*?%', substenv, kwargs[key])
         self.name = kwargs["name"]
         self.log_file = kwargs.get("log_file", None)
         self.log_dir = kwargs.get("log_dir", None)
@@ -356,6 +359,8 @@ class Recipe(object):
         if newcls:
             for key in [attr for attr in self.attributes_for_adapters if hasattr(self, attr)]:
                 kwargs['recipe_'+key] = getattr(self, key)
+            for key, value in self.additional_recipe_fields.iteritems():
+                kwargs['recipe_'+key] = value
             datasource = newcls(**kwargs)
             self.datasources.append(datasource)
 
