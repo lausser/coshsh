@@ -61,6 +61,7 @@ setup(name='coshsh',
       author='Gerhard Lausser',
       author_email='gerhard.lausser@consol.de',
       license='AGPLv3',
+      keywords=['nagios', 'icinga', 'naemon', 'shinken', 'prometheus', 'monitoring'],
       packages=['coshsh'],
       data_files=[
           (os.path.join('recipes', 'default', 'classes'), 

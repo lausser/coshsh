@@ -1,2 +1,5 @@
 recursive-include recipes *
 recursive-include tests *
+global-exclude *.pyc
+global-exclude .git
+recursive-exclude tests/var/objects/*/dynamic .git

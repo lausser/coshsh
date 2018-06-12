@@ -4,6 +4,7 @@ clean:
 	find . -name \*.pyc -exec rm {} \;
 	find . -name coshsh.log -exec rm {} \;
 	rm -f coshsh.tgz
+	rm -rf tests/var/*
 
 pack:
 	tar --exclude .git \
