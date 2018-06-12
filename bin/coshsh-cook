@@ -85,6 +85,7 @@ if __name__ == '__main__':
     opts, args = parser.parse_args()
     generator = Generator()
     if opts.cookbook_file:
+        generator.cookbook = os.path.abspath(opts.cookbook_file)
         recipe_configs = {}
         datasource_configs = {}
         datarecipient_configs = {}
@@ -155,10 +156,9 @@ if __name__ == '__main__':
         parser.error("Use option -c/--cookbook")
     if args:
         parser.error("Does not accept any argument. Use option -c/--cookbook")
-    #if len(generator.datasources) == 0:
-    #   parser.error("None of the cookbookured datasources was found")
 
-    # nagios_dir cookbook option sets an alternative target
-    # and may be used to replace Coshsh.base_dir
+    if "prometheus_pushgateway" in cookbook.sections() and "address" in [c[0] for c in cookbook.items("prometheus_pushgateway")]:
+        generator.add_pushgateway(**dict(cookbook.items("prometheus_pushgateway")))
+
     generator.run()
 
