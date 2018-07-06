@@ -1,4 +1,6 @@
-![Logo](https://labs.consol.de/assets/images/coshsh_logo_small.png)
+![Logo](https://labs.consol.de/assets/images/coshsh_logo_small.png) [![Workshop](https://labs.consol.de/assets/images/braunschweig-banner.gif)](https://monitors-2018.tu-braunschweig.de/dokuwiki/doku.php)
+
+
 # coshsh Config-Generator for Shinken / Nagios /Icinga
 
 ## What is coshsh?
