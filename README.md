@@ -1,11 +1,18 @@
-![Logo](https://labs.consol.de/assets/images/coshsh_logo_small.png) [![Workshop](https://labs.consol.de/assets/images/braunschweig-banner.gif)](https://monitors-2018.tu-braunschweig.de/dokuwiki/doku.php)
-
+**Komm nach Braunschweig und triff die Leute, die sich mit genau demselben Kram beschäftigen wie du!**
+<a href="https://monitors-2018.tu-braunschweig.de/dokuwiki/doku.php"><img src="https://labs.consol.de/assets/images/braunschweig-banner.gif"></a>
 
 # coshsh Config-Generator for Shinken / Nagios /Icinga
+
+<div><a href="https://www.buymeacoffee.com/bsNED0Wct" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/black_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a></div>
 
 ## What is coshsh?
 
 http://coshsh.org is a framework which helps you producing configuration files for open source monitoring systems.
+
+## Can i have a sticker?
+
+Yes! Visit me at Consol, Franziskanerstraße 38, 81669 München and i give you one.
+![Logo](https://labs.consol.de/assets/images/coshsh_logo_small.png)
 
 ## Features
 
