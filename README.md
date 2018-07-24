@@ -12,7 +12,7 @@ http://coshsh.org is a framework which helps you producing configuration files f
 ## Can i have a sticker?
 
 Yes! Visit me at Consol, Franziskanerstraße 38, 81669 München and i give you one. 
-[Logo](https://labs.consol.de/assets/images/coshsh_logo_small.png)
+![Logo](https://labs.consol.de/assets/images/coshsh_logo_small.png)
 
 ## Features
 
