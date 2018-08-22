@@ -1,3 +1,6 @@
+* 2018-08-23 5.1
+  prefix prometheus metrics
+  add snmptt files
 * 2018-06-12 5.0
   write metrics to a prometheus pushgateway
   pull request #3 allow arbitrary fields in recipe config to be used in datasource
