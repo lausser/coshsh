@@ -1,0 +1,24 @@
+EVENT unityGenericTrapCritical .1.3.6.1.4.1.1139.103.1.18.2.2 "Status Events" CRITICAL
+FORMAT Component: $2 of node: $1 has an issue. $4 (identifier=$3, trapID=.1.3.6.1.4.1.1139.103.1.18.2.2)
+SDESC
+This trap is generated when the system is in critical condition.
+Variables:
+  1: unityTrapNode
+  2: unityTrapComponent
+  3: unityTrapSymptomID
+  4: unityTrapSymptomText
+  5: unityTrapTimeStamp
+EDESC
+
+EVENT unityGenericTrapError .1.3.6.1.4.1.1139.103.1.18.2.3 "Status Events" CRITICAL
+FORMAT Component: $2 of node: $1 has an issue. $4 (identifier=$3, trapID=.1.3.6.1.4.1.1139.103.1.18.2.3)
+SDESC
+This trap is generated when there is an error in the system.
+Variables:
+  1: unityTrapNode
+  2: unityTrapComponent
+  3: unityTrapSymptomID
+  4: unityTrapSymptomText
+  5: unityTrapTimeStamp
+EDESC
+
