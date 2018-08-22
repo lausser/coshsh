@@ -73,21 +73,21 @@ class Generator(object):
                         recipe.render()
                         recipe.output()
                         if has_prometheus:
-                            g = Gauge("recipe_last_generated",
+                            g = Gauge("coshsh_recipe_last_generated",
                                 "The timestamp when a configuration was generated",
                                 registry=registry)
                             g.set_to_current_time()
-                            g = Gauge("recipe_number_of_objects",
+                            g = Gauge("coshsh_recipe_number_of_objects",
                                 "The number of objects of a certain type", ['type'],
                                 registry=registry)
                             for objtype in recipe.objects.keys():
                                 g.labels(type=objtype).set(len(recipe.objects[objtype]))
-                            g = Gauge("recipe_last_duration",
+                            g = Gauge("coshsh_recipe_last_duration",
                                 "The duration of a recipe",
                                 registry=registry)
                             g.set(time.time() - tic)
                     if has_prometheus:
-                        g = Gauge("recipe_last_success",
+                        g = Gauge("coshsh_recipe_last_success",
                             "The timestamp when the recipe successfully ran last time",
                             registry=registry)
                         g.set_to_current_time()
