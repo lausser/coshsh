@@ -1,3 +1,5 @@
+* 2018-08-23 5.1.0.1
+  remove snmptt, belongs to omd
 * 2018-08-23 5.1
   prefix prometheus metrics
   add snmptt files
