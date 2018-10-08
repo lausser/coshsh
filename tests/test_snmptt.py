@@ -1,10 +1,14 @@
-import unittest
 import os
 import sys
 import shutil
 import string
 from optparse import OptionParser
 import logging
+if (sys.version_info < (2, 7, 0)):
+    import unittest2 as unittest
+else:
+    import unittest
+
 
 
 sys.dont_write_bytecode = True
