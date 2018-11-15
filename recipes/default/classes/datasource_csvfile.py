@@ -17,11 +17,14 @@ from coshsh.application import Application
 from coshsh.contactgroup import ContactGroup
 from coshsh.contact import Contact
 from coshsh.monitoringdetail import MonitoringDetail
-from coshsh.util import compare_attr
+from coshsh.util import compare_attr, substenv
 
 logger = logging.getLogger('coshsh')
 
 def __ds_ident__(params={}):
+    if coshsh.util.compare_attr("type", params, "recipe_csv"):
+        # csv-files have names like self.name+'_'+self.recipe_name+'_*.csv
+        return CsvFileRecipe
     if coshsh.util.compare_attr("type", params, "csv"):
         return CsvFile
 
@@ -37,9 +40,16 @@ class CommentedFile:
     def __iter__(self):
         return self
 
+class CommentedFileEnv(CommentedFile):
+    def next(self):
+        line = self.f.next()
+        while line.startswith(self.commentstring):
+            line = self.f.next()
+        return re.sub('%.*?%', substenv, line)
+
 class CsvFile(coshsh.datasource.Datasource):
     def __init__(self, **kwargs):
-        super(self.__class__, self).__init__(**kwargs)
+        super(CsvFile, self).__init__(**kwargs)
         self.name = kwargs["name"]
         self.dir = kwargs["dir"]
         self.objects = {}
@@ -49,12 +59,18 @@ class CsvFile(coshsh.datasource.Datasource):
         if not os.path.exists(self.dir):
             logger.error('csv dir %s does not exist' % self.dir)
             raise coshsh.datasource.DatasourceNotAvailable
+        self.csv_hosts = os.path.join(self.dir, self.name+'_hosts.csv')
+        self.csv_applications = os.path.join(self.dir, self.name+'_applications.csv')
+        self.csv_applicationdetails = os.path.join(self.dir, self.name+'_applicationdetails.csv')
+        self.csv_contactgroups = os.path.join(self.dir, self.name+'_contactgroups.csv')
+        self.csv_contacts = os.path.join(self.dir, self.name+'_contacts.csv')
+        self.file_class = CommentedFileEnv
 
     def read(self, filter=None, objects={}, force=False, **kwargs):
         self.objects = objects
         try:
-            hostreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_hosts.csv'))))
-            logger.info('read hosts from %s' % os.path.join(self.dir, self.name+'_hosts.csv'))
+            hostreader = csv.DictReader(self.file_class(open(self.csv_hosts)))
+            logger.info('read hosts from %s' % self.csv_hosts)
         except Exception, exp:
             logger.debug(exp)
             hostreader = []
@@ -70,8 +86,8 @@ class CsvFile(coshsh.datasource.Datasource):
             self.add('hosts', h)
 
         try:
-            appreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_applications.csv'))))
-            logger.info('read applications from %s' % os.path.join(self.dir, self.name+'_applications.csv'))
+            appreader = csv.DictReader(self.file_class(open(self.csv_applications)))
+            logger.info('read applications from %s' % self.csv_applications)
         except Exception, exp:
             logger.debug(exp)
             appreader = []
@@ -96,8 +112,8 @@ class CsvFile(coshsh.datasource.Datasource):
             self.add('applications', a)
 
         try:
-            appdetailreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_applicationdetails.csv'))))
-            logger.info('read appdetails from %s' % os.path.join(self.dir, self.name+'_applicationdetails.csv'))
+            appdetailreader = csv.DictReader(self.file_class(open(self.csv_applicationdetails)))
+            logger.info('read appdetails from %s' % self.csv_applicationdetails)
         except Exception, exp:
             logger.debug(exp)
             appdetailreader = []
@@ -120,8 +136,8 @@ class CsvFile(coshsh.datasource.Datasource):
             self.add('details', detail)
         
         try:
-            contactgroupreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_contactgroups.csv'))))
-            logger.info('read contactgroups from %s' % os.path.join(self.dir, self.name+'_contactgroups.csv'))
+            contactgroupreader = csv.DictReader(self.file_class(open(self.csv_contactgroups)))
+            logger.info('read contactgroups from %s' % self.csv_contactgroups)
         except Exception, exp:
             logger.debug(exp)
             contactgroupreader = []
@@ -158,8 +174,8 @@ class CsvFile(coshsh.datasource.Datasource):
 
         
         try:
-            contactreader = csv.DictReader(CommentedFile(open(os.path.join(self.dir, self.name+'_contacts.csv'))))
-            logger.info('read contacts from %s' % os.path.join(self.dir, self.name+'_contacts.csv'))
+            contactreader = csv.DictReader(self.file_class(open(self.csv_contacts)))
+            logger.info('read contacts from %s' % self.csv_contacts)
         except Exception, exp:
             logger.debug(exp)
             contactreader = []
@@ -170,4 +186,19 @@ class CsvFile(coshsh.datasource.Datasource):
                 c.contactgroups.extend(row["groups"].split(":"))
                 self.add('contacts', c)
 
+
+
+class CsvFileRecipe(CsvFile):
+
+    def open(self):
+        logger.info('open datasource %s' % self.name)
+        if not os.path.exists(self.dir):
+            logger.error('csv dir %s does not exist' % self.dir)
+            raise coshsh.datasource.DatasourceNotAvailable
+        self.csv_hosts = os.path.join(self.dir, self.name+'_'+self.recipe_name+'_hosts.csv')
+        self.csv_applications = os.path.join(self.dir, self.name+'_'+self.recipe_name+'_applications.csv')
+        self.csv_applicationdetails = os.path.join(self.dir, self.name+'_'+self.recipe_name+'_applicationdetails.csv')
+        self.csv_contactgroups = os.path.join(self.dir, self.name+'_'+self.recipe_name+'_contactgroups.csv')
+        self.csv_contacts = os.path.join(self.dir, self.name+'_'+self.recipe_name+'_contacts.csv')
+        self.file_class = CommentedFileEnv
 

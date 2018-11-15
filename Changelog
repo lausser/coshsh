@@ -1,3 +1,6 @@
+* 2018-11-15 5.2
+  datasource_csv replaces env macros in input lines
+  new datasource recipe_csv where file names conttain the recipe name
 * 2018-08-23 5.1.0.2
   fix the snmptt test
 * 2018-08-23 5.1.0.1
