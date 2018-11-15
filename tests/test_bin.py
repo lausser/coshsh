@@ -24,6 +24,8 @@ class CoshshTest(unittest.TestCase):
     def setUp(self):
         shutil.rmtree("./var/objects/test1", True)
         os.makedirs("./var/objects/test1")
+        shutil.rmtree("./var/objects/test4", True)
+        os.makedirs("./var/objects/test4")
         self.config = ConfigParser.ConfigParser()
         self.config.read('etc/coshsh.cfg')
         self.generator = coshsh.generator.Generator()
@@ -32,6 +34,16 @@ class CoshshTest(unittest.TestCase):
     def tearDown(self):
         #shutil.rmtree("./var/objects/test1", True)
         pass 
+
+
+    def test_coshsh_cook(self):
+        subprocess.call("../bin/coshsh-cook --cookbook etc/coshsh.cfg --recipe test4", shell=True)
+        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts"))
+        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0"))
+        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0/os_linux_default.cfg"))
+        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg"))
+        os_windows_default_cfg = open("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg").read()
+        self.assert_('os_windows_default_check_unittest' in os_windows_default_cfg)
 
 
     def test_create_template_tree(self):

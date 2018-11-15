@@ -1,10 +1,14 @@
-import unittest
 import os
 import sys
 import shutil
 import string
 from optparse import OptionParser
 import logging
+if (sys.version_info < (2, 7, 0)):
+    import unittest2 as unittest
+else:
+    import unittest
+
 
 
 sys.dont_write_bytecode = True
@@ -33,6 +37,7 @@ class CoshshTest(unittest.TestCase):
         #shutil.rmtree("./etc/check_logfiles/snmptt", True)
         pass
 
+    @unittest.skipIf(not os.path.exists("recipes/testsnmptt/classes/datasource_snmptt.py"), "Please install a recipes/testsnmptt/classes/datasource_snmptt.py, which is part of OMD")
     def test_create_recipe_multiple_sources(self):
         self.print_header()
         self.generator.add_recipe(name='testsnmptt', **dict(self.config.items('recipe_TESTsnmptt')))
@@ -43,6 +48,7 @@ class CoshshTest(unittest.TestCase):
         cfg = self.config.items("datasource_snmptt")
         self.generator.recipes['testsnmptt'].add_datasource(**dict(cfg))
         recipe = self.generator.recipes['testsnmptt']
+	print "---------------------->", recipe.__dict__
         #recipe.add_datarecipient(**dict([('type', 'datarecipient_coshsh_default'), ('name', 'datarecipient_coshsh_default'), ('objects_dir', recipe.objects_dir), ('max_delta', recipe.max_delta), ('max_delta_action', recipe.max_delta_action), ('safe_output', recipe.safe_output)]))
         self.config.set("datarecipient_checklogfiles_mibs", "name", "checklogfiles_mibs")
         cfg = self.config.items("datarecipient_checklogfiles_mibs")
