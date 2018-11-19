@@ -119,6 +119,7 @@ class CoshshTest(unittest.TestCase):
         cfg = self.config.items("datasource_CSVDETAILS")
         objects = self.generator.recipes['test6'].objects
         ds = coshsh.datasource.Datasource(**dict(cfg))
+        ds.open()
         ds.read(objects=objects)
 
 
