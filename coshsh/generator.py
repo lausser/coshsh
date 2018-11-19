@@ -50,7 +50,7 @@ class Generator(object):
             except Exception:
                 coshshuser = os.getenv("username")
             hostname = gethostname()
-            cookbook = os.path.basename(self.cookbook)
+            cookbook = self.cookbook
             if self.pg_username:
                 pg_auth_handler = lambda url, method, timeout, headers, data: basic_auth_handler(url, method, timeout, headers, data, self.pg_username, self.pg_password)
             else:

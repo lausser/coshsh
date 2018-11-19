@@ -62,9 +62,9 @@ if __name__ == '__main__':
     parser = OptionParser(
         "%prog [options] --cookbook cookbookfile [--recipe recipe]",
         version="%prog " + VERSION)
-    parser.add_option('--cookbook', action='store',
-                      dest="cookbook_file",
-                      help='Config file')
+    parser.add_option('--cookbook', action='append',
+                      dest="cookbook_files",
+                      help='One or more Config files')
     parser.add_option('--recipe', action='store',
                       dest="default_recipe",
                       help="Cook a configuration following <recipe>")
@@ -84,16 +84,16 @@ if __name__ == '__main__':
 
     opts, args = parser.parse_args()
     generator = Generator()
-    if opts.cookbook_file:
-        generator.cookbook = os.path.abspath(opts.cookbook_file)
+    if opts.cookbook_files:
+        generator.cookbook = '___'.join(map(lambda cf: os.path.basename(os.path.abspath(cf)), opts.cookbook_files))
         recipe_configs = {}
         datasource_configs = {}
         datarecipient_configs = {}
         recipes = []
         cookbook = coshsh.configparser.CoshshConfigParser()
-        cookbook.read(opts.cookbook_file)
+        cookbook.read(opts.cookbook_files)
         if cookbook._sections == {}:
-            print "Bad or missing cookbook file : %s " % opts.cookbook_file
+            print "Bad or missing cookbook files : %s " % ', '.join(opts.cookbook_files)
             sys.exit(2)
             
         for ds in [section for section in cookbook.sections() if section.startswith('datarecipient_')]:
