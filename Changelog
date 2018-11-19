@@ -1,3 +1,5 @@
+* 2018-11-19 5.3
+  allow more than one cookbook
 * 2018-11-15 5.2
   datasource_csv replaces env macros in input lines
   new datasource recipe_csv where file names conttain the recipe name
