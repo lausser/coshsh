@@ -57,6 +57,19 @@ class CoshshTest(unittest.TestCase):
         self.assert_(os.path.exists("var/objects/test1/static/service_templates/os_windows_fs.cfg"))
         self.assert_(os.path.exists("var/objects/test1/static/service_templates/os_windows.cfg"))
 
+    def test_multiple_cookbooks(self):
+        self.print_header()
+        os.makedirs("./var/objects/test1/static")
+        os.makedirs("./var/objects/test1_mod/static")
+        self.assert_(os.path.exists("var/objects/test1/static"))
+        self.assert_(os.path.exists("var/objects/test1_mod/static"))
+        self.assert_(os.path.exists("../bin/coshsh-create-template-tree"))
+        #subprocess.call(["../bin/coshsh-create-template-tree", "--cookbook", "etc/coshsh.cfg", "--recipe", "test4", "--template", "os_windows_fs"], shell=True)
+        subprocess.call("../bin/coshsh-create-template-tree --cookbook etc/coshsh.cfg --cookbook etc/coshsh6.cfg --recipe test4 --template os_windows_fs", shell=True)
+        self.assert_(os.path.exists("var/objects/test1_mod/static/service_templates"))
+        self.assert_(os.path.exists("var/objects/test1_mod/static/service_templates/os_windows_fs.cfg"))
+        self.assert_(os.path.exists("var/objects/test1_mod/static/service_templates/os_windows.cfg"))
+
 
 
 if __name__ == '__main__':
