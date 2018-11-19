@@ -15,7 +15,7 @@ import logging
 import errno
 from jinja2 import FileSystemLoader, Environment, TemplateSyntaxError, TemplateNotFound
 import coshsh
-from coshsh.jinja2_extensions import is_re_match, filter_re_sub, filter_re_escape, filter_host, filter_service, filter_custom_macros, filter_rfc3986
+from coshsh.jinja2_extensions import is_re_match, filter_re_sub, filter_re_escape, filter_host, filter_service, filter_custom_macros, filter_rfc3986, global_environ
 from coshsh.item import Item
 from coshsh.application import Application
 from coshsh.contact import Contact
@@ -118,6 +118,7 @@ class Recipe(object):
         self.jinja2.env.filters['host'] = filter_host
         self.jinja2.env.filters['custom_macros'] = filter_custom_macros
         self.jinja2.env.filters['rfc3986'] = filter_rfc3986
+        self.jinja2.env.globals['environ'] = global_environ
 
         if self.my_jinja2_extensions:
             for extension in [e.strip() for e in self.my_jinja2_extensions.split(",")]:
@@ -126,6 +127,8 @@ class Recipe(object):
                     self.jinja2.env.tests[extension.replace("is_", "")] = imported
                 elif extension.startswith("filter_"):
                     self.jinja2.env.filters[extension.replace("filter_", "")] = imported
+                elif extension.startswith("global_"):
+                    self.jinja2.env.globals[extension.replace("global_", "")] = imported
             
         self.datasources = []
         self.datarecipients = []

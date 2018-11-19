@@ -8,6 +8,7 @@
 
 import re
 import urllib
+import os
 
 # Jinja2 extensions
 """
@@ -136,3 +137,6 @@ def filter_custom_macros(obj):
 def filter_rfc3986(text):
     return 'rfc3986://' + urllib.pathname2url(text.encode('utf-8'))
 
+def global_environ(var, default=None):
+    val = os.getenv(var, default)
+    return val if val != None else ""

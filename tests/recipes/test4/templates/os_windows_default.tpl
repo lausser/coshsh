@@ -46,3 +46,14 @@ define servicedependency {
   dependent_service_description    os_windows_.*,\
                                    !os_windows_default_check_nsclient
 }
+
+# environment variable COSHSHENV1 ({{ environ("COSHSHENV1") }})
+# environment default COSHSHENV1 ({{ environ("COSHSHENV1", "schlurz") }})
+# environment variable COSHSHENV2 ({{ environ("COSHSHENV2") }})
+{% if environ("COSHSHENV1") == "variante1" %}
+# environ("COSHSHENV1") == "variante1"
+# environment variante {{ environ("COSHSHENV1") }}
+{% else %}
+# environ("COSHSHENV1") != "variante1"
+# environment variante {{ environ("COSHSHENV2") }}
+{% endif %}
