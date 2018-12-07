@@ -22,7 +22,6 @@ Yes! Visit me at Consol, Franziskanerstraße 38, 81669 München and i give you o
 Because others use it too.
 * The city of Munich. https://bit.ly/2QhNCOJ
 * A car manufacturer at Munich with three letters. 
-* A global consulting firm.
 * A global storage company with three letters.
 * Lidl/Kaufland. https://bit.ly/2L459nH
 
