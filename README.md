@@ -24,6 +24,7 @@ Because others use it too.
 * A car manufacturer at Munich with three letters. 
 * A global consulting firm.
 * A global storage company with three letters.
+* Lidl/Kaufland. https://bit.ly/2L459nH
 
 and many more companies which eliminated manual tasks in monitoring.
 
