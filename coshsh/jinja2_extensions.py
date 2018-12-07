@@ -94,8 +94,8 @@ def filter_service(application, service_description):
         snippet = "define service {\n  service_description             %s\n" % service_description
         for detail in relevant_details:
             snippet += "  %-31s %s\n" % (detail.attribute, detail.value)
-        snippet += "  use                             %s\n}\n" % (service_description + "_" + application.host_name, )
-        snippet += "define service {\n  name                            %s\n" % service_description + "_" + application.host_name
+        snippet += "  use                             %s_%s\n}\n" % (service_description, application.host_name, )
+        snippet += "define service {\n  name                            %s_%s\n" % (service_description, application.host_name)
         snippet += "  register                        0"
         if len(application.contact_groups) > 0:
             snippet += "\n  contact_groups %s" % application.contact_groups

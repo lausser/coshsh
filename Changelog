@@ -1,3 +1,5 @@
+* 2018-12-07 5.3.1.1
+  bugfix in detail NAGIOSCONF and filter_service
 * 2018-11-19 5.3.1
   add function environ()
 * 2018-11-19 5.3
