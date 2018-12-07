@@ -1,6 +1,3 @@
-**Komm nach Braunschweig und triff die Leute, die sich mit genau demselben Kram beschäftigen wie du!**
-<a href="https://monitors-2018.tu-braunschweig.de/dokuwiki/doku.php"><img src="https://labs.consol.de/assets/images/braunschweig-banner.gif"></a>
-
 # coshsh Config-Generator for Shinken / Nagios /Icinga
 
 <div><a href="https://www.buymeacoffee.com/bsNED0Wct" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/black_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a></div>
@@ -20,6 +17,15 @@ Yes! Visit me at Consol, Franziskanerstraße 38, 81669 München and i give you o
 * coshsh is very fast. (~60000 services in 10 seconds)
 * coshsh can be extended easily.
 * coshsh reads only hosts and applications. Services are added later.
+
+## Why should you use it?
+Because others use it too.
+* The city of Munich. https://bit.ly/2QhNCOJ
+* A car manufacturer at Munich with three letters. 
+* A global consulting firm.
+* A global storage company with three letters.
+
+and many more companies which eliminated manual tasks in monitoring.
 
 ## Download
 
