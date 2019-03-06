@@ -149,13 +149,6 @@ class Recipe(object):
         self.old_objects = (0, 0)
         self.new_objects = (0, 0)
 
-        self.datasource_filters = {}
-        self.filter = kwargs.get("filter")
-        if kwargs.get("filter"):
-            for rule in kwargs.get("filter").split(','):
-                match = re.match(r'(\w+)\((.*)\)', rule)
-                if match:
-                    self.datasource_filters[match.groups()[0].lower()] = match.groups()[1]
         self.init_class_cache()
 
         if kwargs.get("datasources"):
@@ -176,6 +169,27 @@ class Recipe(object):
         self.datarecipient_names = ['datarecipient_coshsh_default' if dr == '>>>' else dr for dr in self.datarecipient_names]
         if 'datarecipient_coshsh_default' in self.datarecipient_names:
             self.add_datarecipient(**dict([('type', 'datarecipient_coshsh_default'), ('name', 'datarecipient_coshsh_default'), ('objects_dir', self.objects_dir), ('max_delta', self.max_delta), ('max_delta_action', self.max_delta_action), ('safe_output', self.safe_output)]))
+
+        self.datasource_filters = {}
+        self.filter = kwargs.get("filter")
+        if kwargs.get("filter"):
+            dsfilter_p = re.compile('(([^,^(^)]+)\((.*?)\))')
+            for rule in dsfilter_p.findall(self.filter):
+                if not rule[1].lower() in self.datasource_names:
+                    # koennte ein regex sein
+                    tmp_dsname = rule[1]
+                    if not tmp_dsname.startswith("^"):
+                        tmp_dsname = "^"+tmp_dsname
+                    if not tmp_dsname.endswith("^"):
+                        tmp_dsname = tmp_dsname+"$"
+                    rule_p = re.compile(tmp_dsname)
+                    for ds in self.datasource_names:
+                        if rule_p.match(ds):
+                            self.datasource_filters[ds] = rule[2]
+            for rule in dsfilter_p.findall(self.filter):
+                # direkte treffer in jedem fall so eintragen
+                if rule[1].lower() in self.datasource_names:
+                    self.datasource_filters[rule[1].lower()] = rule[2]
 
     def set_recipe_sys_path(self):
         sys.path[0:0] = self.classes_path

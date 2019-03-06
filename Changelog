@@ -1,3 +1,5 @@
+* 2019-03-06 5.4
+  datasource names in filters can be regular expressions
 * 2018-12-07 5.3.1.1
   bugfix in detail NAGIOSCONF and filter_service
 * 2018-11-19 5.3.1
