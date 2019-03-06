@@ -32,7 +32,8 @@ class CoshshTest(unittest.TestCase):
         setup_logging()
 
     def tearDown(self):
-        #shutil.rmtree("./var/objects/test1", True)
+        shutil.rmtree("./var/objects/test1", True)
+        shutil.rmtree("./var/objects/test1_mod", True)
         pass 
 
 
