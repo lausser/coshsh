@@ -139,6 +139,19 @@ class CoshshTest(unittest.TestCase):
             print "exp is ", exp.__class__.__name__
         self.assert_(exp.__class__.__name__ == "RecipePidGarbage")
 
+    def test_pid_empty(self):
+        self.print_header()
+        pid_file = self.generator.recipes['test1'].pid_file
+        open(pid_file, 'a').close()
+        self.generator.run()
+        # bricht ab wegen garbage, loescht aber das pid-file
+        self.assert_(not os.path.exists(pid_file))
+        self.assert_(not os.path.exists("var/objects/test1/dynamic/hosts"))
+        self.generator.run()
+        # loescht das pid-file, weil der lauf ganz normal war
+        self.assert_(not os.path.exists(pid_file))
+        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts"))
+
     def test_pid_perms(self):
         self.print_header()
         #self.generator.recipes['test1'].pid_dir = "/"

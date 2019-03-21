@@ -398,6 +398,10 @@ class Recipe(object):
             try:
                 pid = int(open(self.pid_file).read().strip())
             except ValueError:
+                if os.stat(self.pid_file).st_size == 0 and os.statvfs(self.pid_file).f_bavail > 0:
+                    # might be (and was) the result of a full filesystem in the past
+                    logger.info('removing empty pidfile %s' % (self.pid_file,))
+                    os.remove(self.pid_file)
                 raise RecipePidGarbage
             try:
                 os.kill(pid, 0)
