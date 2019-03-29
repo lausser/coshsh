@@ -217,16 +217,16 @@ class Recipe(object):
                 ds.close()
             except DatasourceNotCurrent:
                 data_valid = False
-                logger.info("datasource %s is is not current" % ds.name)
+                logger.info("datasource %s is is not current" % ds.name, exc_info=True)
             except DatasourceNotReady:
                 data_valid = False
-                logger.info("datasource %s is busy" % ds.name)
+                logger.info("datasource %s is busy" % ds.name, exc_info=True)
             except DatasourceNotAvailable:
                 data_valid = False
-                logger.info("datasource %s is not available" % ds.name)
+                logger.info("datasource %s is not available" % ds.name, exc_info=True)
             except Exception, exp:
                 data_valid = False
-                logger.critical("datasource %s returns bad data (%s)" % (ds.name, exp))
+                logger.critical("datasource %s returns bad data (%s)" % (ds.name, exp), exc_info=True)
             if not data_valid:
                 logger.info("aborting collection phase") 
                 return False
