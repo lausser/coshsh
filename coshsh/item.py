@@ -236,8 +236,8 @@ class Item(object):
                     
                 elif hasattr(self, rule.needsattr) and isinstance (getattr(self, rule.needsattr), list):
                     pass
-            except Exception:
-                logger.critical("error in %s template rules. please check %s" % (self.__class__.__name__, rule))
+            except Exception, e:
+                logger.critical("error in %s template rules. please check %s. Error was: %s" % (self.__class__.__name__, rule, str(e)))
 
             if render_this:
                 if rule.unique_config and isinstance(rule.unique_attr, basestring) and hasattr(self, rule.unique_attr):
