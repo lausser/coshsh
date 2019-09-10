@@ -4,7 +4,7 @@
 
 ## What is coshsh?
 
-http://coshsh.org is a framework which helps you producing configuration files for open source monitoring systems.
+Coshsh is a framework which helps you producing configuration files for open source monitoring systems.
 
 ## Can i have a sticker?
 
