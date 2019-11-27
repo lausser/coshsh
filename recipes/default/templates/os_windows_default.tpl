@@ -20,16 +20,6 @@
   check_command                   check_nsc_web!30!check_uptime 'warning=uptime<180s' 'critical=uptime<60s'
 }
 
-define servicedependency {
-  name                             dependency_os_windows_default_check_nsclient_uc_{{ application.host_name }}
-  host_name                        {{ application.host_name }}
-  service_description              os_windows_default_check_nsclient
-  execution_failure_criteria       u,c,p
-  notification_failure_criteria    u,c
-  dependent_service_description    os_windows_.*,\
-                                   !os_windows_default_check_nsclient
-}
-
 {{ application|service("os_windows_default_check_uptime") }}
   host_name                       {{ application.host_name }}
   use                             os_windows_default,srv-perf
