@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #-*- coding: utf-8 -*-
 #
 # This file belongs to coshsh.
@@ -217,13 +217,13 @@ class Recipe(object):
                 ds.close()
             except DatasourceNotCurrent:
                 data_valid = False
-                logger.info("datasource %s is is not current" % ds.name, exc_info=True)
+                logger.info("datasource %s is is not current" % ds.name, exc_info=False)
             except DatasourceNotReady:
                 data_valid = False
-                logger.info("datasource %s is busy" % ds.name, exc_info=True)
+                logger.info("datasource %s is busy" % ds.name, exc_info=False)
             except DatasourceNotAvailable:
                 data_valid = False
-                logger.info("datasource %s is not available" % ds.name, exc_info=True)
+                logger.info("datasource %s is not available" % ds.name, exc_info=False)
             except Exception, exp:
                 data_valid = False
                 logger.critical("datasource %s returns bad data (%s)" % (ds.name, exp), exc_info=True)
