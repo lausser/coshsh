@@ -1,5 +1,4 @@
-define contact {
-  contact_name        {{ contact.contact_name }}
+{{ contact|contact }}
 {% if contact.can_submit_commands %}
   can_submit_commands 1
 {% else %}
@@ -10,9 +9,6 @@ define contact {
 {% endif %}
 {% if contact.email %}
   email               {{ contact.email }}
-{% endif %}
-{% if contact.contactgroups %}
-  contactgroups       {{ contact.contactgroups }}
 {% endif %}
   host_notification_period {{ contact.host_notification_period }}
   service_notification_period {{ contact.service_notification_period }}

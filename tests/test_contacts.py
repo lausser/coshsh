@@ -54,11 +54,13 @@ class CoshshTest(unittest.TestCase):
         self.generator.recipes['test221'].collect()
         self.generator.recipes['test221'].assemble()
 
-        self.generator.recipes['test221'].render()
         cwebw = self.generator.recipes['test221'].objects['contacts']['lausser+WEBREADWRITE++lausserg']
         cmail = self.generator.recipes['test221'].objects['contacts']['lausser+MAIL+gerhard.lausser@consol.de+lausserg']
         ctick = self.generator.recipes['test221'].objects['contacts']['lausser+MYTICKETTOOL+lausser@consolq+lausserg']
+        ctick.custom_macros["ENVIRONMENT"] = "dev"
         utick = self.generator.recipes['test221'].objects['contacts']['lausser+UNKTICKETTOOL+lausser@consolq+lausserg']
+        utick.custom_macros["ENVIRONMENT"] = "dev"
+        self.generator.recipes['test221'].render()
 
         #self.pp.pprint(cwebw.__dict__)
         #self.pp.pprint(cmail.__dict__)
@@ -81,6 +83,7 @@ class CoshshTest(unittest.TestCase):
         self.assert_(ctick.service_notification_options == "w,c")
         self.assert_(ctick.service_notification_commands == ["service-notify-by-msend"])
         self.assert_(ctick.queue_id == "lausser@consolq")
+        self.assert_("ENVIRONMENT" in ctick.config_files['nagios']['contact_lausserg.cfg'])
 
         self.assert_(utick.__class__.__name__ == "GenericContact")
 

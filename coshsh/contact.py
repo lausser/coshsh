@@ -51,6 +51,7 @@ class Contact(coshsh.item.Item):
             self.address6 = None
             self.can_submit_commands = False
             self.contactgroups = []
+            self.custom_macros = {}
             newcls = self.__class__.get_class(params)
             if newcls:
                 self.__class__ = newcls

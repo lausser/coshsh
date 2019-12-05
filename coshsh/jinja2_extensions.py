@@ -124,6 +124,26 @@ def filter_host(host):
         snippet += macros
     return snippet
 
+def filter_contact(contact):
+    relevant_details = [d for d in contact.monitoring_details if d.monitoring_type == "NAGIOSCONF"]
+    if not relevant_details:
+        snippet = "define contact {\n  contact_name                      %s" % contact.contact_name
+        if len(contact.contactgroups) > 0:
+            snippet += "\n  contactgroups %s" % contact.contactgroups
+    else:
+        snippet = "define contact {\n  contact_name                      %s\n" % contact.contact_name
+        for detail in relevant_details:
+            snippet += "  %-31s %s\n" % (detail.attribute, detail.value)
+        snippet += "  use                             %s\n}\n" % (contact.contact_name + "_coshsh", )
+        snippet += "define contact {\n  name                            %s\n" % (contact.contact_name + "_coshsh", )
+        snippet += "  register                        0"
+        if len(contact.contactgroups) > 0:
+            snippet += "\n  contactgroups %s" % contact.contactgroups
+    macros = filter_custom_macros(contact)
+    if macros:
+        snippet += macros
+    return snippet
+
 def filter_custom_macros(obj):
     snippet = ""
     macros = "\n".join("  %-31s %s" % (k, v) for k, v in

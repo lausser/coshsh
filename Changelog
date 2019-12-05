@@ -1,3 +1,7 @@
+* 2019-12-06 5.6
+  dont log planned exceptions
+  rm duplicate service dependency in os_windows_default.tpl
+  contacts can have custom_macros
 * 2019-04-04 5.5
   log exceptions
 * 2019-03-21 5.4.0.1
