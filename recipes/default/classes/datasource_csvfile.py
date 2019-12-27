@@ -170,8 +170,10 @@ class CsvFile(coshsh.datasource.Datasource):
                     if not group in self.get('hosts', row['host_name']).contact_groups:
                         self.get('hosts', row['host_name']).contact_groups.append(group)
                 else:
-                    logger.error('no such application %s for contactgroup %s' % (application_id, row['groups']))
-
+                    pass
+                    # it's ok, no host, no app matches this hostname/name/type
+                    # maybe it's a mistake, but bette be quiet than to fill
+                    # up the log file with an error for _every_ application
         
         try:
             contactreader = csv.DictReader(self.file_class(open(self.csv_contacts)))
