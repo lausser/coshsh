@@ -1,0 +1,25 @@
+#
+#
+#
+#
+MIB: SM10-R2-MIB (file:./SM10-R2-MIB.mib) converted on Thu Nov 28 10:23:34 2019 using snmpttconvertmib v1.4
+#
+#
+#
+EVENT storageArrayCritical .1.3.6.1.4.1.1123.4.500.2 "Status Events" Normal
+FORMAT This trap indicates an event where user-interaction is required immediately. $*
+ORIGINATING_IP $2
+SDESC
+This trap indicates an event where user-interaction is required immediately.
+Some example events are component failures or critical errors.
+Variables:
+  1: deviceHostIPType
+  2: deviceHostIPAddr
+  3: deviceHostName
+  4: deviceUserLabel
+  5: deviceErrorCode
+  6: eventTime
+  7: trapDescription
+  8: componentType
+  9: componentLocation
+EDESC
