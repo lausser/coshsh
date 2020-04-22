@@ -1,10 +1,10 @@
 import unittest
 import os
+import io
 import sys
 import shutil
-import string
 from optparse import OptionParser
-import ConfigParser
+from configparser import RawConfigParser
 import logging
 from logging import INFO, DEBUG
 
@@ -22,14 +22,14 @@ from coshsh.util import setup_logging
 
 class CoshshTest(unittest.TestCase):
     def print_header(self):
-        print "#" * 80 + "\n" + "#" + " " * 78 + "#"
-        print "#" + string.center(self.id(), 78) + "#"
-        print "#" + " " * 78 + "#\n" + "#" * 80 + "\n"
+        print("#" * 80 + "\n" + "#" + " " * 78 + "#")
+        print("#" + str.center(self.id(), 78) + "#")
+        print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
 
     def setUp(self):
         shutil.rmtree("./var/objects/test6", True)
         os.makedirs("./var/objects/test6")
-        self.config = ConfigParser.ConfigParser()
+        self.config = RawConfigParser()
         self.config.read('etc/coshsh.cfg')
         self.generator = coshsh.generator.Generator()
         setup_logging(scrnloglevel=DEBUG)
@@ -38,7 +38,7 @@ class CoshshTest(unittest.TestCase):
 
     def tearDown(self):
         shutil.rmtree("./var/objects/test6", True)
-        print 
+        print()
 
     def test_detail_keyvalues(self):
         self.print_header()
@@ -47,24 +47,24 @@ class CoshshTest(unittest.TestCase):
         self.generator.recipes['test6'].collect()
         self.generator.recipes['test6'].assemble()
         objects = self.generator.recipes['test6'].objects
-        app1 = objects['applications'].values()[0]
+        app1 = list(objects['applications'].values())[0]
         app1.resolve_monitoring_details()
-        app2 = objects['applications'].values()[1]
+        app2 = list(objects['applications'].values())[1]
         app2.resolve_monitoring_details()
         # swap threshold via KEYVALUES detail
-        self.assert_(app1.swap_warning == "15%")
-        self.assert_(app1.swap_critical == "8%")
+        self.assertTrue(app1.swap_warning == "15%")
+        self.assertTrue(app1.swap_critical == "8%")
         # cron threshold via KEYVALUES detail
-        self.assert_(app1.cron_warning == "30")
-        self.assert_(app1.cron_critical == "100")
+        self.assertTrue(app1.cron_warning == "30")
+        self.assertTrue(app1.cron_critical == "100")
         # swap threshold via class os_linux
-        self.assert_(app2.swap_warning == "5%")
-        self.assert_(app2.swap_critical == "15%")
+        self.assertTrue(app2.swap_warning == "5%")
+        self.assertTrue(app2.swap_critical == "15%")
         # neither class detail nor csv detail
-        self.assert_(not hasattr(app2, "cron_warning"))
-        self.assert_(hasattr(app2, "thresholds"))
-        self.assert_(hasattr(app2.thresholds, "cron_warning"))
-        self.assert_(app2.thresholds.cron_warning == "31")
+        self.assertTrue(not hasattr(app2, "cron_warning"))
+        self.assertTrue(hasattr(app2, "thresholds"))
+        self.assertTrue(hasattr(app2.thresholds, "cron_warning"))
+        self.assertTrue(app2.thresholds.cron_warning == "31")
 
     def test_detail_url(self):
         self.print_header()
@@ -82,15 +82,15 @@ class CoshshTest(unittest.TestCase):
         })
         oracle.monitoring_details.append(url)
         oracle.resolve_monitoring_details()
-        self.assert_(len(oracle.urls) == 1)
+        self.assertTrue(len(oracle.urls) == 1)
         # consol app_db_oracle class will call wemustrepeat() to create
         # a fake LOGIN-detail, so there is a oracle.username
-        self.assert_(oracle.urls[0].username == 'dbadm')
-        self.assert_(oracle.urls[0].password == 'pass')
-        self.assert_(oracle.urls[0].hostname == 'dbsrv')
-        self.assert_(oracle.urls[0].port == 1522)
+        self.assertTrue(oracle.urls[0].username == 'dbadm')
+        self.assertTrue(oracle.urls[0].password == 'pass')
+        self.assertTrue(oracle.urls[0].hostname == 'dbsrv')
+        self.assertTrue(oracle.urls[0].port == 1522)
         # will be without the / in the consol app_db_oracle class
-        self.assert_(oracle.urls[0].path == '/svc')
+        self.assertTrue(oracle.urls[0].path == '/svc')
 
     def test_detail_ram(self):
         coshsh.application.Application.init_classes([
@@ -109,10 +109,10 @@ class CoshshTest(unittest.TestCase):
         })
         opsys.monitoring_details.append(ram)
         for m in opsys.monitoring_details:
-            print "detail", m
+            print("detail", m)
         opsys.resolve_monitoring_details()
-        self.assert_(hasattr(opsys, 'ram'))
-        self.assert_(opsys.ram.warning == '80')
+        self.assertTrue(hasattr(opsys, 'ram'))
+        self.assertTrue(opsys.ram.warning == '80')
 
     def test_detail_2url(self):
         self.print_header()
@@ -153,21 +153,21 @@ class CoshshTest(unittest.TestCase):
         opsys.monitoring_details.append(url2)
         ds.add('applications', opsys)
         for m in opsys.monitoring_details:
-            print "detail", m
+            print("detail", m)
         opsys.resolve_monitoring_details()
-        self.assert_(hasattr(opsys, 'urls'))
+        self.assertTrue(hasattr(opsys, 'urls'))
         for u in opsys.urls:
-            print "url is", u, u.__dict__
+            print("url is", u, u.__dict__)
         shutil.rmtree("./var/objects/test6", True)
         os.makedirs("./var/objects/test6/dynamic")
         self.generator.recipes['test6'].collect()
         self.generator.recipes['test6'].assemble()
         self.generator.recipes['test6'].render()
         self.generator.recipes['test6'].output()
-        self.assert_(os.path.exists('var/objects/test6/dynamic/hosts/test_host_0/app_generic_web.cfg'))
-        with open('var/objects/test6/dynamic/hosts/test_host_0/app_generic_web.cfg', 'r') as outfile:
+        self.assertTrue(os.path.exists('var/objects/test6/dynamic/hosts/test_host_0/app_generic_web.cfg'))
+        with io.open('var/objects/test6/dynamic/hosts/test_host_0/app_generic_web.cfg', 'r') as outfile:
             for line in outfile.read().split('\n'):
-                print line
+                print(line)
 
     def test_lazy_datasource(self):
         self.print_header()
@@ -185,9 +185,9 @@ class CoshshTest(unittest.TestCase):
         self.generator.recipes['test14'].assemble()
         self.generator.recipes['test14'].render()
         self.generator.recipes['test14'].output()
-        app1 = objects['applications'].values()[0]
-        self.assert_(hasattr(app1, 'huhu'))
-        self.assert_(app1.huhu == 'dada')
+        app1 = list(objects['applications'].values())[0]
+        self.assertTrue(hasattr(app1, 'huhu'))
+        self.assertTrue(app1.huhu == 'dada')
 
 if __name__ == '__main__':
     unittest.main()

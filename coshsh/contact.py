@@ -80,12 +80,12 @@ class Contact(coshsh.item.Item):
 
     @classmethod
     def fingerprint(self, params):
-        return "+".join([unicode(params.get(a, "")) for a in ["name", "type", "address", "userid"]])
+        return "+".join([str(params.get(a, "")) for a in ["name", "type", "address", "userid"]])
 
     def __str__(self):
-        fipri = " ".join([unicode(getattr(self, a, "")) for a in ["name", "type", "address", "userid"]])
+        fipri = " ".join([str(getattr(self, a, "")) for a in ["name", "type", "address", "userid"]])
         grps = ",".join(self.contactgroups)
-        return unicode("contact %s groups (%s)" % (fipri, grps))
+        return str("contact %s groups (%s)" % (fipri, grps))
 
     @classmethod
     def init_classes(cls, classpath):
@@ -99,8 +99,8 @@ class Contact(coshsh.item.Item):
                     for cl in inspect.getmembers(toplevel, inspect.isfunction):
                         if cl[0] ==  "__mi_ident__":
                             cls.class_factory.append([path, module, cl[1]])
-                except Exception, e:
-                    print e
+                except Exception as e:
+                    print(e)
                 finally:
                     if fp:
                         fp.close()

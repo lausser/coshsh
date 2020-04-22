@@ -34,7 +34,7 @@ class Item(object):
 
         for key in params:
             #print "set key", self.__class__.__name__, key
-            if isinstance(params[key], basestring):
+            if isinstance(params[key], str):
                 setattr(self, key, params[key].strip())
             else:
                 setattr(self, key, params[key])
@@ -131,6 +131,8 @@ class Item(object):
         """
         This method is called by some classes if different monitoring_details need to interact.
         Ex. (username/password was set in a LOGIN detail and/or a URL detail
+        The name is a tribute to my favorite band.
+        https://www.youtube.com/watch?v=hRguZr0xCOc&feature=youtu.be&t=212
         """
         pass
 
@@ -160,23 +162,23 @@ class Item(object):
         if hasattr(self, "templates"):
             self.templates = ",".join(self.templates)
         if hasattr(self, "contactgroups"):
-            self.contactgroups = ",".join(sorted(self.contactgroups, cmp=locale.strcoll))
+            self.contactgroups = ",".join(sorted(self.contactgroups))
         if hasattr(self, "contact_groups"):
-            self.contact_groups = ",".join(sorted(self.contact_groups, cmp=locale.strcoll))
+            self.contact_groups = ",".join(sorted(self.contact_groups))
         if hasattr(self, "contacts"):
-            self.contacts = ",".join(sorted(self.contacts, cmp=locale.strcoll))
+            self.contacts = ",".join(sorted(self.contacts))
         if hasattr(self, "hostgroups"):
-            self.hostgroups = ",".join(sorted(self.hostgroups, cmp=locale.strcoll))
+            self.hostgroups = ",".join(sorted(self.hostgroups))
         if hasattr(self, "servicegroups"):
-            self.servicegroups = ",".join(sorted(self.servicegroups, cmp=locale.strcoll))
+            self.servicegroups = ",".join(sorted(self.servicegroups))
         if hasattr(self, "members"):
-            self.members = ",".join(sorted(self.members, cmp=locale.strcoll))
+            self.members = ",".join(sorted(self.members))
         if hasattr(self, "parents"):
-            self.parents = ",".join(sorted(self.parents, cmp=locale.strcoll))
+            self.parents = ",".join(sorted(self.parents))
         if hasattr(self, "host_notification_commands"):
-            self.host_notification_commands = ",".join(sorted(self.host_notification_commands, cmp=locale.strcoll))
+            self.host_notification_commands = ",".join(sorted(self.host_notification_commands))
         if hasattr(self, "service_notification_commands"):
-            self.service_notification_commands = ",".join(sorted(self.service_notification_commands, cmp=locale.strcoll))
+            self.service_notification_commands = ",".join(sorted(self.service_notification_commands))
 
     def render_cfg_template(self, jinja2, template_cache, name, output_name, suffix, for_tool, **kwargs):
         try:
@@ -197,7 +199,7 @@ class Item(object):
                 if not for_tool in self.config_files:
                     self.config_files[for_tool] = {}
                 if suffix:
-                    self.config_files[for_tool][output_name + "." + suffix] = template_cache[name].render(kwargs).encode('utf-8')
+                    self.config_files[for_tool][output_name + "." + suffix] = template_cache[name].render(kwargs)
                 else:
                     # files without suffix
                     self.config_files[for_tool][output_name] = template_cache[name].render(kwargs)
@@ -236,11 +238,11 @@ class Item(object):
                     
                 elif hasattr(self, rule.needsattr) and isinstance (getattr(self, rule.needsattr), list):
                     pass
-            except Exception, e:
+            except Exception as e:
                 logger.critical("error in %s template rules. please check %s. Error was: %s" % (self.__class__.__name__, rule, str(e)))
 
             if render_this:
-                if rule.unique_config and isinstance(rule.unique_attr, basestring) and hasattr(self, rule.unique_attr):
+                if rule.unique_config and isinstance(rule.unique_attr, str) and hasattr(self, rule.unique_attr):
                     self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % getattr(self, rule.unique_attr), rule.suffix, rule.for_tool, **dict([(rule.self_name, self), ("recipe", recipe)]))
                 elif rule.unique_config and isinstance(rule.unique_attr, list) and reduce(lambda x, y: x and y, [hasattr(self, ua) for ua in rule.unique_attr]):
                     self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % tuple([getattr(self, a) for a in rule.unique_attr]), rule.suffix, rule.for_tool, **dict([(rule.self_name, self), ("recipe", recipe)]))

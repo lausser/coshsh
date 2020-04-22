@@ -28,7 +28,7 @@ class Generator(object):
         try:
             recipe = coshsh.recipe.Recipe(**kwargs)
             self.recipes[kwargs["name"]] = recipe
-        except Exception, e:
+        except Exception as e:
             logger.error("exception creating a recipe: %s" % e)
         pass
 
@@ -42,7 +42,7 @@ class Generator(object):
         try:
             from prometheus_client import CollectorRegistry, Gauge, push_to_gateway, pushadd_to_gateway
             from prometheus_client.exposition import basic_auth_handler, default_handler
-            from urllib import quote_plus
+            from urllib.parse import quote_plus
             from socket import gethostname
             has_prometheus = True
             try:
@@ -55,7 +55,7 @@ class Generator(object):
                 pg_auth_handler = lambda url, method, timeout, headers, data: basic_auth_handler(url, method, timeout, headers, data, self.pg_username, self.pg_password)
             else:
                 pg_auth_handler = default_handler
-        except Exception, e:
+        except Exception as e:
             if hasattr(self, "pg_job"):
                 logger.critical("problem with prometheus modules: %s" % e)
             has_prometheus = False
@@ -63,7 +63,7 @@ class Generator(object):
             has_prometheus = False
         for recipe in self.recipes.values():
             try:
-	        switch_logging(logfile=recipe.log_file)
+                switch_logging(logfile=recipe.log_file)
                 if recipe.pid_protect():
                     if has_prometheus:
                         registry = CollectorRegistry()
@@ -98,16 +98,16 @@ class Generator(object):
                                 'cookbook': cookbook,
                                 'recipe': recipe.name
                             }, job=self.pg_job, registry=registry, handler=pg_auth_handler)
-                        except Exception, e:
+                        except Exception as e:
                             logger.warning("could not write to pushgateway "+self.pg_address+": "+str(e))
                     recipe.pid_remove()
             except coshsh.recipe.RecipePidAlreadyRunning:
                 logger.info("skipping recipe %s. already running" % (recipe.name))
-            except coshsh.recipe.RecipePidNotWritable:
+            except coshsh.recipe.RecipePidNotWritable as e:
                 logger.error("skipping recipe %s. cannot write pid file to %s" % (recipe.name, recipe.pid_dir))
             except coshsh.recipe.RecipePidGarbage:
                 logger.error("skipping recipe %s. pid file %s contains garbage" % (recipe.name, recipe.pid_file))
-            except Exception, exp:
+            except Exception as exp:
                 logger.error("skipping recipe %s (%s)" % (recipe.name, exp))
             else:
                 pass

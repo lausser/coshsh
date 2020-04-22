@@ -49,7 +49,7 @@ class Datasource(object):
             if not short in params:
                 params[short] = params[key]
         for key in params.keys():
-            if isinstance(params[key], basestring):
+            if isinstance(params[key], str):
                 params[key] = re.sub('%.*?%', substenv, params[key])
         if self.__class__ == Datasource:
             #print "generic ds", params
@@ -120,7 +120,7 @@ class Datasource(object):
                     for cl in inspect.getmembers(toplevel, inspect.isfunction):
                         if cl[0] ==  "__ds_ident__":
                             cls.class_factory.append([path, module, cl[1]])
-                except Exception, exp:
+                except Exception as exp:
                     logger.critical("could not load datasource %s from %s: %s" % (module, path, exp))
                 finally:
                     if fp:
@@ -136,10 +136,10 @@ class Datasource(object):
                 newcls = class_func(params)
                 if newcls:
                     return newcls
-            except Exception ,exp:
+            except Exception as exp:
                 dsname = 'INVALID' if 'name' not in params else params['name']
-                print 'Datasource.get_class exception while trying module "%s" for datasource "%s": %s %s' % \
-                      (os.path.join(path, module), dsname, type(exp), exp)
+                print('Datasource.get_class exception while trying module "%s" for datasource "%s": %s %s' % \
+                      (os.path.join(path, module), dsname, type(exp), exp))
                 pass
         logger.debug("found no matching class for this datasource %s" % params)
 

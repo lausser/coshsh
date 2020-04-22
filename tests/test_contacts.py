@@ -2,9 +2,8 @@ import unittest
 import os
 import sys
 import shutil
-import string
 from optparse import OptionParser
-import ConfigParser
+from configparser import RawConfigParser
 import logging
 import pprint
 from logging import INFO, DEBUG
@@ -20,12 +19,12 @@ from coshsh.util import setup_logging
 
 class CoshshTest(unittest.TestCase):
     def print_header(self):
-        print "#" * 80 + "\n" + "#" + " " * 78 + "#"
-        print "#" + string.center(self.id(), 78) + "#"
-        print "#" + " " * 78 + "#\n" + "#" * 80 + "\n"
+        print("#" * 80 + "\n" + "#" + " " * 78 + "#")
+        print("#" + str.center(self.id(), 78) + "#")
+        print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
 
     def setUp(self):
-        self.config = ConfigParser.ConfigParser()
+        self.config = RawConfigParser()
         self.config.read('etc/coshsh4.cfg')
         self.generator = coshsh.generator.Generator()
         setup_logging()
@@ -67,28 +66,28 @@ class CoshshTest(unittest.TestCase):
         #self.pp.pprint(ctick.__dict__)
         #self.pp.pprint(utick.__dict__)
 
-        print self.generator.recipes['test221'].objects['contacts']
+        print(self.generator.recipes['test221'].objects['contacts'])
 
-        self.assert_(cwebw.can_submit_commands == True)
-        self.assert_(cwebw.service_notification_options == "n")
-        self.assert_(cwebw.service_notification_commands == ["notify_by_nothing"])
+        self.assertTrue(cwebw.can_submit_commands == True)
+        self.assertTrue(cwebw.service_notification_options == "n")
+        self.assertTrue(cwebw.service_notification_commands == ["notify_by_nothing"])
 
-        self.assert_(cmail.can_submit_commands == False)
-        self.assert_(cmail.service_notification_options == "w,c,u,r,f")
-        self.assert_(cmail.service_notification_commands == ["service-notify-by-email"])
-        self.assert_(cmail.email == "gerhard.lausser@consol.de")
+        self.assertTrue(cmail.can_submit_commands == False)
+        self.assertTrue(cmail.service_notification_options == "w,c,u,r,f")
+        self.assertTrue(cmail.service_notification_commands == ["service-notify-by-email"])
+        self.assertTrue(cmail.email == "gerhard.lausser@consol.de")
 
-        self.assert_(ctick.__class__.__name__ == "ContactMyTicketTool")
-        self.assert_(ctick.can_submit_commands == False)
-        self.assert_(ctick.service_notification_options == "w,c")
-        self.assert_(ctick.service_notification_commands == ["service-notify-by-msend"])
-        self.assert_(ctick.queue_id == "lausser@consolq")
-        self.assert_("ENVIRONMENT" in ctick.config_files['nagios']['contact_lausserg.cfg'])
+        self.assertTrue(ctick.__class__.__name__ == "ContactMyTicketTool")
+        self.assertTrue(ctick.can_submit_commands == False)
+        self.assertTrue(ctick.service_notification_options == "w,c")
+        self.assertTrue(ctick.service_notification_commands == ["service-notify-by-msend"])
+        self.assertTrue(ctick.queue_id == "lausser@consolq")
+        self.assertTrue("ENVIRONMENT" in ctick.config_files['nagios']['contact_lausserg.cfg'])
 
-        self.assert_(utick.__class__.__name__ == "GenericContact")
+        self.assertTrue(utick.__class__.__name__ == "GenericContact")
 
         self.generator.recipes['test221'].output()
-        self.assert_(os.path.exists("var/objects/test22/dynamic/hosts"))
+        self.assertTrue(os.path.exists("var/objects/test22/dynamic/hosts"))
 
     def test_create_bmc_contact(self):
         self.print_header()
@@ -100,11 +99,11 @@ class CoshshTest(unittest.TestCase):
             "host_notification_options": "d,u,r",
             "service_notification_options": "w,c,u,r,s",
         })
-        self.assert_(u_bmc.__class__.__name__ == "GenericContact")
-        self.assert_(u_bmc.can_submit_commands == False)
-        self.assert_(u_bmc.service_notification_options == "w,c,u,r,s")
-        self.assert_(u_bmc.host_notification_options == "d,u,r")
-        self.assert_(u_bmc.service_notification_commands == ["notify-service-optis"])
+        self.assertTrue(u_bmc.__class__.__name__ == "GenericContact")
+        self.assertTrue(u_bmc.can_submit_commands == False)
+        self.assertTrue(u_bmc.service_notification_options == "w,c,u,r,s")
+        self.assertTrue(u_bmc.host_notification_options == "d,u,r")
+        self.assertTrue(u_bmc.service_notification_commands == ["notify-service-optis"])
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,10 +1,12 @@
+#!/usr/bin/env python3
+
 import unittest
 import os
+import io
 import sys
 import shutil
-import string
 from optparse import OptionParser
-import ConfigParser
+from configparser import RawConfigParser
 import logging
 import subprocess
 
@@ -17,16 +19,16 @@ from coshsh.util import setup_logging
 
 class CoshshTest(unittest.TestCase):
     def print_header(self):
-        print "#" * 80 + "\n" + "#" + " " * 78 + "#"
-        print "#" + string.center(self.id(), 78) + "#"
-        print "#" + " " * 78 + "#\n" + "#" * 80 + "\n"
+        print("#" * 80 + "\n" + "#" + " " * 78 + "#")
+        print("#" + str.center(self.id(), 78) + "#")
+        print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
 
     def setUp(self):
         shutil.rmtree("./var/objects/test1", True)
         os.makedirs("./var/objects/test1")
         shutil.rmtree("./var/objects/test4", True)
         os.makedirs("./var/objects/test4")
-        self.config = ConfigParser.ConfigParser()
+        self.config = RawConfigParser()
         self.config.read('etc/coshsh.cfg')
         self.generator = coshsh.generator.Generator()
         setup_logging()
@@ -39,37 +41,38 @@ class CoshshTest(unittest.TestCase):
 
     def test_coshsh_cook(self):
         subprocess.call("../bin/coshsh-cook --cookbook etc/coshsh.cfg --recipe test4", shell=True)
-        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts"))
-        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0"))
-        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0/os_linux_default.cfg"))
-        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg"))
-        os_windows_default_cfg = open("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg").read()
-        self.assert_('os_windows_default_check_unittest' in os_windows_default_cfg)
+        self.assertTrue(os.path.exists("var/objects/test1/dynamic/hosts"))
+        self.assertTrue(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0"))
+        self.assertTrue(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0/os_linux_default.cfg"))
+        self.assertTrue(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg"))
+        with io.open("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg") as f:
+            os_windows_default_cfg = f.read()
+        self.assertTrue('os_windows_default_check_unittest' in os_windows_default_cfg)
 
 
     def test_create_template_tree(self):
         self.print_header()
         os.makedirs("./var/objects/test1/static")
-        self.assert_(os.path.exists("var/objects/test1/static"))
-        self.assert_(os.path.exists("../bin/coshsh-create-template-tree"))
+        self.assertTrue(os.path.exists("var/objects/test1/static"))
+        self.assertTrue(os.path.exists("../bin/coshsh-create-template-tree"))
         #subprocess.call(["../bin/coshsh-create-template-tree", "--cookbook", "etc/coshsh.cfg", "--recipe", "test4", "--template", "os_windows_fs"], shell=True)
         subprocess.call("../bin/coshsh-create-template-tree --cookbook etc/coshsh.cfg --recipe test4 --template os_windows_fs", shell=True)
-        self.assert_(os.path.exists("var/objects/test1/static/service_templates"))
-        self.assert_(os.path.exists("var/objects/test1/static/service_templates/os_windows_fs.cfg"))
-        self.assert_(os.path.exists("var/objects/test1/static/service_templates/os_windows.cfg"))
+        self.assertTrue(os.path.exists("var/objects/test1/static/service_templates"))
+        self.assertTrue(os.path.exists("var/objects/test1/static/service_templates/os_windows_fs.cfg"))
+        self.assertTrue(os.path.exists("var/objects/test1/static/service_templates/os_windows.cfg"))
 
     def test_multiple_cookbooks(self):
         self.print_header()
         os.makedirs("./var/objects/test1/static")
         os.makedirs("./var/objects/test1_mod/static")
-        self.assert_(os.path.exists("var/objects/test1/static"))
-        self.assert_(os.path.exists("var/objects/test1_mod/static"))
-        self.assert_(os.path.exists("../bin/coshsh-create-template-tree"))
+        self.assertTrue(os.path.exists("var/objects/test1/static"))
+        self.assertTrue(os.path.exists("var/objects/test1_mod/static"))
+        self.assertTrue(os.path.exists("../bin/coshsh-create-template-tree"))
         #subprocess.call(["../bin/coshsh-create-template-tree", "--cookbook", "etc/coshsh.cfg", "--recipe", "test4", "--template", "os_windows_fs"], shell=True)
         subprocess.call("../bin/coshsh-create-template-tree --cookbook etc/coshsh.cfg --cookbook etc/coshsh6.cfg --recipe test4 --template os_windows_fs", shell=True)
-        self.assert_(os.path.exists("var/objects/test1_mod/static/service_templates"))
-        self.assert_(os.path.exists("var/objects/test1_mod/static/service_templates/os_windows_fs.cfg"))
-        self.assert_(os.path.exists("var/objects/test1_mod/static/service_templates/os_windows.cfg"))
+        self.assertTrue(os.path.exists("var/objects/test1_mod/static/service_templates"))
+        self.assertTrue(os.path.exists("var/objects/test1_mod/static/service_templates/os_windows_fs.cfg"))
+        self.assertTrue(os.path.exists("var/objects/test1_mod/static/service_templates/os_windows.cfg"))
 
 
 

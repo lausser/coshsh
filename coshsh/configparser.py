@@ -1,6 +1,6 @@
-import ConfigParser
+from configparser import RawConfigParser
 
-class CoshshConfigParser(ConfigParser.ConfigParser, object):
+class CoshshConfigParser(RawConfigParser, object):
 
     def read(self, files):
         super(self.__class__, self).read(files)

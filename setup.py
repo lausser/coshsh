@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # -*- coding: utf-8 -*-
 
@@ -7,10 +7,9 @@ try:
     python_version = sys.version_info
 except:
     python_version = (1, 5)
-if python_version < (2, 4):
-    sys.exit("coshsh requires python 2.4.x and newer")
-elif python_version >= (3,):
-    sys.exit("coshsh requires python 2.x")
+    sys.exit("coshsh requires python 3.x")
+if python_version < (3,):
+    sys.exit("coshsh requires python 3.x")
 
 from setuptools import setup
 from distutils import log
@@ -55,7 +54,7 @@ class install_data(_install_data):
 
 
 setup(name='coshsh',
-      version='5.6.0.1',
+      version='6.0',
       description='Coshsh - config generator for monitoring systems',
       url='http://github.com/lausser/coshsh',
       author='Gerhard Lausser',

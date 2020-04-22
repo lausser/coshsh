@@ -6,6 +6,7 @@
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
 import os
+import io
 import re
 import logging
 import shutil
@@ -93,10 +94,11 @@ class AtomicRecipient(coshsh.datarecipient.Datarecipient):
                     write_me = True
                     if self.delta_watch:
                         if os.path.exists(my_target_file):
-                            if zlib.adler32(open(my_target_file, 'rb').read()) == zlib.adler32(content):
-                                write_me = False
+                            with io.open(my_target_file, 'rb') as f:
+                                if zlib.adler32(f.read()) == zlib.adler32(content):
+                                    write_me = False
                     if write_me:
-                        with open(my_target_file+'_coshshtmp', "w") as f:
+                        with io.open(my_target_file+'_coshshtmp', "w") as f:
                             f.write(content)
                             os.fsync(f)
                         os.rename(my_target_file+'_coshshtmp', my_target_file)
@@ -109,13 +111,13 @@ class AtomicRecipient(coshsh.datarecipient.Datarecipient):
         status = False
         try:
             process = subprocess.Popen(command,
-                shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
             stdout, stderr = process.communicate()
             status = process.poll()
             if status != 0:
                 raise DatarecipientNotAvailable
             status = True
-        except Exception, e:
+        except Exception as e:
             status = False
         return status, stdout if stdout else "", stderr if stderr else ""
 

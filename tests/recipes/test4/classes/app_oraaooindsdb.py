@@ -15,6 +15,5 @@ class Oraappindsdb(coshsh.application.Application):
     ]
 
     def __init__(self, params):
-        print "huhuhuhu"
         pass
 

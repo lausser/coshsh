@@ -13,11 +13,11 @@ import copy
 import os
 import logging
 from logging.handlers import RotatingFileHandler
-from UserDict import DictMixin
+from collections import MutableMapping
 
 global_log_dir = "/"
 
-class odict(DictMixin):
+class odict(MutableMapping):
     """
     Copied from 
     http://code.activestate.com/recipes/496761-a-more-clean-implementation-for-ordered-dictionary/
@@ -26,6 +26,13 @@ class odict(DictMixin):
     def __init__(self):
         self._keys = []
         self._data = {}
+
+    def __len__(self):
+        return len(self._data)
+
+    def __iter__(self):
+        for i in self._data:
+            yield i
 
     def __setitem__(self, key, value):
         if key not in self._data:
@@ -98,12 +105,12 @@ def normalize_dict(the_dict, titles=[]):
 
 def clean_umlauts(text):
     translations = (
-        (u'\N{LATIN SMALL LETTER SHARP S}', u'ss'),
-        (u'\N{LATIN SMALL LETTER O WITH DIAERESIS}', u'oe'),
-        (u'\N{LATIN SMALL LETTER U WITH DIAERESIS}', u'ue'),
-        (u'\N{LATIN CAPITAL LETTER A WITH DIAERESIS}', u'Ae'),
-        (u'\N{LATIN CAPITAL LETTER O WITH DIAERESIS}', u'Oe'),
-        (u'\N{LATIN CAPITAL LETTER U WITH DIAERESIS}', u'Ue'),
+        ('\N{LATIN SMALL LETTER SHARP S}', 'ss'),
+        ('\N{LATIN SMALL LETTER O WITH DIAERESIS}', 'oe'),
+        ('\N{LATIN SMALL LETTER U WITH DIAERESIS}', 'ue'),
+        ('\N{LATIN CAPITAL LETTER A WITH DIAERESIS}', 'Ae'),
+        ('\N{LATIN CAPITAL LETTER O WITH DIAERESIS}', 'Oe'),
+        ('\N{LATIN CAPITAL LETTER U WITH DIAERESIS}', 'Ue'),
         # et cetera
     )
     for from_str, to_str in translations:
@@ -119,13 +126,16 @@ def setup_logging(logdir=".", logfile="coshsh.log", scrnloglevel=logging.INFO, t
     setup_logging.logger_name = os.path.basename(abs_logfile).replace(".log", "")
     logger = logging.getLogger(setup_logging.logger_name)
 
-    if logger.handlers:
+    if logger.hasHandlers():
         # this method can be called multiple times in the unittests
-        logger.handlers = []
+        for handler in logger.handlers:
+            handler.close()
+            logger.removeHandler(handler)
+
     logger.setLevel(logging.DEBUG)
     log_formatter = logging.Formatter(format)
 
-    txt_handler = RotatingFileHandler(abs_logfile, backupCount=2, maxBytes=20*1024*1024)
+    txt_handler = RotatingFileHandler(abs_logfile, backupCount=2, maxBytes=20*1024*1024, delay=True)
     txt_handler.setFormatter(log_formatter)
     txt_handler.setLevel(txtloglevel)
     logger.addHandler(txt_handler)
@@ -164,7 +174,7 @@ def switch_logging(**kwargs):
     for handler in logger.handlers:
         if hasattr(handler, "baseFilename"):
             logger.removeHandler(handler)
-    txt_handler = RotatingFileHandler(abs_logfile, backupCount=2, maxBytes=20*1024*1024)
+    txt_handler = RotatingFileHandler(abs_logfile, backupCount=2, maxBytes=20*1024*1024, delay=True)
     txt_handler.setFormatter(setup_logging.log_formatter)
     txt_handler.setLevel(setup_logging.txtloglevel)
     logger.addHandler(txt_handler)

@@ -11,7 +11,7 @@ import os
 import imp
 import inspect
 import logging
-from urlparse import urlparse
+from urllib.parse import urlparse
 import coshsh
 from coshsh.item import Item
 from coshsh.application import Application
@@ -79,8 +79,8 @@ class MonitoringDetail(coshsh.item.Item):
                     for cl in inspect.getmembers(toplevel, inspect.isfunction):
                         if cl[0] ==  "__detail_ident__":
                             cls.class_factory.append([path, module, cl[1]])
-                except Exception, e:
-                    print e
+                except Exception as e:
+                    print(e)
                 finally:
                     if fp:
                         fp.close()

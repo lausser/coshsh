@@ -2,12 +2,11 @@ import unittest
 import os
 import sys
 import shutil
-import string
 from optparse import OptionParser
-import ConfigParser
+from configparser import RawConfigParser
 import logging
 
-print "sys.path", sys.path
+print("sys.path", sys.path)
 import coshsh
 from coshsh.contact import Contact
 from coshsh.contactgroup import ContactGroup
@@ -21,14 +20,14 @@ sys.dont_write_bytecode = True
 
 class CoshshTest(unittest.TestCase):
     def print_header(self):
-        print "#" * 80 + "\n" + "#" + " " * 78 + "#"
-        print "#" + string.center(self.id(), 78) + "#"
-        print "#" + " " * 78 + "#\n" + "#" * 80 + "\n"
+        print("#" * 80 + "\n" + "#" + " " * 78 + "#")
+        print("#" + str.center(self.id(), 78) + "#")
+        print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
 
     def setUp(self):
         shutil.rmtree("./var/objects/test1", True)
         os.makedirs("./var/objects/test1")
-        self.config = ConfigParser.ConfigParser()
+        self.config = RawConfigParser()
         self.config.read('etc/coshsh.cfg')
 
     def tearDown(self):
@@ -37,7 +36,7 @@ class CoshshTest(unittest.TestCase):
 
     def test_read_config(self):
         self.print_header()
-        self.config = ConfigParser.ConfigParser()
+        self.config = RawConfigParser()
         self.config.read('etc/coshsh.cfg')
 
     def test_create_generator(self):
@@ -53,41 +52,41 @@ class CoshshTest(unittest.TestCase):
     def test_create_hostgroup(self):
         self.print_header()
         self.hostgroup = coshsh.hostgroup.HostGroup()
-        self.assert_(self.hostgroup.members == [])
+        self.assertTrue(self.hostgroup.members == [])
 
     def test_create_contactgroup(self):
         self.print_header()
         self.contactgroup = coshsh.contactgroup.ContactGroup()
-        self.assert_(self.contactgroup.members == [])
+        self.assertTrue(self.contactgroup.members == [])
 
     def test_create_contact(self):
         self.print_header()
         self.contact = coshsh.contact.Contact({"type": "WEBREADONLY", "name": "sepp", "userid": "test", "notification_period": "5x8"})
         # the name is unknown... because we didn't init the class factory
         # so it becomes a generic contact
-        print self.contact.__dict__
-        self.assert_(self.contact.contact_name == "unknown_WEBREADONLY_sepp_5x8")
-        self.assert_(self.contact.host_notification_period == "5x8")
+        print(self.contact.__dict__)
+        self.assertTrue(self.contact.contact_name == "unknown_WEBREADONLY_sepp_5x8")
+        self.assertTrue(self.contact.host_notification_period == "5x8")
 
     def test_create_host(self):
         self.print_header()
         self.host = coshsh.host.Host({"host_name": "test"})
-        self.assert_(self.host.hostgroups == [])
-        self.assert_(self.host.ports == [22])
-        self.assert_(self.host.alias == "test")
+        self.assertTrue(self.host.hostgroups == [])
+        self.assertTrue(self.host.ports == [22])
+        self.assertTrue(self.host.alias == "test")
 
     def test_create_application(self):
         self.print_header()
         self.application = coshsh.application.Application({"host_name": "test", "name": "shop", "type": "apache"})
-        self.assert_(self.application.contact_groups == [])
-        self.assert_(self.application.__class__.__name__ == "GenericApplication")
+        self.assertTrue(self.application.contact_groups == [])
+        self.assertTrue(self.application.__class__.__name__ == "GenericApplication")
 
     def test_create_application(self):
         self.print_header()
         self.application = coshsh.application.Application({"host_name": "test", "name": "shop", "type": "apache"})
-        self.assert_(self.application.contact_groups == [])
-        print self.application.fingerprint()
-        print self.application.__class__.__name__
+        self.assertTrue(self.application.contact_groups == [])
+        print(self.application.fingerprint())
+        print(self.application.__class__.__name__)
 
 if __name__ == '__main__':
     unittest.main()

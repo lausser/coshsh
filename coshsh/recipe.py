@@ -8,6 +8,7 @@
 
 import sys
 import os
+import io
 import re
 import inspect
 import time
@@ -56,8 +57,8 @@ class Recipe(object):
     def __init__(self, **kwargs):
         os.environ['RECIPE_NAME'] = kwargs["name"]
         self.additional_recipe_fields = {}
-        for key in kwargs.iterkeys():
-            if isinstance(kwargs[key], basestring):
+        for key in kwargs.keys():
+            if isinstance(kwargs[key], str):
                 kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
                 if key not in self.attributes_for_adapters:
                     self.additional_recipe_fields[key] = re.sub('%.*?%', substenv, kwargs[key])
@@ -213,7 +214,7 @@ class Recipe(object):
                 pre_count['details'] = pre_detail_count
                 post_count['details'] = post_detail_count
                 pre_count.update(dict.fromkeys([k for k in post_count if not k in pre_count], 0))
-                chg_keys = [(key, post_count[key] - pre_count[key]) for key in set(pre_count.keys() + post_count.keys()) if post_count[key] != pre_count[key]]
+                chg_keys = [(key, post_count[key] - pre_count[key]) for key in set(list(pre_count.keys()) + list(post_count.keys())) if post_count[key] != pre_count[key]]
                 logger.info("recipe %s read from datasource %s %s" % (self.name, ds.name, ", ".join(["%d %s" % (k[1], k[0]) for k in chg_keys])))
                 ds.close()
             except DatasourceNotCurrent:
@@ -225,7 +226,7 @@ class Recipe(object):
             except DatasourceNotAvailable:
                 data_valid = False
                 logger.info("datasource %s is not available" % ds.name, exc_info=False)
-            except Exception, exp:
+            except Exception as exp:
                 data_valid = False
                 logger.critical("datasource %s returns bad data (%s)" % (ds.name, exp), exc_info=True)
             if not data_valid:
@@ -315,7 +316,7 @@ class Recipe(object):
         for hg in self.objects['hostgroups'].values():
             hg.render(template_cache, self.jinja2, self)
         # you can put anything in objects (Item class with own templaterules)
-        for item in sum([self.objects[itype].values() for itype in self.objects if itype not in ['hosts', 'applications', 'details', 'contactgroups', 'contacts', 'hostgroups']], []):
+        for item in sum([list(self.objects[itype].values()) for itype in self.objects if itype not in ['hosts', 'applications', 'details', 'contactgroups', 'contacts', 'hostgroups']], []):
             # first check hasattr, because somebody may accidentially
             # add objects which are not a subclass of Item.
             # (And such a stupid mistake crashes coshsh-cook)
@@ -371,19 +372,19 @@ class Recipe(object):
         logger.debug("init Contact classes (%d)" % len(Contact.class_factory))
 
     def add_datasource(self, **kwargs):
-        for key in [k for k in kwargs.iterkeys() if isinstance(kwargs[k], str)]:
+        for key in [k for k in kwargs.keys() if isinstance(kwargs[k], str)]:
             kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
         newcls = Datasource.get_class(kwargs)
         if newcls:
             for key in [attr for attr in self.attributes_for_adapters if hasattr(self, attr)]:
                 kwargs['recipe_'+key] = getattr(self, key)
-            for key, value in self.additional_recipe_fields.iteritems():
+            for key, value in self.additional_recipe_fields.items():
                 kwargs['recipe_'+key] = value
             datasource = newcls(**kwargs)
             self.datasources.append(datasource)
 
     def add_datarecipient(self, **kwargs):
-        for key in [k for k in kwargs.iterkeys() if isinstance(kwargs[k], str)]:
+        for key in [k for k in kwargs.keys() if isinstance(kwargs[k], str)]:
             kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
         newcls = Datarecipient.get_class(kwargs)
         if newcls:
@@ -392,28 +393,38 @@ class Recipe(object):
             datarecipient = newcls(**kwargs)
             self.datarecipients.append(datarecipient)
 
+    def pid_exists(self, pid):
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError as e_oserror:
+            # The pid doesn't exist
+            return False
+        except PermissionError:
+            # The pid exists but is not mine
+            return False
+        else:
+            return True
+
     def pid_protect(self):
         if os.path.exists(self.pid_file):
             if not os.access(self.pid_file, os.W_OK):
                 raise RecipePidNotWritable
             try:
-                pid = int(open(self.pid_file).read().strip())
+                with io.open(self.pid_file) as f:
+                    pid = int(f.read().strip())
             except ValueError:
                 if os.stat(self.pid_file).st_size == 0 and os.statvfs(self.pid_file).f_bavail > 0:
                     # might be (and was) the result of a full filesystem in the past
                     logger.info('removing empty pidfile %s' % (self.pid_file,))
                     os.remove(self.pid_file)
                 raise RecipePidGarbage
-            try:
-                os.kill(pid, 0)
-            except OSError, (code, text):
-                if code == errno.ESRCH:
-                    # The pid doesn't exist, so remove the stale pidfile.
-                    os.remove(self.pid_file)
-                    logger.info('removing stale (pid %d) pidfile %s' % (pid, self.pid_file))
-                else:
-                    logger.info('failed to check status of process %d from pidfile %s: %s' % (pid, self.pid_file, text))
-                    raise RecipePidGarbage
+            except Exception as e:
+                logger.info('some other trouble with the pid file %s' % (self.pid_file,))
+                raise RecipePidGarbage
+            if not self.pid_exists(pid):
+                # The pid doesn't exist, so remove the stale pidfile.
+                os.remove(self.pid_file)
+                logger.info('removing stale (pid %d) pidfile %s' % (pid, self.pid_file))
             else:
                 logger.info('another instance seems to be running (pid %s), exiting' % pid)
                 raise RecipePidAlreadyRunning
@@ -422,8 +433,9 @@ class Recipe(object):
                 raise RecipePidNotWritable
         pid = str(os.getpid())
         try:
-            file(self.pid_file, 'w').write(pid)
-        except Exception:
+            with io.open(self.pid_file, 'w') as f:
+                f.write(pid)
+        except Exception as e:
             raise RecipePidNotWritable
         else:
             return self.pid_file

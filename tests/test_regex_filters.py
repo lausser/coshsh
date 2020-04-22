@@ -2,7 +2,6 @@ import unittest
 import os
 import sys
 import shutil
-import string
 from optparse import OptionParser
 import logging
 import pprint
@@ -19,9 +18,9 @@ from coshsh.util import setup_logging
 
 class CoshshTest(unittest.TestCase):
     def print_header(self):
-        print "#" * 80 + "\n" + "#" + " " * 78 + "#"
-        print "#" + string.center(self.id(), 78) + "#"
-        print "#" + " " * 78 + "#\n" + "#" * 80 + "\n"
+        print("#" * 80 + "\n" + "#" + " " * 78 + "#")
+        print("#" + str.center(self.id(), 78) + "#")
+        print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
 
     def setUp(self):
         cookbook = coshsh.configparser.CoshshConfigParser()
@@ -51,32 +50,32 @@ class CoshshTest(unittest.TestCase):
 
     def test_filters(self):
         self.print_header()
-        self.assert_(self.generator.recipes["test1"].datasource_filters.get("ds1") == "kaas,koos")
-        self.assert_(self.generator.recipes["test1"].datasource_filters.get("ds2") == "kees,kiis")
+        self.assertTrue(self.generator.recipes["test1"].datasource_filters.get("ds1") == "kaas,koos")
+        self.assertTrue(self.generator.recipes["test1"].datasource_filters.get("ds2") == "kees,kiis")
 
-        self.assert_(self.generator.recipes["test2"].datasource_filters.get("ds1") == "kaas,koos")
-        self.assert_(self.generator.recipes["test2"].datasource_filters.get("ds2") == None)
-        self.assert_(self.generator.recipes["test2"].datasource_filters.get("dsa") == "alnuma")
+        self.assertTrue(self.generator.recipes["test2"].datasource_filters.get("ds1") == "kaas,koos")
+        self.assertTrue(self.generator.recipes["test2"].datasource_filters.get("ds2") == None)
+        self.assertTrue(self.generator.recipes["test2"].datasource_filters.get("dsa") == "alnuma")
 
-        self.assert_(self.generator.recipes["test3"].datasource_filters.get("ds1") == "kaas,koos")
-        self.assert_(self.generator.recipes["test3"].datasource_filters.get("ds2") == "numro")
-        self.assert_(self.generator.recipes["test3"].datasource_filters.get("dsa") == "alnuma")
-        self.assert_(self.generator.recipes["test3"].datasource_filters.get("ds3") == "numro")
-        self.assert_(self.generator.recipes["test3"].datasource_filters.get("ds4") == None)
+        self.assertTrue(self.generator.recipes["test3"].datasource_filters.get("ds1") == "kaas,koos")
+        self.assertTrue(self.generator.recipes["test3"].datasource_filters.get("ds2") == "numro")
+        self.assertTrue(self.generator.recipes["test3"].datasource_filters.get("dsa") == "alnuma")
+        self.assertTrue(self.generator.recipes["test3"].datasource_filters.get("ds3") == "numro")
+        self.assertTrue(self.generator.recipes["test3"].datasource_filters.get("ds4") == None)
 
-        self.assert_(self.generator.recipes["test4"].datasource_filters.get("ds1") == "kaas,koos")
-        self.assert_(self.generator.recipes["test4"].datasource_filters.get("ds2") == "all*")
-        self.assert_(self.generator.recipes["test4"].datasource_filters.get("dsa") == "all*")
-        self.assert_(self.generator.recipes["test4"].datasource_filters.get("ds3") == "all*")
-        self.assert_(self.generator.recipes["test4"].datasource_filters.get("ds4") == "all*")
-        self.assert_(self.generator.recipes["test4"].datasource_filters.get("ds5") == "all*")
+        self.assertTrue(self.generator.recipes["test4"].datasource_filters.get("ds1") == "kaas,koos")
+        self.assertTrue(self.generator.recipes["test4"].datasource_filters.get("ds2") == "all*")
+        self.assertTrue(self.generator.recipes["test4"].datasource_filters.get("dsa") == "all*")
+        self.assertTrue(self.generator.recipes["test4"].datasource_filters.get("ds3") == "all*")
+        self.assertTrue(self.generator.recipes["test4"].datasource_filters.get("ds4") == "all*")
+        self.assertTrue(self.generator.recipes["test4"].datasource_filters.get("ds5") == "all*")
 
-        self.assert_(self.generator.recipes["test5"].datasource_filters.get("ds1") == "kaas,koos")
-        self.assert_(self.generator.recipes["test5"].datasource_filters.get("ds2") == "numro")
-        self.assert_(self.generator.recipes["test5"].datasource_filters.get("dsa") == "alnuma")
-        self.assert_(self.generator.recipes["test5"].datasource_filters.get("ds3") == "numro")
-        self.assert_(self.generator.recipes["test5"].datasource_filters.get("ds4") == "all*")
-        self.assert_(self.generator.recipes["test5"].datasource_filters.get("ds5") == "all*")
+        self.assertTrue(self.generator.recipes["test5"].datasource_filters.get("ds1") == "kaas,koos")
+        self.assertTrue(self.generator.recipes["test5"].datasource_filters.get("ds2") == "numro")
+        self.assertTrue(self.generator.recipes["test5"].datasource_filters.get("dsa") == "alnuma")
+        self.assertTrue(self.generator.recipes["test5"].datasource_filters.get("ds3") == "numro")
+        self.assertTrue(self.generator.recipes["test5"].datasource_filters.get("ds4") == "all*")
+        self.assertTrue(self.generator.recipes["test5"].datasource_filters.get("ds5") == "all*")
 
 if __name__ == '__main__':
     unittest.main()

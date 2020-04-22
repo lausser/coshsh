@@ -2,9 +2,8 @@ import unittest
 import os
 import sys
 import shutil
-import string
 from optparse import OptionParser
-import ConfigParser
+from configparser import RawConfigParser
 import logging
 
 
@@ -17,21 +16,21 @@ from coshsh.util import setup_logging
 
 class CoshshTest(unittest.TestCase):
     def print_header(self):
-        print "#" * 80 + "\n" + "#" + " " * 78 + "#"
-        print "#" + string.center(self.id(), 78) + "#"
-        print "#" + " " * 78 + "#\n" + "#" * 80 + "\n"
+        print("#" * 80 + "\n" + "#" + " " * 78 + "#")
+        print("#" + str.center(self.id(), 78) + "#")
+        print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
 
     def setUp(self):
         shutil.rmtree("./var/objects/test1", True)
         os.makedirs("./var/objects/test1")
-        self.config = ConfigParser.ConfigParser()
+        self.config = RawConfigParser()
         self.config.read('etc/coshsh.cfg')
         self.generator = coshsh.generator.Generator()
         setup_logging(scrnloglevel=logging.DEBUG)
 
     def tearDown(self):
         shutil.rmtree("./var/objects/test1", True)
-        print 
+        print()
 
     def test_osenviron(self):
         self.print_header()
@@ -59,18 +58,19 @@ class CoshshTest(unittest.TestCase):
         # get the template files and cache them in a struct owned by the recipe
         # resolve the templates and attach the result as config_files to host/app
         self.generator.recipes['test4'].render()
-        self.assert_(hasattr(self.generator.recipes['test4'].objects['hosts']['test_host_0'], 'config_files'))
-        self.assert_('host.cfg' in self.generator.recipes['test4'].objects['hosts']['test_host_0'].config_files["nagios"])
+        self.assertTrue(hasattr(self.generator.recipes['test4'].objects['hosts']['test_host_0'], 'config_files'))
+        self.assertTrue('host.cfg' in self.generator.recipes['test4'].objects['hosts']['test_host_0'].config_files["nagios"])
 
         # write hosts/apps to the filesystem
         self.generator.recipes['test4'].output()
-        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts"))
-        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0"))
-        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0/os_linux_default.cfg"))
-        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg"))
-        os_windows_default_cfg = open("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg").read()
-        self.assert_('environment variable COSHSHENV1 ()' in os_windows_default_cfg)
-        self.assert_('environment default COSHSHENV1 (schlurz)' in os_windows_default_cfg)
+        self.assertTrue(os.path.exists("var/objects/test1/dynamic/hosts"))
+        self.assertTrue(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0"))
+        self.assertTrue(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0/os_linux_default.cfg"))
+        self.assertTrue(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg"))
+        with io.open("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg") as f:
+            os_windows_default_cfg = f.read()
+        self.assertTrue('environment variable COSHSHENV1 ()' in os_windows_default_cfg)
+        self.assertTrue('environment default COSHSHENV1 (schlurz)' in os_windows_default_cfg)
 
         shutil.rmtree("./var/objects/test1", True)
         os.makedirs("./var/objects/test1")
@@ -78,30 +78,33 @@ class CoshshTest(unittest.TestCase):
         os.environ["COSHSHENV2"] = "die nr 2"
         self.generator.recipes['test4'].render()
         self.generator.recipes['test4'].output()
-        os_windows_default_cfg = open("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg").read()
-        self.assert_('environment variable COSHSHENV1 (die nr 1)' in os_windows_default_cfg)
-        self.assert_('environment variable COSHSHENV2 (die nr 2)' in os_windows_default_cfg)
-        self.assert_('environment default COSHSHENV1 (die nr 1)' in os_windows_default_cfg)
-        self.assert_('environment variante die nr 2' in os_windows_default_cfg)
+        with io.open("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg") as f:
+            os_windows_default_cfg = f.read()
+        self.assertTrue('environment variable COSHSHENV1 (die nr 1)' in os_windows_default_cfg)
+        self.assertTrue('environment variable COSHSHENV2 (die nr 2)' in os_windows_default_cfg)
+        self.assertTrue('environment default COSHSHENV1 (die nr 1)' in os_windows_default_cfg)
+        self.assertTrue('environment variante die nr 2' in os_windows_default_cfg)
 
         shutil.rmtree("./var/objects/test1", True)
         os.makedirs("./var/objects/test1")
         os.environ["COSHSHENV1"] = "variante1"
         self.generator.recipes['test4'].render()
         self.generator.recipes['test4'].output()
-        os_windows_default_cfg = open("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg").read()
-        self.assert_('environment variable COSHSHENV1 (variante1)' in os_windows_default_cfg)
-        self.assert_('environment variable COSHSHENV2 (die nr 2)' in os_windows_default_cfg)
-        self.assert_('environment variante variante1' in os_windows_default_cfg)
+        with io.open("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg") as f:
+            os_windows_default_cfg = f.read()
+        self.assertTrue('environment variable COSHSHENV1 (variante1)' in os_windows_default_cfg)
+        self.assertTrue('environment variable COSHSHENV2 (die nr 2)' in os_windows_default_cfg)
+        self.assertTrue('environment variante variante1' in os_windows_default_cfg)
 
         shutil.rmtree("./var/objects/test1", True)
         os.makedirs("./var/objects/test1")
         os.environ["COSHSHENV1"] = "variantex"
         self.generator.recipes['test4'].render()
         self.generator.recipes['test4'].output()
-        os_windows_default_cfg = open("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg").read()
-        self.assert_('environment variable COSHSHENV1 (variantex)' in os_windows_default_cfg)
-        self.assert_('environment variable COSHSHENV2 (die nr 2)' in os_windows_default_cfg)
-        self.assert_('environment variante die nr 2' in os_windows_default_cfg)
+        with io.open("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg") as f:
+            os_windows_default_cfg = f.read()
+        self.assertTrue('environment variable COSHSHENV1 (variantex)' in os_windows_default_cfg)
+        self.assertTrue('environment variable COSHSHENV2 (die nr 2)' in os_windows_default_cfg)
+        self.assertTrue('environment variante die nr 2' in os_windows_default_cfg)
 
 

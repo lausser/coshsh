@@ -30,7 +30,7 @@ class MyHost(coshsh.host.Host):
 class LazyDs(coshsh.datasource.Datasource):
     class_only_the_test_simplesample = True
     def __init__(self, **kwargs):
-        print kwargs
+        print(kwargs)
         self.name = kwargs["name"]
         self.dir = kwargs["dir"]
         self.only_the_test_simplesample = True

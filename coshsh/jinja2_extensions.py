@@ -7,7 +7,7 @@
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
 import re
-import urllib
+import urllib.request
 import os
 
 # Jinja2 extensions
@@ -148,14 +148,14 @@ def filter_custom_macros(obj):
     snippet = ""
     macros = "\n".join("  %-31s %s" % (k, v) for k, v in
         sorted([x if x[0].startswith("_") else ("_" + x[0], x[1]) \
-            for x in getattr(obj, "custom_macros", {}).items() + \
-                 getattr(obj, "macros", {}).items()], key=lambda x: x[0]))
+            for x in list(getattr(obj, "custom_macros", {}).items()) + \
+                 list(getattr(obj, "macros", {}).items())], key=lambda x: x[0]))
     if macros:
         snippet += "\n" + macros
     return snippet
 
 def filter_rfc3986(text):
-    return 'rfc3986://' + urllib.pathname2url(text.encode('utf-8'))
+    return 'rfc3986://' + urllib.request.pathname2url(text.encode('utf-8'))
 
 def global_environ(var, default=None):
     val = os.getenv(var, default)

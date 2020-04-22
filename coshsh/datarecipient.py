@@ -8,6 +8,7 @@
 
 import sys
 import os
+import io
 import re
 import imp
 import inspect
@@ -49,7 +50,7 @@ class Datarecipient(object):
             if not short in params:
                 params[short] = params[key]
         for key in params.keys():
-            if isinstance(params[key], basestring):
+            if isinstance(params[key], str):
                 params[key] = re.sub('%.*?%', substenv, params[key])
         if self.__class__ == Datarecipient:
             #print "generic ds", params
@@ -95,7 +96,7 @@ class Datarecipient(object):
             if not want_tool or want_tool == tool:
                 for file in obj.config_files[tool]:
                     content = obj.config_files[tool][file]
-                    with open(os.path.join(my_target_dir, file), "w") as f:
+                    with io.open(os.path.join(my_target_dir, file), "w") as f:
                         f.write(content)
 
     def output(self, filter=None, want_tool=None):
@@ -138,12 +139,12 @@ class Datarecipient(object):
         # only shrinking numbers are a problem
         try:
             self.delta_hosts = 100 * (self.new_objects[0] - self.old_objects[0]) / self.old_objects[0]
-        except Exception, e:
+        except Exception as e:
             # before we had 0 hosts. accept this initial increase
             self.delta_hosts = 0
         try:
             self.delta_services = 100 * (self.new_objects[1] - self.old_objects[1]) / self.old_objects[1]
-        except Exception, e:
+        except Exception as e:
             # before we had 0 applications
             self.delta_services = 0
         if not self.max_delta:
@@ -154,7 +155,7 @@ class Datarecipient(object):
         #  10      0      -100
         #  10      8      -20
         if self.max_delta[0] < 0 and self.delta_hosts < self.max_delta[0]:
-            print "neg and shruink"
+            print("neg and shrink")
             return True
         if self.max_delta[1] < 0 and self.delta_services < self.max_delta[1]:
             return True
@@ -178,7 +179,7 @@ class Datarecipient(object):
                     for cl in inspect.getmembers(toplevel, inspect.isfunction):
                         if cl[0] ==  "__dr_ident__":
                             cls.class_factory.append([path, module, cl[1]])
-                except Exception, exp:
+                except Exception as exp:
                     logger.critical("could not load datarecipient %s from %s: %s" % (module, path, exp))
                 finally:
                     if fp:
@@ -194,8 +195,8 @@ class Datarecipient(object):
                 newcls = class_func(params)
                 if newcls:
                     return newcls
-            except Exception ,exp:
-                print "Datarecipient.get_class exception", exp
+            except Exception as exp:
+                print("Datarecipient.get_class exception", exp)
                 pass
         logger.debug("found no matching class for this datarecipient %s" % params)
 

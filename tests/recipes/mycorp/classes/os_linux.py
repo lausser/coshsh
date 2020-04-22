@@ -5,7 +5,7 @@ import coshsh
 from coshsh.application import Application
 
 def __mi_ident__(params={}):
-    if compare_attr("type", params, ".*red\s*hat.*|.*sles.*|.*linux.*|.*limux.*|.*debian.*|.*ubuntu.*|.*centos.*"):
+    if compare_attr("type", params, r".*red\s*hat.*|.*sles.*|.*linux.*|.*limux.*|.*debian.*|.*ubuntu.*|.*centos.*"):
         return Linux
 
 

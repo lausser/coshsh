@@ -2,9 +2,8 @@ import unittest
 import os
 import sys
 import shutil
-import string
 from optparse import OptionParser
-import ConfigParser
+from configparser import RawConfigParser
 import logging
 
 
@@ -19,21 +18,21 @@ from coshsh.util import setup_logging
 
 class CoshshTest(unittest.TestCase):
     def print_header(self):
-        print "#" * 80 + "\n" + "#" + " " * 78 + "#"
-        print "#" + string.center(self.id(), 78) + "#"
-        print "#" + " " * 78 + "#\n" + "#" * 80 + "\n"
+        print("#" * 80 + "\n" + "#" + " " * 78 + "#")
+        print("#" + str.center(self.id(), 78) + "#")
+        print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
 
     def setUp(self):
         shutil.rmtree("./var/objects/test9", True)
         os.makedirs("./var/objects/test9")
-        self.config = ConfigParser.ConfigParser()
+        self.config = RawConfigParser()
         self.config.read('etc/coshsh.cfg')
         self.generator = coshsh.generator.Generator()
         setup_logging()
 
     def tearDown(self):
         #shutil.rmtree("./var/objects/test1", True)
-        print 
+        print()
 
     def test_factories(self):
         self.print_header()
@@ -41,11 +40,11 @@ class CoshshTest(unittest.TestCase):
         self.config.set("datasource_SIMPLESAMPLE", "name", "simplesample")
         cfg = self.config.items("datasource_SIMPLESAMPLE")
         ds = coshsh.datasource.Datasource(**dict(cfg))
-        self.assert_(hasattr(ds, 'only_the_test_simplesample'))
+        self.assertTrue(hasattr(ds, 'only_the_test_simplesample'))
         self.config.set("datarecipient_SIMPLESAMPLE", "name", "simplesample")
         cfg = self.config.items("datarecipient_SIMPLESAMPLE")
         ds = coshsh.datarecipient.Datarecipient(**dict(cfg))
-        self.assert_(hasattr(ds, 'only_the_test_simplesample') and ds.only_the_test_simplesample == False)
+        self.assertTrue(hasattr(ds, 'only_the_test_simplesample') and ds.only_the_test_simplesample == False)
 
     def test_create_recipe_check_factories(self):
         self.print_header()
@@ -56,8 +55,8 @@ class CoshshTest(unittest.TestCase):
         self.config.set("datarecipient_SIMPLESAMPLE", "name", "simplesample")
         cfg = self.config.items("datarecipient_SIMPLESAMPLE")
         self.generator.recipes['test9'].add_datarecipient(**dict(cfg))
-        self.assert_(self.generator.recipes['test9'].datasources[0].only_the_test_simplesample == True)
-        self.assert_(self.generator.recipes['test9'].datarecipients[0].only_the_test_simplesample == False)
+        self.assertTrue(self.generator.recipes['test9'].datasources[0].only_the_test_simplesample == True)
+        self.assertTrue(self.generator.recipes['test9'].datarecipients[0].only_the_test_simplesample == False)
 
 
     def test_create_recipe_fallback_datarecipient(self):
@@ -67,9 +66,9 @@ class CoshshTest(unittest.TestCase):
         cfg = self.config.items("datasource_SIMPLESAMPLE")
         self.generator.recipes['test9a'].add_datasource(**dict(cfg))
         # there must be a recipient named "datarecipient_coshsh_default"
-        self.assert_(self.generator.recipes['test9a'].datarecipients[0].name == "datarecipient_coshsh_default")
+        self.assertTrue(self.generator.recipes['test9a'].datarecipients[0].name == "datarecipient_coshsh_default")
         # which must inherit the recipe's object_dir
-        self.assert_(self.generator.recipes['test9a'].datarecipients[0].objects_dir == self.generator.recipes['test9a'].objects_dir)
+        self.assertTrue(self.generator.recipes['test9a'].datarecipients[0].objects_dir == self.generator.recipes['test9a'].objects_dir)
 
     def test_create_recipe_fallback_datarecipient_write(self):
         self.print_header()
@@ -77,17 +76,17 @@ class CoshshTest(unittest.TestCase):
         self.config.set("datasource_SIMPLESAMPLE", "name", "simplesample")
         cfg = self.config.items("datasource_SIMPLESAMPLE")
         self.generator.recipes['test9a'].add_datasource(**dict(cfg))
-        self.assert_(self.generator.recipes['test9a'].datarecipients[0].name == "datarecipient_coshsh_default")
+        self.assertTrue(self.generator.recipes['test9a'].datarecipients[0].name == "datarecipient_coshsh_default")
         exporter = self.generator.recipes['test9a'].datarecipients[0]
         exporter.count_before_objects()
-        self.assert_(exporter.old_objects == (0, 0))
+        self.assertTrue(exporter.old_objects == (0, 0))
         self.generator.recipes['test9a'].collect()
         self.generator.recipes['test9a'].assemble()
         # fill items.[cfgfiles]
         self.generator.recipes['test9a'].render()
         self.generator.recipes['test9a'].output()
         exporter.count_after_objects()
-        self.assert_(exporter.new_objects == (1, 2))
+        self.assertTrue(exporter.new_objects == (1, 2))
 
     def test_mcid_recipient(self):
         self.print_header()

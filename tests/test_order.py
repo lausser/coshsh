@@ -1,10 +1,10 @@
 import unittest
 import os
+import io
 import sys
 import shutil
-import string
 from optparse import OptionParser
-import ConfigParser
+from configparser import RawConfigParser
 import logging
 
 
@@ -17,21 +17,21 @@ from coshsh.util import setup_logging
 
 class CoshshTest(unittest.TestCase):
     def print_header(self):
-        print "#" * 80 + "\n" + "#" + " " * 78 + "#"
-        print "#" + string.center(self.id(), 78) + "#"
-        print "#" + " " * 78 + "#\n" + "#" * 80 + "\n"
+        print("#" * 80 + "\n" + "#" + " " * 78 + "#")
+        print("#" + str.center(self.id(), 78) + "#")
+        print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
 
     def setUp(self):
         shutil.rmtree("./var/objects/test13", True)
         os.makedirs("./var/objects/test13")
-        self.config = ConfigParser.ConfigParser()
+        self.config = RawConfigParser()
         self.config.read('etc/coshsh.cfg')
         self.generator = coshsh.generator.Generator()
         setup_logging(scrnloglevel=logging.DEBUG)
 
     def tearDown(self):
         #shutil.rmtree("./var/objects/test1", True)
-        print 
+        print()
 
     def test_check_class_order(self):
         """
@@ -74,39 +74,45 @@ class CoshshTest(unittest.TestCase):
         # get the template files and cache them in a struct owned by the recipe
         # resolve the templates and attach the result as config_files to host/app
         self.generator.recipes['test13'].render()
-        self.assert_(hasattr(self.generator.recipes['test13'].objects['hosts']['linux_host'], 'config_files'))
-        self.assert_('host.cfg' in self.generator.recipes['test13'].objects['hosts']['linux_host'].config_files['nagios'])
+        self.assertTrue(hasattr(self.generator.recipes['test13'].objects['hosts']['linux_host'], 'config_files'))
+        self.assertTrue('host.cfg' in self.generator.recipes['test13'].objects['hosts']['linux_host'].config_files['nagios'])
 
         # write hosts/apps to the filesystem
         self.generator.recipes['test13'].output()
-        self.assert_(os.path.exists("var/objects/test13/dynamic/hosts"))
-        self.assert_(os.path.exists("var/objects/test13/dynamic/hosts/linux_host"))
-        self.assert_(os.path.exists("var/objects/test13/dynamic/hosts/linux_host/os_linux_default.cfg"))
-        self.assert_(os.path.exists("var/objects/test13/dynamic/hosts/aix_host/os_aix_default.cfg"))
-        self.assert_(os.path.exists("var/objects/test13/dynamic/hosts/beos_host/os_beos_default.cfg"))
-        self.assert_(os.path.exists("var/objects/test13/dynamic/hosts/dos_host/os_dos_default.cfg"))
-        self.assert_(os.path.exists("var/objects/test13/dynamic/hosts/windows_host/os_windows_default.cfg"))
+        self.assertTrue(os.path.exists("var/objects/test13/dynamic/hosts"))
+        self.assertTrue(os.path.exists("var/objects/test13/dynamic/hosts/linux_host"))
+        self.assertTrue(os.path.exists("var/objects/test13/dynamic/hosts/linux_host/os_linux_default.cfg"))
+        self.assertTrue(os.path.exists("var/objects/test13/dynamic/hosts/aix_host/os_aix_default.cfg"))
+        self.assertTrue(os.path.exists("var/objects/test13/dynamic/hosts/beos_host/os_beos_default.cfg"))
+        self.assertTrue(os.path.exists("var/objects/test13/dynamic/hosts/dos_host/os_dos_default.cfg"))
+        self.assertTrue(os.path.exists("var/objects/test13/dynamic/hosts/windows_host/os_windows_default.cfg"))
 
         # test classes
-        print self.generator.recipes['test13'].objects['applications']
-        self.assert_(self.generator.recipes['test13'].objects['applications']['linux_host+os+red hat'].marker == 'department')
-        self.assert_(self.generator.recipes['test13'].objects['applications']['beos_host+os+beos'].marker == 'department')
-        self.assert_(self.generator.recipes['test13'].objects['applications']['aix_host+os+aix'].marker == 'department')
-        self.assert_(self.generator.recipes['test13'].objects['applications']['dos_host+os+dos'].marker == 'corporate')
-        self.assert_(not hasattr(self.generator.recipes['test13'].objects['applications']['windows_host+os+windows'], 'marker'))
+        print(self.generator.recipes['test13'].objects['applications'])
+        self.assertTrue(self.generator.recipes['test13'].objects['applications']['linux_host+os+red hat'].marker == 'department')
+        self.assertTrue(self.generator.recipes['test13'].objects['applications']['beos_host+os+beos'].marker == 'department')
+        self.assertTrue(self.generator.recipes['test13'].objects['applications']['aix_host+os+aix'].marker == 'department')
+        self.assertTrue(self.generator.recipes['test13'].objects['applications']['dos_host+os+dos'].marker == 'corporate')
+        self.assertTrue(not hasattr(self.generator.recipes['test13'].objects['applications']['windows_host+os+windows'], 'marker'))
         # test templates
-        os_linux_default_cfg = open("var/objects/test13/dynamic/hosts/linux_host/os_linux_default.cfg").read()
-        self.assert_('department' in os_linux_default_cfg)
-        os_beos_default_cfg = open("var/objects/test13/dynamic/hosts/beos_host/os_beos_default.cfg").read()
-        self.assert_('corporate' in os_beos_default_cfg)
-        os_aix_default_cfg = open("var/objects/test13/dynamic/hosts/aix_host/os_aix_default.cfg").read()
-        self.assert_('department' in os_aix_default_cfg)
-        os_dos_default_cfg = open("var/objects/test13/dynamic/hosts/dos_host/os_dos_default.cfg").read()
-        self.assert_('department' in os_dos_default_cfg)
-        os_windows_default_cfg = open("var/objects/test13/dynamic/hosts/windows_host/os_windows_default.cfg").read()
-        self.assert_('define' in os_windows_default_cfg)
-        host_cfg = open("var/objects/test13/dynamic/hosts/windows_host/host.cfg").read()
-        self.assert_('corporate host' in host_cfg)
+        with io.open("var/objects/test13/dynamic/hosts/linux_host/os_linux_default.cfg") as f:
+            os_linux_default_cfg = f.read()
+        self.assertTrue('department' in os_linux_default_cfg)
+        with io.open("var/objects/test13/dynamic/hosts/beos_host/os_beos_default.cfg") as f:
+            os_beos_default_cfg = f.read()
+        self.assertTrue('corporate' in os_beos_default_cfg)
+        with io.open("var/objects/test13/dynamic/hosts/aix_host/os_aix_default.cfg") as f:
+            os_aix_default_cfg = f.read()
+        self.assertTrue('department' in os_aix_default_cfg)
+        with io.open("var/objects/test13/dynamic/hosts/dos_host/os_dos_default.cfg") as f:
+            os_dos_default_cfg = f.read()
+        self.assertTrue('department' in os_dos_default_cfg)
+        with io.open("var/objects/test13/dynamic/hosts/windows_host/os_windows_default.cfg") as f:
+            os_windows_default_cfg = f.read()
+        self.assertTrue('define' in os_windows_default_cfg)
+        with io.open("var/objects/test13/dynamic/hosts/windows_host/host.cfg") as f:
+            host_cfg = f.read()
+        self.assertTrue('corporate host' in host_cfg)
 
 
 if __name__ == '__main__':

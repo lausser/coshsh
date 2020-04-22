@@ -76,7 +76,7 @@ class DrSimpleSample(coshsh.datarecipient.Datarecipient):
         try:
             delta_hosts = 100 * abs(self.new_objects[0] - self.old_objects[0]) / self.old_objects[0]
             delta_services = 100 * abs(self.new_objects[1] - self.old_objects[1]) / self.old_objects[1]
-        except Exception, e:
+        except Exception as e:
             delta_hosts = 0
             delta_services = 0
 
@@ -88,34 +88,34 @@ class DrSimpleSample(coshsh.datarecipient.Datarecipient):
         logger.info("number of files before: %d hosts, %d applications" % self.old_objects)
         logger.info("number of files after:  %d hosts, %d applications" % self.new_objects)
         if self.max_delta and (delta_hosts > self.max_delta[0] or delta_services > self.max_delta[1]):
-            print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-            print "number of hosts changed by %.2f percent" % delta_hosts
-            print "number of applications changed by %.2f percent" % delta_services
-            print "please check your datasource before activating this config."
-            print "if you use a git repository, you can go back to the last"
-            print "valid configuration with the following commands:"
-            print "cd %s" % self.dynamic_dir
-            print "git reset --hard"
-            print "git checkout ."
-            print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+            print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            print("number of hosts changed by %.2f percent" % delta_hosts)
+            print("number of applications changed by %.2f percent" % delta_services)
+            print("please check your datasource before activating this config.")
+            print("if you use a git repository, you can go back to the last")
+            print("valid configuration with the following commands:")
+            print("cd %s" % self.dynamic_dir)
+            print("git reset --hard")
+            print("git checkout .")
+            print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
         elif os.path.exists(self.dynamic_dir + '/.git'):
             logger.debug("dynamic_dir is a git repository")
 
             save_dir = os.getcwd()
             os.chdir(self.dynamic_dir)
-            print "git add------------------"
-            process = Popen(["git", "add", "."], stdout=PIPE, stderr=STDOUT)
+            print("git add------------------")
+            process = Popen(["git", "add", "."], stdout=PIPE, stderr=STDOUT, universal_newlines=True)
             output, unused_err = process.communicate()
             retcode = process.poll()
-            print output
+            print(output)
             commitmsg = time.strftime("%Y-%m-%d-%H-%M-%S") + " %d hostfiles,%d appfiles" % (self.new_objects[0], self.new_objects[1])
-            print "git commit------------------"
-            print "commit-comment", commitmsg
-            process = Popen(["git", "commit", "-a", "-m", commitmsg], stdout=PIPE, stderr=STDOUT)
+            print("git commit------------------")
+            print("commit-comment", commitmsg)
+            process = Popen(["git", "commit", "-a", "-m", commitmsg], stdout=PIPE, stderr=STDOUT, universal_newlines=True)
             output, unused_err = process.communicate()
             retcode = process.poll()
-            print output
+            print(output)
             os.chdir(save_dir)
             self.analyze_output(output)
 

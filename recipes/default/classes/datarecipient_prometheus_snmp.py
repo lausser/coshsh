@@ -75,12 +75,12 @@ class DatarecipientPrometheusSnmpExporter(coshsh.datarecipient.Datarecipient):
             save_dir = os.getcwd()
             os.chdir(self.dynamic_dir)
             logger.error("git reset --hard")
-            process = Popen(["git", "reset", "--hard"], stdout=PIPE, stderr=STDOUT)
+            process = Popen(["git", "reset", "--hard"], stdout=PIPE, stderr=STDOUT, universal_newlines=True)
             output, unused_err = process.communicate()
             retcode = process.poll()
             logger.info(output)
             logger.error("git clean untracked files")
-            process = Popen(["git", "clean", "-f", "-d"], stdout=PIPE, stderr=STDOUT)
+            process = Popen(["git", "clean", "-f", "-d"], stdout=PIPE, stderr=STDOUT, universal_newlines=True)
             output, unused_err = process.communicate()
             retcode = process.poll()
             logger.info(output)
@@ -105,7 +105,7 @@ class DatarecipientPrometheusSnmpExporter(coshsh.datarecipient.Datarecipient):
                     self.max_delta_action = os.path.abspath(self.max_delta_action)
                     save_dir = os.getcwd()
                     os.chdir(self.dynamic_dir)
-                    process = Popen([self.max_delta_action], stdout=PIPE, stderr=STDOUT)
+                    process = Popen([self.max_delta_action], stdout=PIPE, stderr=STDOUT, universal_newlines=True)
                     output, errput = process.communicate()
                     retcode = process.poll()
                     logger.error("cmd says: %s" % output)
@@ -120,24 +120,24 @@ class DatarecipientPrometheusSnmpExporter(coshsh.datarecipient.Datarecipient):
 
             save_dir = os.getcwd()
             os.chdir(self.dynamic_dir)
-            print "git add------------------"
-            process = Popen(["git", "add", "."], stdout=PIPE, stderr=STDOUT)
+            print("git add------------------")
+            process = Popen(["git", "add", "."], stdout=PIPE, stderr=STDOUT, universal_newlines=True)
             output, unused_err = process.communicate()
             retcode = process.poll()
-            print output
+            print(output)
             commitmsg = time.strftime("%Y-%m-%d-%H-%M-%S") + " %d targets" % (self.new_objects,)
             if False:
-                process = Popen(["git", "diff"], stdout=PIPE, stderr=STDOUT)
+                process = Popen(["git", "diff"], stdout=PIPE, stderr=STDOUT, universal_newlines=True)
                 output, unused_err = process.communicate()
                 retcode = process.poll()
                 logger.debug("the changes are...")
                 logger.debug(output)
-            print "git commit------------------"
-            print "commit-comment", commitmsg
-            process = Popen(["git", "commit", "-a", "-m", commitmsg], stdout=PIPE, stderr=STDOUT)
+            print("git commit------------------")
+            print("commit-comment", commitmsg)
+            process = Popen(["git", "commit", "-a", "-m", commitmsg], stdout=PIPE, stderr=STDOUT, universal_newlines=True)
             output, unused_err = process.communicate()
             retcode = process.poll()
-            print output
+            print(output)
             os.chdir(save_dir)
             self.analyze_output(output)
 

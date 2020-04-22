@@ -35,7 +35,7 @@ class CoshshTest(unittest.TestCase):
         setup_logging(scrnloglevel=logging.DEBUG)
 
     def tearDown(self):
-        shutil.rmtree("./var/objects/test33", True)
+        #shutil.rmtree("./var/objects/test33", True)
         print
 
     def test_generic_app(self):
@@ -49,6 +49,12 @@ class CoshshTest(unittest.TestCase):
             'host_name': 'testhost',
             'address': '127.0.0.1',
         })
+        host.macros = {
+            '_MANUFACTURER': 'zuse',
+        }
+        host.custom_macros = {
+            '_MODEL': 'z3',
+        }
         self.generator.recipes['test33'].datasources[0].add('hosts', host)
         app = Application({
             'host_name': 'testhost',
@@ -64,6 +70,9 @@ class CoshshTest(unittest.TestCase):
         self.assertTrue(self.generator.recipes['test33'].datasources[0].getall('applications')[0].__class__ == coshsh.application.GenericApplication)
         self.generator.recipes['test33'].output()
         self.assertTrue(os.path.exists("var/objects/test33/dynamic/hosts/testhost/host.cfg"))
+        with io.open("var/objects/test33/dynamic/hosts/testhost/host.cfg") as f:
+            testhost_cfg = f.read()
+            print(testhost_cfg)
         self.assertTrue(not os.path.exists("var/objects/test33/dynamic/hosts/testhost/app_my_generic_fs.cfg"))
         self.assertTrue(not os.path.exists("var/objects/test33/dynamic/hosts/testhost/app_my_generic_ports.cfg"))
 

@@ -20,7 +20,9 @@ logger = logging.getLogger('coshsh')
 class CoshshTest(unittest.TestCase):
     def setUp(self):
         self.generator = Generator()
-        setup_logging()
+        # otherwise there is an "unclosed file" warning, because logging
+        # was not used
+        #setup_logging()
         self.hosts = {}
         self.applications = {}
         coshsh.application.Application.init_classes([
@@ -47,30 +49,30 @@ class CoshshTest(unittest.TestCase):
         setattr(a, "host", self.hosts[a.host_name])
 
     def test_create_server(self):
-        self.assert_("drivelsrv" in self.hosts)
+        self.assertTrue("drivelsrv" in self.hosts)
         h = self.hosts["drivelsrv"]
         a = self.applications["drivelsrv+drivel+mysql"]
-        self.assert_(hasattr(h, 'host_name'))
-        self.assert_(h.host_name == 'drivelsrv')
-        self.assert_(hasattr(a, 'host_name'))
-        self.assert_(a.host_name == 'drivelsrv')
-        self.assert_(hasattr(a, "port"))
-        self.assert_(a.port == 3306)
+        self.assertTrue(hasattr(h, 'host_name'))
+        self.assertTrue(h.host_name == 'drivelsrv')
+        self.assertTrue(hasattr(a, 'host_name'))
+        self.assertTrue(a.host_name == 'drivelsrv')
+        self.assertTrue(hasattr(a, "port"))
+        self.assertTrue(a.port == 3306)
 
 
     def test_create_server_alternative_port(self):
-        self.assert_("drivelsrv" in self.hosts)
+        self.assertTrue("drivelsrv" in self.hosts)
         h = self.hosts["drivelsrv"]
         a = self.applications["drivelsrv+drivel+mysql"]
-        self.assert_(hasattr(h, 'host_name'))
-        self.assert_(h.host_name == 'drivelsrv')
-        self.assert_(hasattr(a, 'host_name'))
-        self.assert_(a.host_name == 'drivelsrv')
+        self.assertTrue(hasattr(h, 'host_name'))
+        self.assertTrue(h.host_name == 'drivelsrv')
+        self.assertTrue(hasattr(a, 'host_name'))
+        self.assertTrue(a.host_name == 'drivelsrv')
         a.monitoring_details.append(coshsh.monitoringdetail.MonitoringDetail({
             "monitoring_type" : "PORT",
             "monitoring_0" : 10000}))
         a.resolve_monitoring_details()
-        self.assert_(a.port == 10000)
+        self.assertTrue(a.port == 10000)
 
 
 if __name__ == '__main__':

@@ -7,6 +7,7 @@
 
 import csv
 import os
+import io
 import re
 import logging
 from copy import copy
@@ -32,19 +33,19 @@ class CommentedFile:
     def __init__(self, f, commentstring="#"):
         self.f = f
         self.commentstring = commentstring
-    def next(self):
-        line = self.f.next()
+    def __next__(self):
+        line = self.f.__next__()
         while line.startswith(self.commentstring):
-            line = self.f.next()
+            line = self.f.__next__()
         return line
     def __iter__(self):
         return self
 
 class CommentedFileEnv(CommentedFile):
-    def next(self):
-        line = self.f.next()
+    def __next__(self):
+        line = self.f.__next__()
         while line.startswith(self.commentstring):
-            line = self.f.next()
+            line = self.f.__next__()
         return re.sub('%.*?%', substenv, line)
 
 class CsvFile(coshsh.datasource.Datasource):
@@ -69,9 +70,10 @@ class CsvFile(coshsh.datasource.Datasource):
     def read(self, filter=None, objects={}, force=False, **kwargs):
         self.objects = objects
         try:
-            hostreader = csv.DictReader(self.file_class(open(self.csv_hosts)))
+            with io.open(self.csv_hosts) as f:
+                hostreader = list(csv.DictReader(self.file_class(f)))
             logger.info('read hosts from %s' % self.csv_hosts)
-        except Exception, exp:
+        except Exception as exp:
             logger.debug(exp)
             hostreader = []
         # host_name,address,type,os,hardware,virtual,notification_period,location,department
@@ -86,9 +88,10 @@ class CsvFile(coshsh.datasource.Datasource):
             self.add('hosts', h)
 
         try:
-            appreader = csv.DictReader(self.file_class(open(self.csv_applications)))
+            with io.open(self.csv_applications) as f:
+                appreader = list(csv.DictReader(self.file_class(f)))
             logger.info('read applications from %s' % self.csv_applications)
-        except Exception, exp:
+        except Exception as exp:
             logger.debug(exp)
             appreader = []
         resolvedrows = []
@@ -112,9 +115,10 @@ class CsvFile(coshsh.datasource.Datasource):
             self.add('applications', a)
 
         try:
-            appdetailreader = csv.DictReader(self.file_class(open(self.csv_applicationdetails)))
+            with io.open(self.csv_applicationdetails) as f:
+                appdetailreader = list(csv.DictReader(self.file_class(f)))
             logger.info('read appdetails from %s' % self.csv_applicationdetails)
-        except Exception, exp:
+        except Exception as exp:
             logger.debug(exp)
             appdetailreader = []
         resolvedrows = []
@@ -136,9 +140,10 @@ class CsvFile(coshsh.datasource.Datasource):
             self.add('details', detail)
         
         try:
-            contactgroupreader = csv.DictReader(self.file_class(open(self.csv_contactgroups)))
+            with io.open(self.csv_contactgroups) as f:
+                contactgroupreader = list(csv.DictReader(self.file_class(f)))
             logger.info('read contactgroups from %s' % self.csv_contactgroups)
-        except Exception, exp:
+        except Exception as exp:
             logger.debug(exp)
             contactgroupreader = []
         resolvedrows = []
@@ -176,9 +181,10 @@ class CsvFile(coshsh.datasource.Datasource):
                     # up the log file with an error for _every_ application
         
         try:
-            contactreader = csv.DictReader(self.file_class(open(self.csv_contacts)))
+            with io.open(self.csv_contacts) as f:
+                contactreader = list(csv.DictReader(self.file_class(f)))
             logger.info('read contacts from %s' % self.csv_contacts)
-        except Exception, exp:
+        except Exception as exp:
             logger.debug(exp)
             contactreader = []
         # name,type,address,userid,notification_period,groups

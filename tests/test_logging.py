@@ -1,10 +1,10 @@
 import unittest
 import os
+import io
 import sys
 import shutil
-import string
 from optparse import OptionParser
-import ConfigParser
+from configparser import RawConfigParser
 import logging
 
 
@@ -20,41 +20,42 @@ from coshsh.util import setup_logging
 
 class CoshshTest(unittest.TestCase):
     def print_header(self):
-        print "#" * 80 + "\n" + "#" + " " * 78 + "#"
-        print "#" + string.center(self.id(), 78) + "#"
-        print "#" + " " * 78 + "#\n" + "#" * 80 + "\n"
+        print("#" * 80 + "\n" + "#" + " " * 78 + "#")
+        print("#" + str.center(self.id(), 78) + "#")
+        print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
 
     def setUp(self):
         shutil.rmtree("./var/objects/test1", True)
         os.makedirs("./var/objects/test1")
         shutil.rmtree("./var/log", True)
         os.makedirs("./var/log")
-        self.config = ConfigParser.ConfigParser()
+        self.config = RawConfigParser()
         self.config.read('etc/coshsh.cfg')
         self.generator = coshsh.generator.Generator()
         setup_logging(logfile="zishsh.log", logdir="./var/log", scrnloglevel=logging.DEBUG, txtloglevel=logging.INFO)
-	# default, wie im coshsh-cook
+        # default, wie im coshsh-cook
         setup_logging(logdir="./var/log", scrnloglevel=logging.INFO)
 
     def tearDown(self):
         #shutil.rmtree("./var/objects/test1", True)
-        print 
+        print()
 
     def test_log(self):
         logger = logging.getLogger('zishsh')
-	print logger.__dict__
-	print
-	for h in logger.handlers:
-	    print h.__dict__
-	    print
+        print(logger.__dict__)
+        print
+        for h in logger.handlers:
+            print(h.__dict__)
+            print
         logger.warn("i warn you")
         logger.info("i inform you")
         logger.debug("i spam you")
-        self.assert_(os.path.exists("./var/log/zishsh.log"))
-	with open('./var/log/zishsh.log') as x: zishshlog = x.read()
-	self.assert_("WARNING" in zishshlog)
-	self.assert_("INFO" in zishshlog)
-	self.assert_("DEBUG" not in zishshlog)
+        self.assertTrue(os.path.exists("./var/log/zishsh.log"))
+        with io.open('./var/log/zishsh.log') as x:
+            zishshlog = x.read()
+        self.assertTrue("WARNING" in zishshlog)
+        self.assertTrue("INFO" in zishshlog)
+        self.assertTrue("DEBUG" not in zishshlog)
 
     def test_write(self):
         # innendrin im Code wird logging.getLogger('coshsh') aufgerufen
@@ -79,20 +80,22 @@ class CoshshTest(unittest.TestCase):
         # get the template files and cache them in a struct owned by the recipe
         # resolve the templates and attach the result as config_files to host/app
         self.generator.recipes['test4'].render()
-        self.assert_(hasattr(self.generator.recipes['test4'].objects['hosts']['test_host_0'], 'config_files'))
-        self.assert_('host.cfg' in self.generator.recipes['test4'].objects['hosts']['test_host_0'].config_files['nagios'])
+        self.assertTrue(hasattr(self.generator.recipes['test4'].objects['hosts']['test_host_0'], 'config_files'))
+        self.assertTrue('host.cfg' in self.generator.recipes['test4'].objects['hosts']['test_host_0'].config_files['nagios'])
 
         # write hosts/apps to the filesystem
         self.generator.recipes['test4'].output()
-        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts"))
-        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0"))
-        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0/os_linux_default.cfg"))
-        self.assert_(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg"))
-        os_windows_default_cfg = open("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg").read()
-        self.assert_('os_windows_default_check_unittest' in os_windows_default_cfg)
-        self.assert_(os.path.exists("./var/log/coshsh.log"))
-	with open('./var/log/coshsh.log') as x: coshshlog = x.read()
-	self.assert_("test_host_0" in coshshlog)
+        self.assertTrue(os.path.exists("var/objects/test1/dynamic/hosts"))
+        self.assertTrue(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0"))
+        self.assertTrue(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0/os_linux_default.cfg"))
+        self.assertTrue(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg"))
+        with io.open("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg") as f:
+            os_windows_default_cfg = f.read()
+        self.assertTrue('os_windows_default_check_unittest' in os_windows_default_cfg)
+        self.assertTrue(os.path.exists("./var/log/coshsh.log"))
+        with io.open('./var/log/coshsh.log') as x:
+            coshshlog = x.read()
+        self.assertTrue("test_host_0" in coshshlog)
 
 
 if __name__ == '__main__':

@@ -82,8 +82,8 @@ class Application(coshsh.item.Item):
                     for cl in inspect.getmembers(toplevel, inspect.isfunction):
                         if cl[0] ==  "__mi_ident__":
                             cls.class_factory.append([path, module, cl[1]])
-                except Exception, e:
-                    print e
+                except Exception as e:
+                    print(e)
                 finally:
                     if fp:
                         fp.close()
