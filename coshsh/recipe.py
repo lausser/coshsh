@@ -65,6 +65,7 @@ class Recipe(object):
         self.name = kwargs["name"]
         self.log_file = kwargs.get("log_file", None)
         self.log_dir = kwargs.get("log_dir", None)
+        self.backup_count = kwargs.get("backup_count", None)
         self.force = kwargs.get("force")
         self.safe_output = kwargs.get("safe_output")
         self.pid_dir = kwargs.get("pid_dir")
@@ -77,7 +78,7 @@ class Recipe(object):
                 self.pid_dir = os.environ.get("%TEMP%", "C:/TEMP")
 
         self.pid_file = os.path.join(self.pid_dir, "coshsh.pid." + re.sub('[/\\\.]', '_', self.name))
-        switch_logging(logdir=self.log_dir, logfile=self.log_file)
+        switch_logging(logdir=self.log_dir, logfile=self.log_file, backup_count=self.backup_count)
         logger.info("recipe %s init" % self.name)
         self.templates_dir = kwargs.get("templates_dir")
         self.classes_dir = kwargs.get("classes_dir")

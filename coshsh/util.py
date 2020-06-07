@@ -117,7 +117,7 @@ def clean_umlauts(text):
         text = text.replace(from_str, to_str)
     return text
 
-def setup_logging(logdir=".", logfile="coshsh.log", scrnloglevel=logging.INFO, txtloglevel=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"):
+def setup_logging(logdir=".", logfile="coshsh.log", scrnloglevel=logging.INFO, txtloglevel=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", backup_count=2):
     logdir = os.path.abspath(logdir)
     abs_logfile = logfile if os.path.isabs(logfile) else os.path.join(logdir, logfile)
     if not os.path.exists(os.path.dirname(abs_logfile)):
@@ -135,7 +135,7 @@ def setup_logging(logdir=".", logfile="coshsh.log", scrnloglevel=logging.INFO, t
     logger.setLevel(logging.DEBUG)
     log_formatter = logging.Formatter(format)
 
-    txt_handler = RotatingFileHandler(abs_logfile, backupCount=2, maxBytes=20*1024*1024, delay=True)
+    txt_handler = RotatingFileHandler(abs_logfile, backupCount=backup_count, maxBytes=20*1024*1024, delay=True)
     txt_handler.setFormatter(log_formatter)
     txt_handler.setLevel(txtloglevel)
     logger.addHandler(txt_handler)
@@ -154,14 +154,17 @@ def setup_logging(logdir=".", logfile="coshsh.log", scrnloglevel=logging.INFO, t
     setup_logging.log_formatter = log_formatter
     setup_logging.txt_handler = txt_handler
     setup_logging.console_handler = console_handler
+    setup_logging.backup_count = backup_count
     return logger
 
 
 def switch_logging(**kwargs):
     logdir = kwargs.get("logdir", setup_logging.logdir)
     logfile = kwargs.get("logfile", setup_logging.logfile)
+    backup_count = kwargs.get("backup_count", setup_logging.backup_count)
     logdir = setup_logging.logdir if logdir == None else logdir
     logfile = setup_logging.logfile if logfile == None else logfile
+    backup_count = setup_logging.backup_count if backup_count == None else backup_count
     abs_logfile = logfile if os.path.isabs(logfile) else os.path.join(logdir, logfile)
     if abs_logfile == setup_logging.abs_logfile:
         return
@@ -174,7 +177,7 @@ def switch_logging(**kwargs):
     for handler in logger.handlers:
         if hasattr(handler, "baseFilename"):
             logger.removeHandler(handler)
-    txt_handler = RotatingFileHandler(abs_logfile, backupCount=2, maxBytes=20*1024*1024, delay=True)
+    txt_handler = RotatingFileHandler(abs_logfile, backupCount=backup_count, maxBytes=20*1024*1024, delay=True)
     txt_handler.setFormatter(setup_logging.log_formatter)
     txt_handler.setLevel(setup_logging.txtloglevel)
     logger.addHandler(txt_handler)
