@@ -167,11 +167,7 @@ def switch_logging(**kwargs):
     for handler in logger.handlers:
         if hasattr(handler, "baseFilename"):
             logger.removeHandler(handler)
-<<<<<<< HEAD
-    txt_handler = RotatingFileHandler(abs_logfile, backupCount=2, maxBytes=20*1024*1024)
-=======
     txt_handler = RotatingFileHandler(abs_logfile, backupCount=backup_count, maxBytes=20*1024*1024, delay=True)
->>>>>>> c47c536... add parameter backup_count
     txt_handler.setFormatter(setup_logging.log_formatter)
     txt_handler.setLevel(setup_logging.txtloglevel)
     logger.addHandler(txt_handler)
