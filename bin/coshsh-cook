@@ -123,7 +123,7 @@ if __name__ == '__main__':
         else:
             pid_dir = gettempdir()
         if "defaults" in cookbook.sections() and "backup_count" in [c[0] for c in cookbook.items("defaults")]:
-            backup_count = dict(cookbook.items("defaults"))["backup_count"]
+            backup_count = int(dict(cookbook.items("defaults"))["backup_count"])
         else:
             backup_count = 2
         if opts.default_log_level and opts.default_log_level.lower() == "debug" or "defaults" in cookbook.sections() and "log_level" in [c[0] for c in cookbook.items("defaults")] and cookbook.items("defaults")["log_level"].lower() == "debug":

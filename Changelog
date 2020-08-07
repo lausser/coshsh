@@ -1,3 +1,6 @@
+* 2020-08-06 5.6.2
+  get rid of a git deprecation warning in the default datarecipient
+  add option backup_count to the cookbook
 * 2020-06-07 5.6.1
   add parameter backup_count
 * 2019-12-28 5.6.0.1

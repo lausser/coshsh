@@ -120,7 +120,7 @@ class DatarecipientCoshshDefault(coshsh.datarecipient.Datarecipient):
             save_dir = os.getcwd()
             os.chdir(self.dynamic_dir)
             print "git add------------------"
-            process = Popen(["git", "add", "."], stdout=PIPE, stderr=STDOUT)
+            process = Popen(["git", "add", "--all", "."], stdout=PIPE, stderr=STDOUT)
             output, unused_err = process.communicate()
             retcode = process.poll()
             print output
@@ -149,7 +149,7 @@ class DatarecipientCoshshDefault(coshsh.datarecipient.Datarecipient):
             retcode = process.poll()
             print output
             print "git add------------------"
-            process = Popen(["git", "add", "."], stdout=PIPE, stderr=STDOUT)
+            process = Popen(["git", "add", "--all", "."], stdout=PIPE, stderr=STDOUT)
             output, unused_err = process.communicate()
             retcode = process.poll()
             print output
