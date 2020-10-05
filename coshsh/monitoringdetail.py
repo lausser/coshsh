@@ -102,23 +102,23 @@ class MonitoringDetail(coshsh.item.Item):
         return None
 
     def __eq__(self, other):
-        return ((self.monitoring_type, self.monitoring_0) == (other.monitoring_type, other.monitoring_0))
+        return ((self.monitoring_type, str(self.monitoring_0)) == (other.monitoring_type, str(other.monitoring_0)))
 
     def __ne__(self, other):
-        return ((self.monitoring_type, self.monitoring_0) != (other.monitoring_type, other.monitoring_0))
+        return ((self.monitoring_type, str(self.monitoring_0)) != (other.monitoring_type, str(other.monitoring_0)))
 
     def __lt__(self, other):
-        return ((self.monitoring_type, self.monitoring_0) < (other.monitoring_type, other.monitoring_0))
+        return ((self.monitoring_type, str(self.monitoring_0)) < (other.monitoring_type, str(other.monitoring_0)))
 
     def __le__(self, other):
-        return ((self.monitoring_type, self.monitoring_0) <= (other.monitoring_type, other.monitoring_0))
+        return ((self.monitoring_type, str(self.monitoring_0)) <= (other.monitoring_type, str(other.monitoring_0)))
 
     def __gt__(self, other):
-        return ((self.monitoring_type, self.monitoring_0) > (other.monitoring_type, other.monitoring_0))
+        return ((self.monitoring_type, str(self.monitoring_0)) > (other.monitoring_type, str(other.monitoring_0)))
 
     def __ge__(self, other):
-        return ((self.monitoring_type, self.monitoring_0) >= (other.monitoring_type, other.monitoring_0))
+        return ((self.monitoring_type, str(self.monitoring_0)) >= (other.monitoring_type, str(other.monitoring_0)))
 
     def __repr__(self):
-        return "%s %s" % (self.monitoring_type, self.monitoring_0)
+        return "%s %s" % (self.monitoring_type, str(self.monitoring_0))
 
