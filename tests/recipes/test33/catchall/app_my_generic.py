@@ -16,5 +16,7 @@ class MyGenericApplication(coshsh.application.Application):
             template="app_my_generic_services"),
         coshsh.templaterule.TemplateRule(needsattr='ports',
             template="app_my_generic_ports"),
+        coshsh.templaterule.TemplateRule(needsattr='blinkenlights',
+            template="app_my_generic_blinkenlights"),
     ]
 
