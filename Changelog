@@ -1,3 +1,5 @@
+* 2020-10-05 5.6.2.2
+  fix a bug in pushgateway (failed when no username was set)
 * 2020-10-05 5.6.2.1
   fix a bug in the sort of details (compare, when monitoring_0 is a dict)
 * 2020-08-06 5.6.2
