@@ -10,6 +10,7 @@ import os
 import re
 import locale
 import logging
+import functools
 from jinja2 import FileSystemLoader, Environment, TemplateSyntaxError, TemplateNotFound
 from copy import copy, deepcopy
 
@@ -244,7 +245,7 @@ class Item(object):
             if render_this:
                 if rule.unique_config and isinstance(rule.unique_attr, str) and hasattr(self, rule.unique_attr):
                     self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % getattr(self, rule.unique_attr), rule.suffix, rule.for_tool, **dict([(rule.self_name, self), ("recipe", recipe)]))
-                elif rule.unique_config and isinstance(rule.unique_attr, list) and reduce(lambda x, y: x and y, [hasattr(self, ua) for ua in rule.unique_attr]):
+                elif rule.unique_config and isinstance(rule.unique_attr, list) and functools.reduce(lambda x, y: x and y, [hasattr(self, ua) for ua in rule.unique_attr]):
                     self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % tuple([getattr(self, a) for a in rule.unique_attr]), rule.suffix, rule.for_tool, **dict([(rule.self_name, self), ("recipe", recipe)]))
                 else:
                     self.render_cfg_template(jinja2, template_cache, rule.template, rule.template, rule.suffix, rule.for_tool, **dict([(rule.self_name, self), ("recipe", recipe)]))

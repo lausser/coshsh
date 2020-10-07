@@ -1,3 +1,5 @@
+* 2020-10-07 6.6.2.2.1
+  fix a bug in items, reduce()
 * 2020-10-05 6.6.2.2
   fix a bug in pushgateway (failed when no username was set)
 * 2020-10-05 6.6.2.1
