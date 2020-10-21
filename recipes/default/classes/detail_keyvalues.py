@@ -52,9 +52,15 @@ class MonitoringDetailKeyvaluesArray(coshsh.monitoringdetail.MonitoringDetail):
         try:
             self.dictionary[params["monitoring_2"]].append(params["monitoring_3"])
         except Exception:
-            self.dictionary[params["monitoring_2"]] = [params["monitoring_3"]]
+            try:
+                self.dictionary[params["monitoring_2"]] = [params["monitoring_3"]]
+            except Exception:
+                pass
         try:
             self.dictionary[params["monitoring_4"]].append(params["monitoring_5"])
         except Exception:
-            self.dictionary[params["monitoring_4"]] = [params["monitoring_5"]]
+            try:
+                self.dictionary[params["monitoring_4"]] = [params["monitoring_5"]]
+            except Exception:
+                pass
 
