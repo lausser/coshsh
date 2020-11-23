@@ -1,3 +1,5 @@
+* 2020-11-23 6.6.2.4
+  strip blanks from datasources list
 * 2020-10-21 6.6.2.3
   make detail KEYVALUESARRAY more robust
 * 2020-10-07 6.6.2.2.1
