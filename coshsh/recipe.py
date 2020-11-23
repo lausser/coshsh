@@ -154,7 +154,7 @@ class Recipe(object):
         self.init_class_cache()
 
         if kwargs.get("datasources"):
-            self.datasource_names = [ds.lower() for ds in kwargs.get("datasources").split(",")]
+            self.datasource_names = [ds.lower().strip() for ds in kwargs.get("datasources").split(",")]
         else:
             self.datasource_names = []
         if kwargs.get("objects_dir") and not kwargs.get("datarecipients"):
@@ -164,9 +164,9 @@ class Recipe(object):
         elif kwargs.get("objects_dir") and kwargs.get("datarecipients"):
             self.objects_dir = kwargs["objects_dir"]
             #logger.warn("recipe %s delete parameter objects_dir (use datarecipients instead)" % (self.name, ))
-            self.datarecipient_names = [ds.lower() for ds in kwargs.get("datarecipients").split(",")]
+            self.datarecipient_names = [ds.lower().strip() for ds in kwargs.get("datarecipients").split(",")]
         else:
-            self.datarecipient_names = [ds.lower() for ds in kwargs.get("datarecipients").split(",")]
+            self.datarecipient_names = [ds.lower().strip() for ds in kwargs.get("datarecipients").split(",")]
         # because this is allowed: datarecipients = >>>,SIMPLESAMPLE
         self.datarecipient_names = ['datarecipient_coshsh_default' if dr == '>>>' else dr for dr in self.datarecipient_names]
         if 'datarecipient_coshsh_default' in self.datarecipient_names:
