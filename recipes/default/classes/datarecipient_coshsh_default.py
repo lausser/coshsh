@@ -137,6 +137,12 @@ class DatarecipientCoshshDefault(coshsh.datarecipient.Datarecipient):
             output, unused_err = process.communicate()
             retcode = process.poll()
             print output
+            with open(".git/config") as gitcfg:
+                if '[remote' in gitcfg.read():
+                    process = Popen(["git", "push", "-u", "origin", "master"], stdout=PIPE, stderr=STDOUT, universal_newlines=True)
+                    poutput, unused_err = process.communicate()
+                    retcode = process.poll()
+                    print poutput
             os.chdir(save_dir)
             self.analyze_output(output)
         elif not os.path.exists(self.dynamic_dir + '/.git') and self.recipe_git_init and [p for p in os.environ["PATH"].split(os.pathsep) if os.path.isfile(os.path.join(p, "git"))]:
