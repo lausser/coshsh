@@ -10,6 +10,7 @@ import os
 import re
 import logging
 import time
+import getpass
 import coshsh
 from coshsh.recipe import Recipe, RecipePidAlreadyRunning, RecipePidNotWritable, RecipePidGarbage
 from coshsh.util import odict, switch_logging, restore_logging
@@ -46,7 +47,7 @@ class Generator(object):
             from socket import gethostname
             has_prometheus = True
             try:
-                coshshuser = os.getlogin()
+                coshshuser = getpass.getuser()
             except Exception:
                 coshshuser = os.getenv("username")
             hostname = gethostname()
