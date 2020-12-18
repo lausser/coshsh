@@ -1,3 +1,5 @@
+* 2020-12-18 6.6.3.1
+  use the effective username for prometheus labels
 * 2020-11-25 6.6.3
   run git-push if the dynamic_dir has a remote
 * 2020-11-23 6.6.2.4
