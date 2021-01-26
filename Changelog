@@ -1,3 +1,5 @@
+* 2021-01-26 5.6.3.2
+  bugfix in snmpv3 security levels
 * 2020-12-18 5.6.3.1
   use the effective username for prometheus labels
 * 2020-11-25 5.6.3

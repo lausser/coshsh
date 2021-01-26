@@ -24,7 +24,7 @@ class MonitoringDetailLoginSNMPV3(coshsh.monitoringdetail.MonitoringDetail):
         if not self.authkey and not self.privkey:
             self.securitylevel = "noAuthNoPriv"
         elif self.authkey and not self.privkey:
-            self.securitylevel = "AuthNoPriv"
+            self.securitylevel = "authNoPriv"
         elif self.authkey and self.privkey:
-            self.securitylevel = "AuthPriv"
+            self.securitylevel = "authPriv"
 
