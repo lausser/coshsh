@@ -60,7 +60,7 @@ class CoshshTest(unittest.TestCase):
         self.assertTrue(os.path.exists("./var/log/coshshlogs/coshsh_test33.log"))
         # aber auch vom generator
         # eigentlich. aber der generator loggt nur fehler
-	# self.assert_(os.path.exists("./var/log/coshshlogs/coshsh.log"))
+	# self.assertTrue(os.path.exists("./var/log/coshshlogs/coshsh.log"))
         self.config.set("datasource_SIMPLESAMPLE", "name", "simplesample")
         cfg = self.config.items("datasource_SIMPLESAMPLE")
         self.generator.recipes['test33'].add_datasource(**dict(cfg))
@@ -91,9 +91,9 @@ class CoshshTest(unittest.TestCase):
         self.print_header()
         self.generator.add_recipe(name='test34', **dict(self.config.items('recipe_test34')))
         # init-meldungen von test34
-	self.assert_(os.path.exists("/tmp/coshsh_test34.log"))
+        self.assertTrue(os.path.exists("/tmp/coshsh_test34.log"))
         # siehe oben
-	# self.assert_(os.path.exists("./var/log/coshshlogs/coshsh.log"))
+	# self.assertTrue(os.path.exists("./var/log/coshshlogs/coshsh.log"))
         self.config.set("datasource_SIMPLESAMPLE", "name", "simplesample")
         cfg = self.config.items("datasource_SIMPLESAMPLE")
         self.generator.recipes['test34'].add_datasource(**dict(cfg))
@@ -147,7 +147,7 @@ class CoshshTest(unittest.TestCase):
         self.print_header()
         self.generator.add_recipe(name='test36', **dict(self.config.items('recipe_test36')))
         # init-meldungen von test34
-        self.assert_(os.path.exists("/tmp/coshsh5/coshsh.log"))
+        self.assertTrue(os.path.exists("/tmp/coshsh5/coshsh.log"))
         # siehe oben
-        # self.assert_(os.path.exists("./var/log/coshshlogs/coshsh.log"))
+        # self.assertTrue(os.path.exists("./var/log/coshshlogs/coshsh.log"))
 
