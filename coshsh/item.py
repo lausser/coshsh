@@ -191,7 +191,7 @@ class Item(object):
         except TemplateNotFound:
             logger.error("cannot find template " + name)
         except Exception as exp:
-            logger.critical("error in template %s (%s,%s)" (name, exp.__class__.__name__, exp))
+            logger.critical("error in template %s (%s,%s)" % (name, exp.__class__.__name__, exp))
 
         if name in template_cache:
             # transform hostgroups, contacts, etc. from list to string
