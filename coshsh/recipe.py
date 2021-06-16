@@ -62,6 +62,8 @@ class Recipe(object):
                 kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
                 if key not in self.attributes_for_adapters:
                     self.additional_recipe_fields[key] = re.sub('%.*?%', substenv, kwargs[key])
+            if key.startswith("env_"):
+               os.environ[key.replace("env_", "").upper()] = kwargs[key]
         self.name = kwargs["name"]
         self.log_file = kwargs.get("log_file", None)
         self.log_dir = kwargs.get("log_dir", None)

@@ -119,6 +119,21 @@ class CoshshTest(unittest.TestCase):
         # git_init is yes by default
         self.assertTrue(not os.path.exists("var/objects/test10/dynamic/.git"))
 
+    def test_create_recipe_set_env(self):
+        self.print_header()
+        os.environ['OMD_SITE'] = 'sitexy'
+        os.environ['COSHSHDIR'] = '/opt/coshsh'
+        os.environ['ZISSSSSSCHDIR'] = '/opt/zisch'
+        self.generator.add_recipe(name='test7inv', **dict(self.config.items('recipe_TEST7INV')))
+        self.config.set("datasource_ENVDIRDS", "name", "envdirds")
+        cfg = self.config.items("datasource_ENVDIRDS")
+        ds = coshsh.datasource.Datasource(**dict(cfg))
+        self.assertTrue(os.environ["THERCP"] == "test7inv_xyz")
+        self.assertTrue(os.environ["THECDIR"] == "/opt/coshsh/i_am_the_dir")
+        self.assertTrue(os.environ["THEZDIR"] == "/opt/zisch/i_am_the_dir")
+        self.assertTrue(os.environ["MIBDIRS"] == "/usr/share/snmp/mibs:/omd/sites/sitexy/etc/coshsh/data/mibs")
+        # remove target dir / create empty
+
 if __name__ == '__main__':
     unittest.main()
 
