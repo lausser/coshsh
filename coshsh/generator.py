@@ -63,6 +63,7 @@ class Generator(object):
         if has_prometheus and not hasattr(self, "pg_address"):
             has_prometheus = False
         for recipe in self.recipes.values():
+            recipe_completed = False
             try:
                 switch_logging(logfile=recipe.log_file)
                 if recipe.pid_protect():
@@ -73,6 +74,7 @@ class Generator(object):
                         recipe.assemble()
                         recipe.render()
                         recipe.output()
+                        recipe_completed = True
                         if has_prometheus:
                             g = Gauge("coshsh_recipe_last_generated",
                                 "The timestamp when a configuration was generated",
@@ -111,5 +113,6 @@ class Generator(object):
             except Exception as exp:
                 logger.error("skipping recipe %s (%s)" % (recipe.name, exp))
             else:
-                pass
+                if recipe_completed:
+                    logger.info("recipe {} completed".format(recipe.name))
             restore_logging()
