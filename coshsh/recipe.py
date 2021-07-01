@@ -263,7 +263,7 @@ class Recipe(object):
 
         for host in self.objects['hosts'].values():
             host.resolve_monitoring_details()
-            for key in [k for k in host.__dict__.keys() if not k.startswith("__") and isinstance(getattr(host, k), (list, tuple))]:
+            for key in [k for k in host.__dict__.keys() if not k.startswith("__") and isinstance(getattr(host, k), (list, tuple)) and k not in ["templates"]]:
                 getattr(host, key).sort()
             host.create_templates()
             host.create_hostgroups()
