@@ -55,7 +55,7 @@ class install_data(_install_data):
 
 
 setup(name='coshsh',
-      version='5.6.3.2',
+      version='5.7.0.2',
       description='Coshsh - config generator for monitoring systems',
       url='http://github.com/lausser/coshsh',
       author='Gerhard Lausser',
