@@ -14,3 +14,17 @@ fs.units
 }
 {% endfor %}
 
+{% for nbr in application|neighbor_applications %}
+# {{ nbr }}
+# name is {{ nbr.name }}
+# type is {{ nbr.type }}
+# class is {{ nbr.__class__.__name__ }}
+{% endfor %}
+
+{% for nbr in application|neighbor_applications_as_tuple %}
+# {{ nbr }}
+# tname is {{ nbr[1] }}
+# ttype is {{ nbr[0] }}
+# tclass is {{ nbr[2] }}
+{% endfor %}
+

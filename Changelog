@@ -1,3 +1,5 @@
+* 2021-09-14 6.8
+  add filter_neighbor_applications, applications can see each other
 * 2020-07-01 6.7.0.2
   bugfix in host templates (must not be sorted)
 * 2020-06-29 6.7.0.1

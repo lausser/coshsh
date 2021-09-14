@@ -157,6 +157,9 @@ def filter_custom_macros(obj):
 def filter_rfc3986(text):
     return 'rfc3986://' + urllib.request.pathname2url(text.encode('utf-8'))
 
+def filter_neighbor_applications(application):
+    return [app for app in application.host.applications]
+
 def global_environ(var, default=None):
     val = os.getenv(var, default)
     return val if val != None else ""

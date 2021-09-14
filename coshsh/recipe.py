@@ -16,7 +16,7 @@ import logging
 import errno
 from jinja2 import FileSystemLoader, Environment, TemplateSyntaxError, TemplateNotFound
 import coshsh
-from coshsh.jinja2_extensions import is_re_match, filter_re_sub, filter_re_escape, filter_host, filter_service, filter_contact, filter_custom_macros, filter_rfc3986, global_environ
+from coshsh.jinja2_extensions import is_re_match, filter_re_sub, filter_re_escape, filter_host, filter_service, filter_contact, filter_custom_macros, filter_rfc3986, filter_neighbor_applications, global_environ
 from coshsh.item import Item
 from coshsh.application import Application
 from coshsh.contact import Contact
@@ -123,6 +123,7 @@ class Recipe(object):
         self.jinja2.env.filters['contact'] = filter_contact
         self.jinja2.env.filters['custom_macros'] = filter_custom_macros
         self.jinja2.env.filters['rfc3986'] = filter_rfc3986
+        self.jinja2.env.filters['neighbor_applications'] = filter_neighbor_applications
         self.jinja2.env.globals['environ'] = global_environ
 
         if self.my_jinja2_extensions:
@@ -268,11 +269,13 @@ class Recipe(object):
             host.create_templates()
             host.create_hostgroups()
             host.create_contacts()
+            setattr(host, "applications", [])
 
         orphaned_applications = []
         for app in self.objects['applications'].values():
             try:
                 setattr(app, 'host', self.objects['hosts'][app.host_name])
+                app.host.applications.append(app)
                 app.resolve_monitoring_details()
                 for key in [k for k in app.__dict__.keys() if not k.startswith("__") and isinstance(getattr(app, k), (list, tuple))]:
                     # sort monitoring_type/monitoring_0 to bring some order into services,filesystems etc.
