@@ -2,6 +2,7 @@ import unittest
 import os
 import sys
 import shutil
+import re
 from optparse import OptionParser
 from configparser import RawConfigParser
 import logging
@@ -104,6 +105,33 @@ class CoshshTest(unittest.TestCase):
         self.assertTrue(u_bmc.service_notification_options == "w,c,u,r,s")
         self.assertTrue(u_bmc.host_notification_options == "d,u,r")
         self.assertTrue(u_bmc.service_notification_commands == ["notify-service-optis"])
+
+    def test_create_custom_contacts(self):
+        self.print_header()
+        self.generator.add_recipe(name='test221', **dict(self.config.items('recipe_test221')))
+        self.generator.add_recipe(name='test222', **dict(self.config.items('recipe_test222')))
+
+        self.config.set("datasource_CSV22", "name", "csv22")
+        cfg = self.config.items("datasource_CSV22")
+        self.generator.recipes['test221'].add_datasource(**dict(cfg))
+        self.generator.recipes['test222'].add_datasource(**dict(cfg))
+
+        # read the datasources
+        setup_logging(logdir=self.log_dir, scrnloglevel=DEBUG)
+        self.generator.recipes['test221'].collect()
+        self.generator.recipes['test221'].assemble()
+        # benutzt eigenes tpl
+        cexitp1 = self.generator.recipes['test221'].objects['contacts']['lausser+EXISTINGTEMPLATE+localit@wattens.swar.at+localit']
+        cexitp1.templates = ["localit_inc5", "bereitschaft"]
+        # benutzt standard contact.tpl
+        cexitp2 = self.generator.recipes['test221'].objects['contacts']['lausser+EXISTINGTEMPLATE2+localit2@wattens.swar.at+localit2']
+        cexitp2.templates = ["localit_inc3", "bereitschaft"]
+        self.generator.recipes['test221'].render()
+        #print(cexitp1.config_files["nagios"]["contact_localit.cfg"])
+        self.assertTrue(re.search(r'define.*use\s+localit_inc5,bereitschaft', cexitp1.config_files["nagios"]["contact_localit.cfg"], re.DOTALL))
+        #print(cexitp2.config_files["nagios"]["contact_localit2.cfg"])
+        self.assertTrue(re.search(r'define.*use\s+localit_inc3,bereitschaft', cexitp2.config_files["nagios"]["contact_localit2.cfg"], re.DOTALL))
+
 
 if __name__ == '__main__':
     unittest.main()

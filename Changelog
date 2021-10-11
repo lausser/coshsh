@@ -1,3 +1,5 @@
+* 2021-10-11 7.0
+  contacts can have nagios-templates and coshsh-templates
 * 2021-09-14 6.8
   add filter_neighbor_applications, applications can see each other
 * 2020-07-01 6.7.0.2
