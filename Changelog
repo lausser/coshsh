@@ -1,3 +1,5 @@
+* 2021-10-12 7.0.0.1
+  init contact templates as an empty list
 * 2021-10-11 7.0
   contacts can have nagios-templates and coshsh-templates
 * 2021-09-14 6.8
