@@ -13,7 +13,7 @@
 {% if contact.email %}
   email               {{ contact.email }}
 {% endif %}
-{% if contact.email %}
+{% if contact.host_notification_period %}
   host_notification_period {{ contact.host_notification_period }}
 {% endif %}
 {% if contact.service_notification_period %}
