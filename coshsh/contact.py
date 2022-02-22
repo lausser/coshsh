@@ -134,5 +134,5 @@ class GenericContact(Contact):
     def render(self, template_cache, jinja2, recipe):
         # Maybe we find some useful attributes in the future which can
         # be used like in GenericApplication
-        super(GenericContact, self).render(template_cache, jinja2, recipe)
+        return super(GenericContact, self).render(template_cache, jinja2, recipe)
 
