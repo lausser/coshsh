@@ -182,16 +182,19 @@ class Item(object):
             self.service_notification_commands = ",".join(sorted(self.service_notification_commands))
 
     def render_cfg_template(self, jinja2, template_cache, name, output_name, suffix, for_tool, **kwargs):
+        render_errors = 0
         try:
             if not name in template_cache:
                 template_cache[name] = jinja2.env.get_template(name + ".tpl")
                 logger.info("load template " + name)
         except TemplateSyntaxError as e:
             logger.critical("%s template %s has an error in line %d: %s" % (self.__class__.__name__, name, e.lineno, e.message))
+            render_errors += 1
         except TemplateNotFound:
             logger.error("cannot find template " + name)
         except Exception as exp:
             logger.critical("error in template %s (%s,%s)" % (name, exp.__class__.__name__, exp))
+            render_errors += 1
 
         if name in template_cache:
             # transform hostgroups, contacts, etc. from list to string
@@ -209,12 +212,15 @@ class Item(object):
                     logger.critical("render exception in template %s for %s %s: %s" % (name, self, self.fingerprint(), exp))
                 else:
                     logger.critical("render exception in template %s for %s: %s" % (name, self, exp))
+                render_errors += 1
             # transform hostgroups, contacts, etc. back to lists
             self.pythonize()
+        return render_errors
 
     def render(self, template_cache, jinja2, recipe):
+        render_errors = 0
         if not hasattr(self, 'template_rules'):
-            return
+            return render_errors
         for rule in self.template_rules:
             render_this = False
             try:
@@ -241,14 +247,16 @@ class Item(object):
                     pass
             except Exception as e:
                 logger.critical("error in %s template rules. please check %s. Error was: %s" % (self.__class__.__name__, rule, str(e)))
+                render_errors += 1
 
             if render_this:
                 if rule.unique_config and isinstance(rule.unique_attr, str) and hasattr(self, rule.unique_attr):
-                    self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % getattr(self, rule.unique_attr), rule.suffix, rule.for_tool, **dict([(rule.self_name, self), ("recipe", recipe)]))
+                    render_errors += self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % getattr(self, rule.unique_attr), rule.suffix, rule.for_tool, **dict([(rule.self_name, self), ("recipe", recipe)]))
                 elif rule.unique_config and isinstance(rule.unique_attr, list) and functools.reduce(lambda x, y: x and y, [hasattr(self, ua) for ua in rule.unique_attr]):
-                    self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % tuple([getattr(self, a) for a in rule.unique_attr]), rule.suffix, rule.for_tool, **dict([(rule.self_name, self), ("recipe", recipe)]))
+                    render_errors += self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % tuple([getattr(self, a) for a in rule.unique_attr]), rule.suffix, rule.for_tool, **dict([(rule.self_name, self), ("recipe", recipe)]))
                 else:
-                    self.render_cfg_template(jinja2, template_cache, rule.template, rule.template, rule.suffix, rule.for_tool, **dict([(rule.self_name, self), ("recipe", recipe)]))
+                    render_errors += self.render_cfg_template(jinja2, template_cache, rule.template, rule.template, rule.suffix, rule.for_tool, **dict([(rule.self_name, self), ("recipe", recipe)]))
+        return render_errors
 
     def fingerprint(self):
         try:

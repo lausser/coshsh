@@ -197,6 +197,8 @@ class Recipe(object):
                 if rule[1].lower() in self.datasource_names:
                     self.datasource_filters[rule[1].lower()] = rule[2]
 
+        self.render_errors = 0
+
     def set_recipe_sys_path(self):
         sys.path[0:0] = self.classes_path
 
@@ -310,17 +312,17 @@ class Recipe(object):
     def render(self):
         template_cache = {}
         for host in self.objects['hosts'].values():
-            host.render(template_cache, self.jinja2, self)
+            self.render_errors += host.render(template_cache, self.jinja2, self)
         for app in self.objects['applications'].values():
             # because of this __new__ construct the Item.searchpath is
             # not inherited. Needs to be done explicitely
-            app.render(template_cache, self.jinja2, self)
+            self.render_errors += app.render(template_cache, self.jinja2, self)
         for cg in self.objects['contactgroups'].values():
-            cg.render(template_cache, self.jinja2, self)
+            self.render_errors += cg.render(template_cache, self.jinja2, self)
         for c in self.objects['contacts'].values():
-            c.render(template_cache, self.jinja2, self)
+            self.render_errors += c.render(template_cache, self.jinja2, self)
         for hg in self.objects['hostgroups'].values():
-            hg.render(template_cache, self.jinja2, self)
+            self.render_errors += hg.render(template_cache, self.jinja2, self)
         # you can put anything in objects (Item class with own templaterules)
         for item in sum([list(self.objects[itype].values()) for itype in self.objects if itype not in ['hosts', 'applications', 'details', 'contactgroups', 'contacts', 'hostgroups']], []):
             # first check hasattr, because somebody may accidentially
@@ -329,7 +331,7 @@ class Recipe(object):
             if hasattr(item, 'config_files') and not item.config_files:
                 # has not been populated with content in the datasource
                 # (like bmw appmon timeperiods)
-                item.render(template_cache, self.jinja2, self)
+                self.render_errors += item.render(template_cache, self.jinja2, self)
             
     def count_before_objects(self):
         for datarecipient in self.datarecipients:

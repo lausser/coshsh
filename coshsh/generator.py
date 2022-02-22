@@ -89,6 +89,10 @@ class Generator(object):
                                 "The duration of a recipe",
                                 registry=registry)
                             g.set(time.time() - tic)
+                            g = Gauge("coshsh_recipe_render_errors",
+                                "The number of render errors",
+                                registry=registry)
+                            g.set(recipe.render_errors)
                     if has_prometheus:
                         g = Gauge("coshsh_recipe_last_success",
                             "The timestamp when the recipe successfully ran last time",
@@ -114,5 +118,5 @@ class Generator(object):
                 logger.error("skipping recipe %s (%s)" % (recipe.name, exp))
             else:
                 if recipe_completed:
-                    logger.info("recipe {} completed".format(recipe.name))
+                    logger.info("recipe {} completed with {} problems".format(recipe.name, recipe.render_errors))
             restore_logging()
