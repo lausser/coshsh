@@ -56,6 +56,8 @@ class Recipe(object):
 
     def __init__(self, **kwargs):
         os.environ['RECIPE_NAME'] = kwargs["name"]
+        for idx, elem in enumerate(kwargs["name"].split("_")):
+            os.environ['RECIPE_NAME'+str(idx+1)] = elem
         self.additional_recipe_fields = {}
         for key in kwargs.keys():
             if isinstance(kwargs[key], str):

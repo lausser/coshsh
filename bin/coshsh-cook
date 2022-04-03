@@ -134,7 +134,15 @@ if __name__ == '__main__':
         else:
             setup_logging(logdir=log_dir, scrnloglevel=INFO, backup_count=backup_count)
         for recipe in recipes:
+            matching_recipe = None
             if recipe in recipe_configs.keys():
+                matching_recipe = recipe
+            elif [r for r in recipe_configs.keys() if re.match(r, recipe)]:
+                # [recipe_lidl_.*_.*] <- lidl_at_hq
+                matching_recipe =  [r for r in recipe_configs.keys() if re.match(r, recipe)][0]
+                recipe_configs[recipe] = recipe_configs[matching_recipe]
+                recipe_configs[recipe] = [('name', recipe) if kv[0] == 'name' else kv for kv in recipe_configs[recipe]]
+            if matching_recipe:
                 recipe_configs[recipe].append(('force', opts.force))
                 recipe_configs[recipe].append(('safe_output', opts.safe_output))
                 if not [c for c in recipe_configs[recipe] if c[0] == 'pid_dir']:
