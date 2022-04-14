@@ -1,5 +1,6 @@
 * 2022-04-04 8.0
   recipe sections can contain regular expressions
+  mapping sections
 * 2022-02-22 7.1
   count render errors and output the number of problems found
 * 2021-12-15 7.0.0.2

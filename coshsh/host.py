@@ -36,6 +36,8 @@ class Host(coshsh.item.Item):
         self.ports = [22] # can be changed with a PORT detail
         super(Host, self).__init__(params)
         self.alias = getattr(self, 'alias', self.host_name)
+        if not hasattr(self, "macros"):
+            self.macros = {}
         self.fingerprint = lambda s=self:s.__class__.fingerprint(params)
 
     @classmethod

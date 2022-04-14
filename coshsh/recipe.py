@@ -64,8 +64,20 @@ class Recipe(object):
                 kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
                 if key not in self.attributes_for_adapters:
                     self.additional_recipe_fields[key] = re.sub('%.*?%', substenv, kwargs[key])
-            if key.startswith("env_"):
+        for key in kwargs.keys():
+            if isinstance(kwargs[key], basestring):
+                for mapping in kwargs["coshsh_config_mappings"]:
+                    mapping_keyword_pat = "(@MAPPING_"+mapping.upper()+"\[(.*?)\])"
+                    for match in re.findall(mapping_keyword_pat, kwargs[key]):
+                        if match[1] in kwargs["coshsh_config_mappings"][mapping]:
+                            oldstr = "@MAPPING_"+mapping.upper()+"["+match[1]+"]"
+                            newstr = kwargs["coshsh_config_mappings"][mapping][match[1]]
+                            kwargs[key] = kwargs[key].replace(oldstr, newstr)
+
+        for key in kwargs.keys():
+            if isinstance(kwargs[key], basestring) and key.startswith("env_"):
                os.environ[key.replace("env_", "").upper()] = kwargs[key]
+
         self.name = kwargs["name"]
         self.log_file = kwargs.get("log_file", None)
         self.log_dir = kwargs.get("log_dir", None)

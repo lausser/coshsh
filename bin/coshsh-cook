@@ -92,6 +92,7 @@ if __name__ == '__main__':
         recipe_configs = {}
         datasource_configs = {}
         datarecipient_configs = {}
+        coshsh_config_mappings = {}
         recipes = []
         cookbook = coshsh.configparser.CoshshConfigParser()
         cookbook.read(opts.cookbook_files)
@@ -99,6 +100,8 @@ if __name__ == '__main__':
             print("Bad or missing cookbook files : %s " % ', '.join(opts.cookbook_files))
             sys.exit(2)
             
+        for mapping in [section for section in cookbook.sections() if section.startswith('mapping_')]:
+            coshsh_config_mappings[mapping.replace("mapping_", "")] = dict(cookbook.items(mapping))
         for ds in [section for section in cookbook.sections() if section.startswith('datarecipient_')]:
             datarecipient_configs[ds.replace("datarecipient_", "", 1).lower()] = cookbook.items(ds) + [('name', ds.replace("datarecipient_", "", 1).lower())]
         for ds in [section for section in cookbook.sections() if section.startswith('datasource_')]:
@@ -134,15 +137,15 @@ if __name__ == '__main__':
         else:
             setup_logging(logdir=log_dir, scrnloglevel=INFO, backup_count=backup_count)
         for recipe in recipes:
-            matching_recipe = None
+            matching_recipes = [r for r in sorted(recipe_configs.keys(), key=lambda x: len(x), reverse=True) if re.match(r, recipe)]
             if recipe in recipe_configs.keys():
-                matching_recipe = recipe
-            elif [r for r in recipe_configs.keys() if re.match(r, recipe)]:
-                # [recipe_lidl_.*_.*] <- lidl_at_hq
-                matching_recipe =  [r for r in recipe_configs.keys() if re.match(r, recipe)][0]
-                recipe_configs[recipe] = recipe_configs[matching_recipe]
+                matching_recipes = [recipe]
+            elif matching_recipes:
+                # [recipe_lebensmitteldiscounter_.*_.*] <- lebensmitteldiscounter_at_hq
+                logger.info("no direct hit, but matching recipes found: {}".format(", ".join(matching_recipes)))
+                recipe_configs[recipe] = recipe_configs[matching_recipes[0]]
                 recipe_configs[recipe] = [('name', recipe) if kv[0] == 'name' else kv for kv in recipe_configs[recipe]]
-            if matching_recipe:
+            if matching_recipes:
                 recipe_configs[recipe].append(('force', opts.force))
                 recipe_configs[recipe].append(('safe_output', opts.safe_output))
                 if not [c for c in recipe_configs[recipe] if c[0] == 'pid_dir']:
