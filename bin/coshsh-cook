@@ -19,7 +19,7 @@ import os
 import re
 import shutil
 from tempfile import gettempdir
-from logging import INFO, DEBUG
+from logging import INFO, DEBUG, getLogger
 from coshsh.util import setup_logging
 
 sys.dont_write_bytecode = True
@@ -136,6 +136,7 @@ if __name__ == '__main__':
             setup_logging(logdir=log_dir, scrnloglevel=DEBUG, backup_count=backup_count)
         else:
             setup_logging(logdir=log_dir, scrnloglevel=INFO, backup_count=backup_count)
+        logger = getLogger('coshsh')
         for recipe in recipes:
             matching_recipes = [r for r in sorted(recipe_configs.keys(), key=lambda x: len(x), reverse=True) if re.match(r, recipe)]
             if recipe in recipe_configs.keys():
@@ -150,6 +151,7 @@ if __name__ == '__main__':
                 recipe_configs[recipe].append(('safe_output', opts.safe_output))
                 if not [c for c in recipe_configs[recipe] if c[0] == 'pid_dir']:
                     recipe_configs[recipe].append(('pid_dir', pid_dir))
+                recipe_configs[recipe].append(('coshsh_config_mappings', coshsh_config_mappings))
                 generator.add_recipe(**dict(recipe_configs[recipe]))
                 if recipe not in generator.recipes:
                     # something went wrong in add_recipe. we should already see

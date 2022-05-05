@@ -66,7 +66,7 @@ class Recipe(object):
                     self.additional_recipe_fields[key] = re.sub('%.*?%', substenv, kwargs[key])
         for key in kwargs.keys():
             if isinstance(kwargs[key], str):
-                for mapping in kwargs["coshsh_config_mappings"]:
+                for mapping in kwargs.get("coshsh_config_mappings", {}):
                     mapping_keyword_pat = "(@MAPPING_"+mapping.upper()+"\[(.*?)\])"
                     for match in re.findall(mapping_keyword_pat, kwargs[key]):
                         if match[1] in kwargs["coshsh_config_mappings"][mapping]:
