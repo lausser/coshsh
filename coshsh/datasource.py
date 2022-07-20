@@ -67,7 +67,7 @@ class Datasource(CoshshDatainterface):
                 self.__class__ = newcls
                 self.__init__(**params)
             else:
-                logger.critical('datasource for %s is not implemented' % params)
+                logger.critical('datasource for %s is not implemented' % params, exc_info=1)
                 #print "i raise DatasourceNotImplemented"
                 raise DatasourceNotImplemented
         else:
@@ -114,4 +114,3 @@ class Datasource(CoshshDatainterface):
 
     def find(self, objtype, fingerprint):
         return objtype in self.objects and fingerprint in self.objects[objtype]
-
