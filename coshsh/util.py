@@ -13,7 +13,7 @@ import copy
 import os
 import logging
 from logging.handlers import RotatingFileHandler
-from collections import MutableMapping
+from collections.abc import MutableMapping
 
 global_log_dir = "/"
 
