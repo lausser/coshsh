@@ -121,7 +121,7 @@ def setup_logging(logdir=".", logfile="coshsh.log", scrnloglevel=logging.INFO, t
     logdir = os.path.abspath(logdir)
     abs_logfile = logfile if os.path.isabs(logfile) else os.path.join(logdir, logfile)
     if not os.path.exists(os.path.dirname(abs_logfile)):
-        os.mkdir(os.path.dirname(abs_logfile))
+        os.makedirs(os.path.dirname(abs_logfile), 0o755)
    
     setup_logging.logger_name = os.path.basename(abs_logfile).replace(".log", "")
     logger = logging.getLogger(setup_logging.logger_name)

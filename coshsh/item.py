@@ -13,6 +13,7 @@ import logging
 import functools
 from jinja2 import FileSystemLoader, Environment, TemplateSyntaxError, TemplateNotFound
 from copy import copy, deepcopy
+from coshsh.datainterface import CoshshDatainterface
 
 logger = logging.getLogger('coshsh')
 
@@ -20,7 +21,7 @@ class EmptyObject(object):
     pass
 
 
-class Item(object):
+class Item(CoshshDatainterface):
     template_cache = {}
 
     @classmethod
@@ -35,7 +36,14 @@ class Item(object):
 
         for key in params:
             #print "set key", self.__class__.__name__, key
-            if isinstance(params[key], str):
+            if hasattr(self, "dont_strip_attributes") and isinstance(params[key], str):
+                if isinstance(self.dont_strip_attributes, bool) and self.dont_strip_attributes == True:
+                    setattr(self, key, params[key])
+                elif isinstance(self.dont_strip_attributes, list) and key in self.dont_strip_attributes:
+                    setattr(self, key, params[key])
+                else:
+                    setattr(self, key, params[key].strip())
+            elif isinstance(params[key], str):
                 setattr(self, key, params[key].strip())
             else:
                 setattr(self, key, params[key])

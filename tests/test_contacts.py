@@ -1,56 +1,33 @@
-import unittest
 import os
 import sys
-import shutil
 import re
-from optparse import OptionParser
-from configparser import RawConfigParser
-import logging
-import pprint
-from logging import INFO, DEBUG
-from tempfile import gettempdir
-
-sys.dont_write_bytecode = True
-
 import coshsh
-from coshsh.generator import Generator
-from coshsh.datasource import Datasource
-from coshsh.application import Application
-from coshsh.util import setup_logging
+from coshsh.contact import Contact
+from tests.common_coshsh_test import CommonCoshshTest
 
-class CoshshTest(unittest.TestCase):
+class CoshshTest(CommonCoshshTest):
+    _configfile = 'etc/coshsh4.cfg'
+    _objectsdir = "./var/objects/test1"
+
     def print_header(self):
         print("#" * 80 + "\n" + "#" + " " * 78 + "#")
         print("#" + str.center(self.id(), 78) + "#")
         print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
 
-    def setUp(self):
-        self.config = RawConfigParser()
-        self.config.read('etc/coshsh4.cfg')
-        self.generator = coshsh.generator.Generator()
-        setup_logging()
-        self.pp = pprint.PrettyPrinter(indent=4)
+    def ssetUp(self):
+        super(CoshshTest, self).setUp()
         if 'OMD_ROOT' in os.environ:
             self.log_dir = os.path.join(os.environ['OMD_ROOT'], "var", "coshsh")
         else:
             self.log_dir = gettempdir()
 
 
-    def tearDown(self):
+    def tearDowns(self):
         pass
 
     def test_create_custom_contact(self):
-        self.print_header()
-        self.generator.add_recipe(name='test221', **dict(self.config.items('recipe_test221')))
-        self.generator.add_recipe(name='test222', **dict(self.config.items('recipe_test222')))
-
-        self.config.set("datasource_CSV22", "name", "csv22")
-        cfg = self.config.items("datasource_CSV22")
-        self.generator.recipes['test221'].add_datasource(**dict(cfg))
-        self.generator.recipes['test222'].add_datasource(**dict(cfg))
-
+        self.setUpConfig("etc/coshsh4.cfg", "test221")
         # read the datasources
-        setup_logging(logdir=self.log_dir, scrnloglevel=DEBUG)
         self.generator.recipes['test221'].collect()
         self.generator.recipes['test221'].assemble()
 
@@ -107,17 +84,8 @@ class CoshshTest(unittest.TestCase):
         self.assertTrue(u_bmc.service_notification_commands == ["notify-service-optis"])
 
     def test_create_custom_contacts(self):
-        self.print_header()
-        self.generator.add_recipe(name='test221', **dict(self.config.items('recipe_test221')))
-        self.generator.add_recipe(name='test222', **dict(self.config.items('recipe_test222')))
-
-        self.config.set("datasource_CSV22", "name", "csv22")
-        cfg = self.config.items("datasource_CSV22")
-        self.generator.recipes['test221'].add_datasource(**dict(cfg))
-        self.generator.recipes['test222'].add_datasource(**dict(cfg))
-
+        self.setUpConfig("etc/coshsh4.cfg", "test221")
         # read the datasources
-        setup_logging(logdir=self.log_dir, scrnloglevel=DEBUG)
         self.generator.recipes['test221'].collect()
         self.generator.recipes['test221'].assemble()
         # benutzt eigenes tpl
@@ -127,12 +95,10 @@ class CoshshTest(unittest.TestCase):
         cexitp2 = self.generator.recipes['test221'].objects['contacts']['lausser+EXISTINGTEMPLATE2+localit2@wattens.swar.at+localit2']
         cexitp2.templates = ["localit_inc3", "bereitschaft"]
         self.generator.recipes['test221'].render()
-        #print(cexitp1.config_files["nagios"]["contact_localit.cfg"])
+        print("DEBUG"+str(cexitp1.config_files["nagios"].keys()))
+        print("DEBUG"+cexitp1.config_files["nagios"]["contact_localit.cfg"])
         self.assertTrue(re.search(r'define.*use\s+localit_inc5,bereitschaft', cexitp1.config_files["nagios"]["contact_localit.cfg"], re.DOTALL))
         #print(cexitp2.config_files["nagios"]["contact_localit2.cfg"])
         self.assertTrue(re.search(r'define.*use\s+localit_inc3,bereitschaft', cexitp2.config_files["nagios"]["contact_localit2.cfg"], re.DOTALL))
 
-
-if __name__ == '__main__':
-    unittest.main()
 

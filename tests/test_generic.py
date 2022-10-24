@@ -18,25 +18,11 @@ from coshsh.host import Host
 from coshsh.application import Application
 from coshsh.monitoringdetail import MonitoringDetail
 from coshsh.util import setup_logging
+from tests.common_coshsh_test import CommonCoshshTest
 
-class CoshshTest(unittest.TestCase):
-    def print_header(self):
-        print("#" * 80 + "\n" + "#" + " " * 78 + "#")
-        print("#" + str.center(self.id(), 78) + "#")
-        print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
-
-    def setUp(self):
-        shutil.rmtree("./var/objects/test33", True)
-        os.makedirs("./var/objects/test33")
-        print("neziuiu")
-        self.config = RawConfigParser()
-        self.config.read('etc/coshsh5.cfg')
-        self.generator = coshsh.generator.Generator()
-        setup_logging(scrnloglevel=logging.DEBUG)
-
-    def tearDown(self):
-        shutil.rmtree("./var/objects/test33", True)
-        print
+class CoshshTest(CommonCoshshTest):
+    _configfile = 'etc/coshsh5.cfg'
+    _objectsdir = "./var/objects/test33"
 
     def test_generic_app(self):
         self.print_header()
@@ -66,8 +52,9 @@ class CoshshTest(unittest.TestCase):
         self.assertTrue(os.path.exists("var/objects/test33/dynamic/hosts/testhost/host.cfg"))
         self.assertTrue(not os.path.exists("var/objects/test33/dynamic/hosts/testhost/app_my_generic_fs.cfg"))
         self.assertTrue(not os.path.exists("var/objects/test33/dynamic/hosts/testhost/app_my_generic_ports.cfg"))
+        raise
 
-    def test_mygeneric_app(self):
+    def xtest_mygeneric_app(self):
         self.print_header()
         self.generator.add_recipe(name='test34', **dict(self.config.items('recipe_test34')))
         self.config.set("datasource_SIMPLESAMPLE", "name", "simplesample")

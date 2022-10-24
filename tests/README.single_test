@@ -1,1 +1,2 @@
 PYTHONPATH=.. python -m unittest test_details.CoshshTest.test_detail_keyvalues
+PYTHONPATH=`pwd` pytest-3 --log-level=INFO --log-cli-level=INFO  tests/test_dest.py 

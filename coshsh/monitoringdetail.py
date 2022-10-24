@@ -25,6 +25,9 @@ class MonitoringDetailNotImplemented(Exception):
 class MonitoringDetail(coshsh.item.Item):
 
     class_factory = []
+    class_file_prefixes = ["detail_"]
+    class_file_ident_function = "__detail_ident__"
+    my_type = "detail"
     lower_columns = ['name', 'type', 'application_name', 'application_type']
 
     def __init__(self, params):
@@ -68,7 +71,7 @@ class MonitoringDetail(coshsh.item.Item):
         raise "impossible fingerprint"
 
     @classmethod
-    def init_classes(cls, classpath):
+    def xinit_classes(cls, classpath):
         sys.dont_write_bytecode = True
         for p in [p for p in reversed(classpath) if os.path.exists(p) and os.path.isdir(p)]:
             for module, path in [(item, p) for item in os.listdir(p) if item[-3:] == ".py" and item.startswith('detail_')]:
@@ -87,11 +90,11 @@ class MonitoringDetail(coshsh.item.Item):
 
 
     @classmethod
-    def get_class(cls, params={}):
-        #print "getclass from cache", cls, cls.__name__, len(cls.class_factory)
+    def xget_class(cls, params={}):
+        print("getclass from cache", cls, cls.__name__, len(cls.class_factory))
         for path, module, class_func in reversed(cls.class_factory):
             try:
-                #print "get_class trys", path, module, class_func
+                print("get_class trys", path, module, class_func)
                 newcls = class_func(params)
                 #print "get_class says", newcls
                 if newcls:

@@ -6,23 +6,26 @@ from optparse import OptionParser
 import logging
 import pprint
 
-
-sys.dont_write_bytecode = True
-
 import coshsh
 from coshsh.configparser import CoshshConfigParser
 from coshsh.generator import Generator
 from coshsh.datasource import Datasource
 from coshsh.application import Application
 from coshsh.util import setup_logging
+from tests.common_coshsh_test import CommonCoshshTest
 
-class CoshshTest(unittest.TestCase):
+sys.dont_write_bytecode = True
+
+class CoshshTest(CommonCoshshTest):
+    _configfile = 'etc/coshsh2.cfg'
+    _objectsdir = "./var/objects/test1"
+
     def print_header(self):
         print("#" * 80 + "\n" + "#" + " " * 78 + "#")
         print("#" + str.center(self.id(), 78) + "#")
         print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
 
-    def setUp(self):
+    def setUps(self):
         self.config = coshsh.configparser.CoshshConfigParser()
         self.config.read('etc/coshsh2.cfg')
         pp = pprint.PrettyPrinter(indent=4)
@@ -38,7 +41,7 @@ class CoshshTest(unittest.TestCase):
         print("recipes", recipes)
         self.assertTrue("_cust2" not in recipes and "cust2" not in recipes)
 
-    def tearDown(self):
+    def tearDowns(self):
         pass
 
     def test_templates(self):

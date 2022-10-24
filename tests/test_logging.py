@@ -8,7 +8,6 @@ from configparser import RawConfigParser
 import logging
 
 
-sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.abspath(".."))
 sys.path.insert(0, os.path.abspath(os.path.join("..", "coshsh")))
 
@@ -17,26 +16,28 @@ from coshsh.generator import Generator
 from coshsh.datasource import Datasource
 from coshsh.application import Application
 from coshsh.util import setup_logging
+from tests.common_coshsh_test import CommonCoshshTest
 
-class CoshshTest(unittest.TestCase):
+sys.dont_write_bytecode = True
+
+class CoshshTest(CommonCoshshTest):
+    _configfile = 'etc/coshsh.cfg'
+    _objectsdir = "./var/objects/test1"
+
     def print_header(self):
         print("#" * 80 + "\n" + "#" + " " * 78 + "#")
         print("#" + str.center(self.id(), 78) + "#")
         print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
 
     def setUp(self):
-        shutil.rmtree("./var/objects/test1", True)
-        os.makedirs("./var/objects/test1")
+        super(CoshshTest, self).setUp()
         shutil.rmtree("./var/log", True)
         os.makedirs("./var/log")
-        self.config = RawConfigParser()
-        self.config.read('etc/coshsh.cfg')
-        self.generator = coshsh.generator.Generator()
         setup_logging(logfile="zishsh.log", logdir="./var/log", scrnloglevel=logging.DEBUG, txtloglevel=logging.INFO)
         # default, wie im coshsh-cook
         setup_logging(logdir="./var/log", scrnloglevel=logging.INFO)
 
-    def tearDown(self):
+    def tearDowns(self):
         #shutil.rmtree("./var/objects/test1", True)
         print()
 
@@ -47,7 +48,7 @@ class CoshshTest(unittest.TestCase):
         for h in logger.handlers:
             print(h.__dict__)
             print
-        logger.warn("i warn you")
+        logger.warning("i warn you")
         logger.info("i inform you")
         logger.debug("i spam you")
         self.assertTrue(os.path.exists("./var/log/zishsh.log"))

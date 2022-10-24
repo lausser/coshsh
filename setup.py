@@ -69,6 +69,8 @@ setup(name='coshsh',
               glob.glob(os.path.join('recipes', 'default', 'templates', '*.tpl')))
       ],
       scripts=['bin/coshsh-cook', 'bin/coshsh-create-template-tree'],
-      cmdclass={'install_data': install_data, 'install': install, 'test': CoshshTest},
+      #cmdclass={'install_data': install_data, 'install': install, 'test': CoshshTest},
+      cmdclass={'install_data': install_data, 'install': install},
+      test_suite="tests",
       zip_safe=False)
 

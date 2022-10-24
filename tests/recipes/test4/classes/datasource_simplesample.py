@@ -18,6 +18,7 @@ logger = logging.getLogger('coshsh')
 
 def __ds_ident__(params={}):
     if coshsh.util.compare_attr("type", params, "simplesample"):
+        print("i identify as queer SimpleSample")
         return SimpleSample
 
 class MyHost(coshsh.host.Host):
@@ -29,6 +30,7 @@ class MyHost(coshsh.host.Host):
 class SimpleSample(coshsh.datasource.Datasource):
     class_only_the_test_simplesample = True
     def __init__(self, **kwargs):
+        print("i init as queer SimpleSample")
         self.name = kwargs["name"]
         self.dir = kwargs["dir"]
         self.only_the_test_simplesample = True

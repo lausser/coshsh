@@ -14,6 +14,7 @@ import inspect
 import logging
 import coshsh
 from coshsh.util import compare_attr, substenv
+from coshsh.datainterface import CoshshDatainterface
 
 logger = logging.getLogger('coshsh')
 
@@ -36,9 +37,11 @@ class DatasourceCorrupt(Exception):
     pass
 
 
-class Datasource(object):
+class Datasource(CoshshDatainterface):
 
     my_type = 'datasource'
+    class_file_prefixes = ["datasource"]
+    class_file_ident_function = "__ds_ident__"
     class_factory = []
 
     def __init__(self, **params):
@@ -100,7 +103,7 @@ class Datasource(object):
 
     def getall(self, objtype):
         try:
-            return self.objects[objtype].values()
+            return list(self.objects[objtype].values())
         except Exception:
             return []
 
@@ -108,27 +111,39 @@ class Datasource(object):
         return objtype in self.objects and fingerprint in self.objects[objtype]
 
     @classmethod
-    def init_classes(cls, classpath):
+    def xinit_class_factory(cls, classpath):
+        class_factory = []
+        print("DS init_classes")
         sys.dont_write_bytecode = True
         for p in [p for p in reversed(classpath) if os.path.exists(p) and os.path.isdir(p)]:
+            print("SEARCH DS in "+p)
             for module, path in [(item, p) for item in os.listdir(p) if item[-3:] == ".py" and item.startswith('datasource_')]:
                 try:
+                    print("TRY DS in "+path+" "+module)
                     #print "try ds", module, path
                     path = os.path.abspath(path)
                     fp, filename, data = imp.find_module(module.replace('.py', ''), [path])
                     toplevel = imp.load_source(module.replace(".py", ""), filename)
                     for cl in inspect.getmembers(toplevel, inspect.isfunction):
                         if cl[0] ==  "__ds_ident__":
-                            cls.class_factory.append([path, module, cl[1]])
+                            class_factory.append([path, module, cl[1]])
+                            print("ADD DS "+path+" "+module)
                 except Exception as exp:
                     logger.critical("could not load datasource %s from %s: %s" % (module, path, exp))
                 finally:
                     if fp:
                         fp.close()
+        update_class_factory(class_factory)
+        return class_factory
 
 
     @classmethod
-    def get_class(cls, params={}):
+    def xupdate_class_factory(cls, class_factory):
+        cls.class_factory = class_factory
+
+
+    @classmethod
+    def xget_class(cls, params={}):
         #print "get_classhoho", cls, len(cls.class_factory), cls.class_factory
         for path, module, class_func in cls.class_factory:
             try:

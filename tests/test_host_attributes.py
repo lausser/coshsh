@@ -9,29 +9,32 @@ import logging
 from random import choices, randint
 from string import ascii_lowercase
 
-
-sys.dont_write_bytecode = True
-
 import coshsh
 from coshsh.generator import Generator
 from coshsh.datasource import Datasource
 from coshsh.application import Application
 from coshsh.configparser import CoshshConfigParser
 from coshsh.util import setup_logging
+from tests.common_coshsh_test import CommonCoshshTest
 
-class CoshshTest(unittest.TestCase):
+sys.dont_write_bytecode = True
+
+class CoshshTest(CommonCoshshTest):
+    _configfile = 'etc/coshsh.cfg'
+    _objectsdir = "./var/objects/test10"
+
     def print_header(self):
         print("#" * 80 + "\n" + "#" + " " * 78 + "#")
         print("#" + str.center(self.id(), 78) + "#")
         print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
 
-    def setUp(self):
+    def setUps(self):
         self.config = coshsh.configparser.CoshshConfigParser()
         self.config.read('etc/coshsh.cfg')
         self.generator = coshsh.generator.Generator()
         setup_logging()
 
-    def tearDown(self):
+    def tearDowns(self):
         shutil.rmtree("./var/objects/test10", True)
         pass
 
@@ -74,7 +77,7 @@ class CoshshTest(unittest.TestCase):
             pass
 
         self.assertTrue(hasattr(self.generator.recipes['test10'].objects['hosts']['test_host_0'], 'config_files'))
-        self.assert_('host.cfg' in self.generator.recipes['test10'].objects['hosts']['test_host_0'].config_files['nagios'])
+        self.assertTrue('host.cfg' in self.generator.recipes['test10'].objects['hosts']['test_host_0'].config_files['nagios'])
 
         # write hosts/apps to the filesystem
         self.generator.recipes['test10'].output()

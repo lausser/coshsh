@@ -22,6 +22,10 @@ logger = logging.getLogger('coshsh')
 class Contact(coshsh.item.Item):
 
     class_factory = []
+    class_file_prefixes = ["contact_", "contact.py"]
+    class_file_ident_function = "__mi_ident__"
+    my_type = "application"
+
     lower_columns = []
 
     template_rules = [
@@ -89,7 +93,7 @@ class Contact(coshsh.item.Item):
         return str("contact %s groups (%s)" % (fipri, grps))
 
     @classmethod
-    def init_classes(cls, classpath):
+    def xxxinit_classes(cls, classpath):
         sys.dont_write_bytecode = True
         for p in [p for p in reversed(classpath) if os.path.exists(p) and os.path.isdir(p)]:
             for module, path in [(item, p) for item in sorted(os.listdir(p), reverse=True) if item[-3:] == ".py" and (item.startswith('contact_') or item == 'contact.py')]:
@@ -109,7 +113,7 @@ class Contact(coshsh.item.Item):
 
 
     @classmethod
-    def get_class(cls, params={}):
+    def xxxget_class(cls, params={}):
         #print "getclass from cache", cls, cls.__name__,  cls.class_factory
         for path, module, class_func in reversed(cls.class_factory):
             try:

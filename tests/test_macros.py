@@ -1,5 +1,6 @@
 import unittest
 import os
+import io
 import sys
 import shutil
 from optparse import OptionParser
@@ -18,17 +19,21 @@ from coshsh.host import Host
 from coshsh.application import Application
 from coshsh.monitoringdetail import MonitoringDetail
 from coshsh.util import setup_logging
+from tests.common_coshsh_test import CommonCoshshTest
 
-class CoshshTest(unittest.TestCase):
+class CoshshTest(CommonCoshshTest):
+    _configfile = 'etc/coshsh5.cfg'
+    _objectsdir = "./var/objects/test33"
+
     def print_header(self):
         print("#" * 80 + "\n" + "#" + " " * 78 + "#")
         print("#" + str.center(self.id(), 78) + "#")
         print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
 
-    def setUp(self):
+    def setUps(self):
+        os.chdir(os.path.realpath(os.path.dirname(__file__)))
         shutil.rmtree("./var/objects/test33", True)
         os.makedirs("./var/objects/test33")
-        print("neziuiu")
         self.config = RawConfigParser()
         self.config.read('etc/coshsh5.cfg')
         self.generator = coshsh.generator.Generator()
@@ -39,6 +44,7 @@ class CoshshTest(unittest.TestCase):
         print
 
     def test_generic_app(self):
+        sys.stderr.write("--->"+self.__class__.__name__)
         self.print_header()
         self.generator.add_recipe(name='test33', **dict(self.config.items('recipe_test33')))
         self.config.set("datasource_SIMPLESAMPLE", "name", "simplesample")
@@ -66,8 +72,8 @@ class CoshshTest(unittest.TestCase):
         self.generator.recipes['test33'].assemble()
         self.generator.recipes['test33'].render()
         self.assertTrue(len(self.generator.recipes['test33'].objects['applications']) == 1)
-        self.assertTrue(self.generator.recipes['test33'].datasources[0].getall('applications')[0] == app)
-        self.assertTrue(self.generator.recipes['test33'].datasources[0].getall('applications')[0].__class__ == coshsh.application.GenericApplication)
+        self.assertTrue(list(self.generator.recipes['test33'].datasources[0].getall('applications'))[0] == app)
+        self.assertTrue(list(self.generator.recipes['test33'].datasources[0].getall('applications'))[0].__class__ == coshsh.application.GenericApplication)
         self.generator.recipes['test33'].output()
         self.assertTrue(os.path.exists("var/objects/test33/dynamic/hosts/testhost/host.cfg"))
         with io.open("var/objects/test33/dynamic/hosts/testhost/host.cfg") as f:
@@ -78,6 +84,7 @@ class CoshshTest(unittest.TestCase):
 
     def test_mygeneric_app(self):
         self.print_header()
+        sys.stderr.write("2---------------->"+str(self.config.__dict__))
         self.generator.add_recipe(name='test34', **dict(self.config.items('recipe_test34')))
         self.config.set("datasource_SIMPLESAMPLE", "name", "simplesample")
         cfg = self.config.items("datasource_SIMPLESAMPLE")

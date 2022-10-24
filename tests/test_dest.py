@@ -6,23 +6,26 @@ from optparse import OptionParser
 from configparser import RawConfigParser
 import logging
 
-
-sys.dont_write_bytecode = True
-
 import coshsh
 from coshsh.generator import Generator
 from coshsh.datasource import Datasource
 from coshsh.datarecipient import Datarecipient
 from coshsh.application import Application
 from coshsh.util import setup_logging
+from tests.common_coshsh_test import CommonCoshshTest
 
-class CoshshTest(unittest.TestCase):
+sys.dont_write_bytecode = True
+
+class CoshshTest(CommonCoshshTest):
+    _configfile = 'etc/coshsh.cfg'
+    _objectsdir = "./var/objects/test9"
+
     def print_header(self):
         print("#" * 80 + "\n" + "#" + " " * 78 + "#")
         print("#" + str.center(self.id(), 78) + "#")
         print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
 
-    def setUp(self):
+    def setUps(self):
         shutil.rmtree("./var/objects/test9", True)
         os.makedirs("./var/objects/test9")
         self.config = RawConfigParser()
@@ -30,7 +33,7 @@ class CoshshTest(unittest.TestCase):
         self.generator = coshsh.generator.Generator()
         setup_logging()
 
-    def tearDown(self):
+    def tearDowns(self):
         #shutil.rmtree("./var/objects/test1", True)
         print()
 

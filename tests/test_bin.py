@@ -1,43 +1,20 @@
 #!/usr/bin/env python3
 
-import unittest
 import os
 import io
-import sys
 import shutil
-from optparse import OptionParser
-from configparser import RawConfigParser
-import logging
 import subprocess
-
-
-sys.dont_write_bytecode = True
-
 import coshsh
 from coshsh.generator import Generator
 from coshsh.util import setup_logging
+from tests.common_coshsh_test import CommonCoshshTest
 
-class CoshshTest(unittest.TestCase):
-    def print_header(self):
-        print("#" * 80 + "\n" + "#" + " " * 78 + "#")
-        print("#" + str.center(self.id(), 78) + "#")
-        print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
 
-    def setUp(self):
-        shutil.rmtree("./var/objects/test1", True)
-        os.makedirs("./var/objects/test1")
-        shutil.rmtree("./var/objects/test4", True)
-        os.makedirs("./var/objects/test4")
-        self.config = RawConfigParser()
-        self.config.read('etc/coshsh.cfg')
-        self.generator = coshsh.generator.Generator()
-        setup_logging()
+class CoshshTest(CommonCoshshTest):
 
     def tearDown(self):
         shutil.rmtree("./var/objects/test1", True)
         shutil.rmtree("./var/objects/test1_mod", True)
-        pass 
-
 
     def test_coshsh_cook(self):
         subprocess.call("../bin/coshsh-cook --cookbook etc/coshsh.cfg --recipe test4", shell=True)
@@ -73,10 +50,5 @@ class CoshshTest(unittest.TestCase):
         self.assertTrue(os.path.exists("var/objects/test1_mod/static/service_templates"))
         self.assertTrue(os.path.exists("var/objects/test1_mod/static/service_templates/os_windows_fs.cfg"))
         self.assertTrue(os.path.exists("var/objects/test1_mod/static/service_templates/os_windows.cfg"))
-
-
-
-if __name__ == '__main__':
-    unittest.main()
 
 

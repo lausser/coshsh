@@ -24,6 +24,9 @@ class ApplicationNotImplemented(Exception):
 class Application(coshsh.item.Item):
 
     class_factory = []
+    class_file_prefixes = ["app_", "os_"]
+    class_file_ident_function = "__mi_ident__"
+    my_type = "application"
     lower_columns = ['name', 'type', 'component', 'version', 'patchlevel']
 
     def __init__(self, params):
@@ -71,31 +74,36 @@ class Application(coshsh.item.Item):
         pass
 
     @classmethod
-    def init_classes(cls, classpath):
+    def xxxinit_classes(cls, classpath):
+        print ("Application.init_classes")
+        class_factory = []
         sys.dont_write_bytecode = True
         for p in [p for p in reversed(classpath) if os.path.exists(p) and os.path.isdir(p)]:
+            print ("SEARCH APP in "+p)
             for module, path in [(item, p) for item in sorted(os.listdir(p), reverse=True) if item[-3:] == ".py" and (item.startswith('app_') or item.startswith('os_'))]:
                 try:
+                    print (" TRY APP in "+module+" "+path)
                     path = os.path.abspath(path)
                     fp, filename, data = imp.find_module(module.replace('.py', ''), [path])
                     toplevel = imp.load_source(module.replace(".py", ""), filename)
                     for cl in inspect.getmembers(toplevel, inspect.isfunction):
                         if cl[0] ==  "__mi_ident__":
-                            cls.class_factory.append([path, module, cl[1]])
+                            class_factory.append([path, module, cl[1]])
                 except Exception as e:
                     print(e)
                 finally:
                     if fp:
                         fp.close()
         #print ".............fill %s / %s woth %s" % (cls, cls.__name__, cls.class_factory)
+        return class_factory
 
 
     @classmethod
-    def get_class(cls, params={}):
-        #print "getclass from cache", cls, cls.__name__,  cls.class_factory
+    def xxxget_class(cls, class_factory, params={}):
+        #print("getclass from cache", cls, cls.__name__,  cls.class_factory)
         for path, module, class_func in reversed(cls.class_factory):
             try:
-                #print "get_class trys", path, module, class_func
+                #print("get_class trys", path, module, class_func)
                 newcls = class_func(params)
                 #print "get_class says", newcls.__module__, sys.modules[newcls.__module__].__file__
                 if newcls:

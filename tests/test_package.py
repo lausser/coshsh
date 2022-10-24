@@ -2,8 +2,6 @@ import unittest
 import os
 import sys
 import shutil
-from optparse import OptionParser
-from configparser import RawConfigParser
 import logging
 
 print("sys.path", sys.path)
@@ -15,28 +13,27 @@ from coshsh.application import Application
 from coshsh.hostgroup import HostGroup
 from coshsh.generator import Generator
 from coshsh.util import setup_logging
+from tests.common_coshsh_test import CommonCoshshTest
 
 sys.dont_write_bytecode = True
 
-class CoshshTest(unittest.TestCase):
+class CoshshTest(CommonCoshshTest):
+    _configfile = 'etc/coshsh.cfg'
+    _objectsdir = "./var/objects/test1"
+
     def print_header(self):
         print("#" * 80 + "\n" + "#" + " " * 78 + "#")
         print("#" + str.center(self.id(), 78) + "#")
         print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
 
     def setUp(self):
-        shutil.rmtree("./var/objects/test1", True)
-        os.makedirs("./var/objects/test1")
-        self.config = RawConfigParser()
-        self.config.read('etc/coshsh.cfg')
+        super(CoshshTest, self).setUp()
+        self.generator.add_recipe(name='test1', **dict(self.config.items('recipe_TEST1')))
 
-    def tearDown(self):
-        #shutil.rmtree("./var/objects/test1", True)
-        print
 
     def test_read_config(self):
         self.print_header()
-        self.config = RawConfigParser()
+        self.config = coshsh.configparser.CoshshConfigParser()
         self.config.read('etc/coshsh.cfg')
 
     def test_create_generator(self):
@@ -64,8 +61,11 @@ class CoshshTest(unittest.TestCase):
         self.contact = coshsh.contact.Contact({"type": "WEBREADONLY", "name": "sepp", "userid": "test", "notification_period": "5x8"})
         # the name is unknown... because we didn't init the class factory
         # so it becomes a generic contact
+        print(self.contact)
+        print(self.contact.__class__.__name__)
         print(self.contact.__dict__)
-        self.assertTrue(self.contact.contact_name == "unknown_WEBREADONLY_sepp_5x8")
+        # WEB* contacts are simply named after the userid
+        self.assertTrue(self.contact.contact_name == "test")
         self.assertTrue(self.contact.host_notification_period == "5x8")
 
     def test_create_host(self):

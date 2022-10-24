@@ -10,8 +10,6 @@ from logging import INFO, DEBUG
 from tempfile import gettempdir
 import re
 
-sys.dont_write_bytecode = True
-
 import coshsh
 from coshsh.generator import Generator
 from coshsh.datasource import Datasource
@@ -19,24 +17,21 @@ from coshsh.host import Host
 from coshsh.application import Application
 from coshsh.monitoringdetail import MonitoringDetail
 from coshsh.util import setup_logging
+from tests.common_coshsh_test import CommonCoshshTest
 
-class CoshshTest(unittest.TestCase):
+sys.dont_write_bytecode = True
+
+class CoshshTest(CommonCoshshTest):
+    _configfile = 'etc/coshsh5.cfg'
+    _objectsdir = ["./var/objects/test33", "./var/objects/test34"]
+
     def print_header(self):
         print("#" * 80 + "\n" + "#" + " " * 78 + "#")
         print("#" + str.center(self.id(), 78) + "#")
         print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
 
     def setUp(self):
-        Application.class_factory = [] # da nutzt alles rmtree nix
-        shutil.rmtree("./var/objects/test33", True)
-        os.makedirs("./var/objects/test33")
-        shutil.rmtree("./var/log/coshshlogs", True)
-        shutil.rmtree("/tmp/coshsh_test34.log", True)
-        shutil.rmtree("/tmp/coshsh5/coshsh.log", True)
-        self.config = RawConfigParser()
-        self.config.read('etc/coshsh5.cfg')
-        print(self.config.__dict__)
-        self.generator = coshsh.generator.Generator()
+        super(CoshshTest, self).setUp()
         if "defaults" in self.config.sections() and "log_dir" in [c[0] for c in self.config.items("defaults")]:
             log_dir = dict(self.config.items("defaults"))["log_dir"]
             log_dir = re.sub('%.*?%', coshsh.util.substenv, log_dir)
@@ -47,7 +42,7 @@ class CoshshTest(unittest.TestCase):
         setup_logging(logdir=log_dir, scrnloglevel=logging.DEBUG)
 
     def tearDown(self):
-        shutil.rmtree("./var/objects/test33", True)
+        super(CoshshTest, self).tearDown()
         shutil.rmtree("./var/log/coshshlogs", True)
         shutil.rmtree("/tmp/coshsh_test34.log", True)
         shutil.rmtree("/tmp/coshsh5/coshsh.log", True)

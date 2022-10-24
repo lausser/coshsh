@@ -169,7 +169,8 @@ class Recipe(object):
         self.old_objects = (0, 0)
         self.new_objects = (0, 0)
 
-        self.init_class_cache()
+        self.init_ds_dr_class_factories()
+        self.init_item_class_factories()
 
         if kwargs.get("datasources"):
             self.datasource_names = [ds.lower().strip() for ds in kwargs.get("datasources").split(",")]
@@ -181,7 +182,7 @@ class Recipe(object):
             self.datarecipient_names = ["datarecipient_coshsh_default"]
         elif kwargs.get("objects_dir") and kwargs.get("datarecipients"):
             self.objects_dir = kwargs["objects_dir"]
-            #logger.warn("recipe %s delete parameter objects_dir (use datarecipients instead)" % (self.name, ))
+            #logger.warning("recipe %s delete parameter objects_dir (use datarecipients instead)" % (self.name, ))
             self.datarecipient_names = [ds.lower().strip() for ds in kwargs.get("datarecipients").split(",")]
         else:
             self.datarecipient_names = [ds.lower().strip() for ds in kwargs.get("datarecipients").split(",")]
@@ -380,12 +381,42 @@ class Recipe(object):
     def read(self):
         return self.objects
 
+    def add_class_factory(self, cls, path, factory):
+        logger.debug("init {} classes ({})".format(cls.__name__, len(factory)))
+        path_text = ",".join(path)
+        if not hasattr(self, "class_factory"):
+            self.class_factory = {}
+        if not cls in self.class_factory:
+            self.class_factory[cls] = {}
+        self.class_factory[cls][path_text] = factory
 
-    def init_class_cache(self):
-        Datasource.init_classes(self.classes_path)
-        logger.debug("init Datasource classes (%d)" % len(Datasource.class_factory))
-        Datarecipient.init_classes(self.classes_path)
-        logger.debug("init Datarecipient classes (%d)" % len(Datarecipient.class_factory))
+    def get_class_factory(self, cls, path):
+        path_text = ",".join(path)
+        return self.class_factory[cls][path_text]
+
+    def init_ds_dr_class_factories(self):
+        print("XXXinit_ds_dr_class_cache "+self.name)
+        self.add_class_factory(Datasource, self.classes_path, Datasource.init_class_factory(self.classes_path))
+        self.add_class_factory(Datarecipient, self.classes_path, Datarecipient.init_class_factory(self.classes_path))
+
+    def update_ds_dr_class_factories(self):
+        Datasource.update_class_factory(self.get_class_factory(Datasource, self.classes_path))
+        Datarecipient.update_class_factory(self.get_class_factory(Datarecipient, self.classes_path))
+
+    def init_item_class_factories(self):
+        print("XXXinit_item_class_factories "+self.name)
+        self.add_class_factory(Application, self.classes_path, Application.init_class_factory(self.classes_path))
+        self.add_class_factory(MonitoringDetail, self.classes_path, MonitoringDetail.init_class_factory(self.classes_path))
+        self.add_class_factory(Contact, self.classes_path, Contact.init_class_factory(self.classes_path))
+
+    def update_item_class_factories(self):
+        print("XXXupdate_item_class_factories "+self.name)
+        Application.update_class_factory(self.get_class_factory(Application, self.classes_path))
+        MonitoringDetail.update_class_factory(self.get_class_factory(MonitoringDetail, self.classes_path))
+        Contact.update_class_factory(self.get_class_factory(Contact, self.classes_path))
+
+    def xxxxinit_class_cache(self):
+        print("XXXinit_class_cache "+self.name)
         Application.init_classes(self.classes_path)
         logger.debug("init Application classes (%d)" % len(Application.class_factory))
         MonitoringDetail.init_classes(self.classes_path)
@@ -396,6 +427,7 @@ class Recipe(object):
     def add_datasource(self, **kwargs):
         for key in [k for k in kwargs.keys() if isinstance(kwargs[k], str)]:
             kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
+        print("I ADD A DATASOURCE"+str(kwargs))
         newcls = Datasource.get_class(kwargs)
         if newcls:
             for key in [attr for attr in self.attributes_for_adapters if hasattr(self, attr)]:
@@ -404,16 +436,33 @@ class Recipe(object):
                 kwargs['recipe_'+key] = value
             datasource = newcls(**kwargs)
             self.datasources.append(datasource)
+        else:
+            logger.warning("could not find a suitable datasource")
+
+    def get_datasource(self, name):
+        try:
+            return [ds for ds in self.datasources if ds.name == name][0]
+        except Exception:
+            return None
 
     def add_datarecipient(self, **kwargs):
         for key in [k for k in kwargs.keys() if isinstance(kwargs[k], str)]:
             kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
+        print("I ADD A DATARECIPIENT")
         newcls = Datarecipient.get_class(kwargs)
         if newcls:
             for key in [attr for attr in self.attributes_for_adapters if hasattr(self, attr)]:
                 kwargs['recipe_'+key] = getattr(self, key)
             datarecipient = newcls(**kwargs)
             self.datarecipients.append(datarecipient)
+        else:
+            logger.warning("could not find a suitable datarecipient")
+
+    def get_datarecipient(self, name):
+        try:
+            return [dr for dr in self.datarecipients if dr.name == name][0]
+        except Exception:
+            return None
 
     def pid_exists(self, pid):
         try:

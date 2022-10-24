@@ -10,23 +10,26 @@ from logging import INFO, DEBUG
 
 logger = logging.getLogger('coshsh')
 
-sys.dont_write_bytecode = True
-
 import coshsh
 from coshsh.generator import Generator
 from coshsh.datasource import Datasource
 from coshsh.application import Application
 from coshsh.monitoringdetail import MonitoringDetail
 from coshsh.util import setup_logging
+from tests.common_coshsh_test import CommonCoshshTest
 
+sys.dont_write_bytecode = True
 
-class CoshshTest(unittest.TestCase):
+class CoshshTest(CommonCoshshTest):
+    _configfile = 'etc/coshsh.cfg'
+    _objectsdir = "./var/objects/test6"
+
     def print_header(self):
         print("#" * 80 + "\n" + "#" + " " * 78 + "#")
         print("#" + str.center(self.id(), 78) + "#")
         print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
 
-    def setUp(self):
+    def setUps(self):
         shutil.rmtree("./var/objects/test6", True)
         os.makedirs("./var/objects/test6")
         self.config = RawConfigParser()
@@ -36,12 +39,14 @@ class CoshshTest(unittest.TestCase):
         self.generator.add_recipe(name='test6', **dict(self.config.items('recipe_TEST6')))
         self.config.set("datasource_CSVDETAILS", "name", "test6")
 
-    def tearDown(self):
+    def tearDowns(self):
         shutil.rmtree("./var/objects/test6", True)
         print()
 
     def test_detail_keyvalues(self):
         self.print_header()
+        self.generator.add_recipe(name='test6', **dict(self.config.items('recipe_TEST6')))
+        self.config.set("datasource_CSVDETAILS", "name", "test6")
         cfg = self.config.items("datasource_CSVDETAILS")
         self.generator.recipes['test6'].add_datasource(**dict(cfg))
         self.generator.recipes['test6'].collect()
@@ -68,6 +73,8 @@ class CoshshTest(unittest.TestCase):
 
     def test_detail_url(self):
         self.print_header()
+        self.generator.add_recipe(name='test6', **dict(self.config.items('recipe_TEST6')))
+        self.config.set("datasource_CSVDETAILS", "name", "test6")
         oracle = coshsh.application.Application({
             'host_name': 'test',
             'name': 'test',
@@ -116,6 +123,8 @@ class CoshshTest(unittest.TestCase):
 
     def test_detail_2url(self):
         self.print_header()
+        self.generator.add_recipe(name='test6', **dict(self.config.items('recipe_TEST6')))
+        self.config.set("datasource_CSVDETAILS", "name", "test6")
         cfg = self.config.items("datasource_CSVDETAILS")
         objects = self.generator.recipes['test6'].objects
         ds = coshsh.datasource.Datasource(**dict(cfg))

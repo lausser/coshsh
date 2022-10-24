@@ -15,6 +15,7 @@ import inspect
 import logging
 import coshsh
 from coshsh.util import compare_attr, substenv
+from coshsh.datainterface import CoshshDatainterface
 
 logger = logging.getLogger('coshsh')
 
@@ -37,9 +38,11 @@ class DatarecipientCorrupt(Exception):
     pass
 
 
-class Datarecipient(object):
+class Datarecipient(CoshshDatainterface):
 
     my_type = 'datarecipient'
+    class_file_prefixes = ["datarecipient"]
+    class_file_ident_function = "__dr_ident__"
     class_factory = []
 
     def __init__(self, **params):
@@ -147,6 +150,14 @@ class Datarecipient(object):
         except Exception as e:
             # before we had 0 applications
             self.delta_services = 0
+        print("DELTA "+str(self.old_objects))
+        print("DELTA "+str(self.new_objects))
+        print("RCP "+str(self.delta_hosts))
+        print("RCP "+str(self.delta_hosts))
+        print("RCP "+str(self.delta_hosts))
+        print("RCP "+str(self.delta_hosts))
+        print("RCP "+str(self.delta_hosts))
+        print("RCP "+str(self.delta_hosts))
         if not self.max_delta:
             return False
         #
@@ -167,7 +178,8 @@ class Datarecipient(object):
 
 
     @classmethod
-    def init_classes(cls, classpath):
+    def xinit_class_factory(cls, classpath):
+        class_factory = []
         sys.dont_write_bytecode = True
         for p in [p for p in reversed(classpath) if os.path.exists(p) and os.path.isdir(p)]:
             for module, path in [(item, p) for item in sorted(os.listdir(p), reverse=True) if item[-3:] == ".py" and item.startswith('datarecipient_')]:
@@ -178,16 +190,23 @@ class Datarecipient(object):
                     toplevel = imp.load_source(module.replace(".py", ""), filename)
                     for cl in inspect.getmembers(toplevel, inspect.isfunction):
                         if cl[0] ==  "__dr_ident__":
-                            cls.class_factory.append([path, module, cl[1]])
+                            class_factory.append([path, module, cl[1]])
                 except Exception as exp:
                     logger.critical("could not load datarecipient %s from %s: %s" % (module, path, exp))
                 finally:
                     if fp:
                         fp.close()
+        update_class_factory(class_factory)
+        return class_factory
 
 
     @classmethod
-    def get_class(cls, params={}):
+    def xupdate_class_factory(cls, class_factory):
+        cls.class_factory = class_factory
+
+
+    @classmethod
+    def xget_class(cls, params={}):
         #print "get_classhoho", cls, len(cls.class_factory), cls.class_factory
         for path, module, class_func in reversed(cls.class_factory):
             try:
