@@ -1,0 +1,2 @@
+host_name,address,type,os,hardware,virtual,notification_period,location,department
+monops_tp_cmd_dummy_host,127.0.0.1,dummy,dummy,,0,24x7,luft,nix

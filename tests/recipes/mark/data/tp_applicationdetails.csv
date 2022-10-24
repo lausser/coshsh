@@ -1,0 +1,2 @@
+host_name,name,type,monitoring_type,monitoring_0,monitoring_1,monitoring_2,monitoring_3,monitoring_4,monitoring_5,monitoring_6,monitoring_7,monitoring_8,monitoring_9,monitoring_10,monitoring_11
+monops_tp_cmd_dummy_host,monops_timeperiods_dummy_application,monops_timeperiods_dummy_application,MONOPS_DETAIL_TIMEPERIOD,weekdays_24x7,Monday to Friday 24x7,"Monday,Tuesday,Wednesday,Thursday,Friday,,","00:00,00:00,00:00,00:00,00:00,,","23:59,23:59,23:59,23:59,23:59,,",,,,,,,
