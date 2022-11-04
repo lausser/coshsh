@@ -82,7 +82,7 @@ class DrSnmpExporter(coshsh.datarecipient.Datarecipient):
         try:
             delta_hosts = 100 * abs(self.new_objects[0] - self.old_objects[0]) / self.old_objects[0]
             delta_services = 100 * abs(self.new_objects[1] - self.old_objects[1]) / self.old_objects[1]
-        except Exception, e:
+        except Exception as e:
             delta_hosts = 0
             delta_services = 0
 

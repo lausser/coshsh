@@ -1,0 +1,4 @@
+host_name,name,type,component,version,check_period
+test_host_2,os,Red Hat,,6.2,7x24
+test_host_3,os,Red Hat,,6.2,7x24
+test_host_0,intranet,mysql,,,7x24

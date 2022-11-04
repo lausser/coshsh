@@ -1,71 +1,33 @@
-import unittest
 import os
-import sys
 import shutil
 import io
-from optparse import OptionParser
-from configparser import RawConfigParser
-import logging
-
-import coshsh
-from coshsh.generator import Generator
-from coshsh.util import setup_logging
 from tests.common_coshsh_test import CommonCoshshTest
 
-sys.dont_write_bytecode = True
-
 class CoshshTest(CommonCoshshTest):
-    _configfile = 'etc/coshsh.cfg'
-    _objectsdir = "./var/objects/test1"
-
-    def print_header(self):
-        print("#" * 80 + "\n" + "#" + " " * 78 + "#")
-        print("#" + str.center(self.id(), 78) + "#")
-        print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
-
-    def setUps(self):
-        shutil.rmtree("./var/objects/test1", True)
-        os.makedirs("./var/objects/test1")
-        self.config = RawConfigParser()
-        self.config.read('etc/coshsh.cfg')
-        self.generator = coshsh.generator.Generator()
-        setup_logging(scrnloglevel=logging.DEBUG)
-
-    def tearDowns(self):
-        shutil.rmtree("./var/objects/test1", True)
-        print()
 
     def test_osenviron(self):
-        self.print_header()
-        self.generator.add_recipe(name='test4', **dict(self.config.items('recipe_TEST4B')))
-        self.config.set("datasource_SIMPLESAMPLE", "name", "simplesample")
-        cfg = self.config.items("datasource_SIMPLESAMPLE")
-        self.generator.recipes['test4'].add_datasource(**dict(cfg))
-        self.config.set("datarecipient_SIMPLESAMPLE2", "name", "simplesample")
-        cfg = self.config.items("datarecipient_SIMPLESAMPLE2")
-        self.generator.recipes['test4'].add_datarecipient(**dict(cfg))
-
-
+        self.setUpConfig("etc/coshsh.cfg", "test4b")
+        r = self.generator.get_recipe("test4b")
         # remove target dir / create empty
-        self.generator.recipes['test4'].count_before_objects()
-        self.generator.recipes['test4'].cleanup_target_dir()
+        r.count_before_objects()
+        r.cleanup_target_dir()
 
-        self.generator.recipes['test4'].prepare_target_dir()
+        r.prepare_target_dir()
         # check target
 
         # read the datasources
-        self.generator.recipes['test4'].collect()
-        self.generator.recipes['test4'].assemble()
+        r.collect()
+        r.assemble()
         
         # for each host, application get the corresponding template files
         # get the template files and cache them in a struct owned by the recipe
         # resolve the templates and attach the result as config_files to host/app
-        self.generator.recipes['test4'].render()
-        self.assertTrue(hasattr(self.generator.recipes['test4'].objects['hosts']['test_host_0'], 'config_files'))
-        self.assertTrue('host.cfg' in self.generator.recipes['test4'].objects['hosts']['test_host_0'].config_files["nagios"])
+        r.render()
+        self.assertTrue(hasattr(r.objects['hosts']['test_host_0'], 'config_files'))
+        self.assertTrue('host.cfg' in r.objects['hosts']['test_host_0'].config_files["nagios"])
 
         # write hosts/apps to the filesystem
-        self.generator.recipes['test4'].output()
+        r.output()
         self.assertTrue(os.path.exists("var/objects/test1/dynamic/hosts"))
         self.assertTrue(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0"))
         self.assertTrue(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0/os_linux_default.cfg"))
@@ -79,8 +41,8 @@ class CoshshTest(CommonCoshshTest):
         os.makedirs("./var/objects/test1")
         os.environ["COSHSHENV1"] = "die nr 1"
         os.environ["COSHSHENV2"] = "die nr 2"
-        self.generator.recipes['test4'].render()
-        self.generator.recipes['test4'].output()
+        r.render()
+        r.output()
         with io.open("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg") as f:
             os_windows_default_cfg = f.read()
         self.assertTrue('environment variable COSHSHENV1 (die nr 1)' in os_windows_default_cfg)
@@ -91,8 +53,8 @@ class CoshshTest(CommonCoshshTest):
         shutil.rmtree("./var/objects/test1", True)
         os.makedirs("./var/objects/test1")
         os.environ["COSHSHENV1"] = "variante1"
-        self.generator.recipes['test4'].render()
-        self.generator.recipes['test4'].output()
+        r.render()
+        r.output()
         with io.open("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg") as f:
             os_windows_default_cfg = f.read()
         self.assertTrue('environment variable COSHSHENV1 (variante1)' in os_windows_default_cfg)
@@ -102,8 +64,8 @@ class CoshshTest(CommonCoshshTest):
         shutil.rmtree("./var/objects/test1", True)
         os.makedirs("./var/objects/test1")
         os.environ["COSHSHENV1"] = "variantex"
-        self.generator.recipes['test4'].render()
-        self.generator.recipes['test4'].output()
+        r.render()
+        r.output()
         with io.open("var/objects/test1/dynamic/hosts/test_host_0/os_windows_default.cfg") as f:
             os_windows_default_cfg = f.read()
         self.assertTrue('environment variable COSHSHENV1 (variantex)' in os_windows_default_cfg)

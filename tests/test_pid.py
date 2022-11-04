@@ -1,37 +1,10 @@
-import unittest
-import random
-import re
 import os
 import io
-import sys
 import shutil
-import tempfile
-from optparse import OptionParser
-from configparser import RawConfigParser
-import logging
-from logging import INFO, DEBUG
-
-import coshsh
-from coshsh.generator import Generator
-from coshsh.datasource import Datasource
-from coshsh.application import Application
-from coshsh.util import substenv, setup_logging
+import random
 from tests.common_coshsh_test import CommonCoshshTest
 
-sys.dont_write_bytecode = True
-
 class CoshshTest(CommonCoshshTest):
-    _configfile = 'etc/coshsh.cfg'
-    _objectsdir = "./var/objects/test1"
-
-    def print_header(self):
-        print("#" * 80 + "\n" + "#" + " " * 78 + "#")
-        print("#" + str.center(self.id(), 78) + "#")
-        print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
-
-    def setUp(self):
-        super(CoshshTest, self).setUp()
-        self.generator.add_recipe(name='test1', **dict(self.config.items('recipe_TEST1')))
 
     def tearDown(self):
         super(CoshshTest, self).tearDown()
@@ -39,16 +12,16 @@ class CoshshTest(CommonCoshshTest):
             os.remove(self.generator.recipes['test1'].pid_file)
 
     def test_run(self):
-        self.print_header()
+        self.setUpConfig("etc/coshsh.cfg", "test1")
         self.generator.run()
 
     def test_pid_exists(self):
-        self.print_header()
+        self.setUpConfig("etc/coshsh.cfg", "test1")
         pid_file = self.generator.recipes['test1'].pid_protect()
         self.assertTrue(os.path.exists(pid_file))
 
     def test_pid_exists2(self):
-        self.print_header()
+        self.setUpConfig("etc/coshsh.cfg", "test1")
         pid_file = self.generator.recipes['test1'].pid_protect()
         self.assertTrue(os.path.exists(pid_file))
         with io.open(self.generator.recipes['test1'].pid_file) as f:
@@ -58,7 +31,7 @@ class CoshshTest(CommonCoshshTest):
         self.assertTrue(not os.path.exists(pid_file))
 
     def test_pid_stale(self):
-        self.print_header()
+        self.setUpConfig("etc/coshsh.cfg", "test1")
         while True:
             pid = random.randrange(1,50000)
             if not self.generator.recipes['test1'].pid_exists(pid):
@@ -76,7 +49,7 @@ class CoshshTest(CommonCoshshTest):
         
 
     def test_pid_blocked(self):
-        self.print_header()
+        self.setUpConfig("etc/coshsh.cfg", "test1")
         while True:
             pid = random.randrange(1,50000)
             if self.generator.recipes['test1'].pid_exists(pid):
@@ -93,7 +66,7 @@ class CoshshTest(CommonCoshshTest):
             fail("running pid did not force an abort")
 
     def test_pid_garbled(self):
-        self.print_header()
+        self.setUpConfig("etc/coshsh.cfg", "test1")
         with io.open(self.generator.recipes['test1'].pid_file, 'w') as f:
             f.write("schlonz")
         self.generator.run()
@@ -106,7 +79,7 @@ class CoshshTest(CommonCoshshTest):
             fail("garbage in pid file was not correctly identified")
 
     def test_pid_empty(self):
-        self.print_header()
+        self.setUpConfig("etc/coshsh.cfg", "test1")
         pid_file = self.generator.recipes['test1'].pid_file
         open(pid_file, 'a').close()
         shutil.rmtree("var/objects/test1/dynamic/hosts", True)
@@ -120,8 +93,7 @@ class CoshshTest(CommonCoshshTest):
         self.assertTrue(os.path.exists("var/objects/test1/dynamic/hosts"))
 
     def test_pid_perms(self):
-        self.print_header()
-        #self.generator.recipes['test1'].pid_dir = "/"
+        self.setUpConfig("etc/coshsh.cfg", "test1")
         self.generator.recipes['test1'].pid_dir = os.path.join(os.getcwd(), 'hundsglumpvarreckts')
         os.mkdir(self.generator.recipes['test1'].pid_dir)
         self.generator.run()
@@ -137,7 +109,4 @@ class CoshshTest(CommonCoshshTest):
         finally:
             os.rmdir(self.generator.recipes['test1'].pid_dir)
         
-if __name__ == '__main__':
-    unittest.main()
-
 

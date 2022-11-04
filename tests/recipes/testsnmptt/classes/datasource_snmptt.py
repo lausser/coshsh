@@ -7,7 +7,6 @@
 
 import csv
 import os
-import io
 import re
 import logging
 from copy import copy
@@ -55,7 +54,8 @@ class MIB(coshsh.item.Item):
         return self.mib
 
     def add_agent(self, agent):
-        self.agents["%03d%03d%03d%03d" % tuple([int(n) for n in agent[0].split(".")])] = [agent[1], agent[2], agent[3]]
+        if "." in agent[0]:
+            self.agents["%03d%03d%03d%03d" % tuple([int(n) for n in agent[0].split(".")])] = [agent[1], agent[2], agent[3]]
 
     def sort_agents(self):
         self.agent_ips = []
@@ -64,7 +64,7 @@ class MIB(coshsh.item.Item):
             # ohne fuehrende 0, damit's richtig numerisch zugeht hier
             int("%d%03d%03d%03d" % tuple([int(n) for n in textwrap.wrap(str_ip, 3)])),
             str_ip
-        ) for str_ip in self.agents.keys()]
+        ) for str_ip in list(self.agents.keys())]
         sortme.sort(key=lambda x: x[0])
         for num_ip, str_ip in sortme:
             self.agent_ips.append(num_ip)
@@ -92,7 +92,8 @@ class RagpickerMIB(MIB):
         self.ip_oid_combinations.sort()
 
     def add_agent(self, agent):
-        self.agents["%03d%03d%03d%03d" % tuple([int(n) for n in agent[0].split(".")])] = [agent[1], agent[2], agent[3]]
+        if "." in agent[0]:
+            self.agents["%03d%03d%03d%03d" % tuple([int(n) for n in agent[0].split(".")])] = [agent[1], agent[2], agent[3]]
 
     def sort_agents(self):
         self.agent_ips = []
@@ -101,7 +102,7 @@ class RagpickerMIB(MIB):
             # ohne fuehrende 0, damit's richtig numerisch zugeht hier
             int("%d%03d%03d%03d" % tuple([int(n) for n in textwrap.wrap(str_ip, 3)])),
             str_ip
-        ) for str_ip in self.agents.keys()]
+        ) for str_ip in list(self.agents.keys())]
         sortme.sort(key=lambda x: x[0])
         for num_ip, str_ip in sortme:
             self.agent_ips.append(num_ip)
@@ -162,7 +163,7 @@ class SNMPTT(coshsh.datasource.Datasource):
             #
             # Namenlose Events von 1.3.6.1.4.1.1981_ bekommen 
             # EventName="EventMonitorTrapError"
-            with io.open(os.path.join(self.dir, ttfile)) as f:
+            with open(os.path.join(self.dir, ttfile)) as f:
                 for line in f.readlines():
                     eventname_m = eventname_pat.search(line)
                     recovers_m = recovers_pat.search(line)
@@ -198,19 +199,20 @@ class SNMPTT(coshsh.datasource.Datasource):
                         last_severity = eventname_m.group(3).upper()
                         try:
                             last_nagios = {
-                                'NORMAL': 0, # return to normal state
+                                'NORMAL': 0, # return to normal state, this is the default.
+                                # Yes, the default is OK! So immediately change this in your snmptt files
                                 # some Mibs have --#SEVERITY hints
                                 'INFORMATIONAL': 0,
+                                'INFO': 0,
+                                'EVENT': 0, # many possible severities, you decide
                                 'AUTHENTICATION': 0, # sucess or failed. you decide
                                 'CONFIGURATION CHANGE': 0, # same here
                                 'CHANGE': 0, # because only the last word matches
-                                'WARNING': 1,
                                 'MINOR': 1,
                                 'MAJOR': 2,
-                                'CRITICAL': 2,
                                 'FATAL': 2,
                                 'NON-RECOVERABLE': 2,
-                                # manually edited severities. The best you can do
+                                # manually edited severities. The best you can do.
                                 'OK': 0,
                                 'WARNING': 1,
                                 'CRITICAL': 2,
@@ -312,7 +314,7 @@ class SNMPTT(coshsh.datasource.Datasource):
             # - Events, die mehrfach vorkommen, sind auch in MIB.events
             #   und haben ein Attribut "matches" mit den Sub-Events
             try:
-                m.common_prefix = os.path.commonprefix([event['oid'].replace('.', '\.').replace('*', '.*?') for event in m.events])
+                m.common_prefix = os.path.commonprefix([event['oid'].replace('.', r'\.').replace('*', '.*?') for event in m.events])
             except Exception as e:
                 m.common_prefix = '.*'
             self.add('mibconfigs', m)
@@ -396,7 +398,7 @@ class SNMPTT(coshsh.datasource.Datasource):
                                     ragpicker.add_ip_oid_combi(agent_address, event["oid"])
 
 
-        for address, host_name in hosts_with_ragpicker_mib.items():
+        for address, host_name in list(hosts_with_ragpicker_mib.items()):
             ragpicker.add_agent([
                 address,
                 host_name,
@@ -437,7 +439,7 @@ class SNMPTT(coshsh.datasource.Datasource):
                 'type': 'snmptrapdlog',
                 'monitoring_type': 'KEYVALUES',
                 'monitoring_0': 'mibs',
-                'monitoring_1': mib_traps.keys(),
+                'monitoring_1': list(mib_traps.keys()),
             })
         )
 

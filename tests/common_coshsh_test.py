@@ -1,5 +1,7 @@
-import os
 import sys
+sys.dont_write_bytecode = True
+import os
+os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 import unittest
 from coshsh.configparser import CoshshConfigParser
 import shutil
@@ -8,13 +10,13 @@ import pprint
 import coshsh
 from coshsh.generator import Generator
 from coshsh.datasource import Datasource
+from coshsh.datarecipient import Datarecipient
 from coshsh.host import Host
 from coshsh.application import Application
 from coshsh.monitoringdetail import MonitoringDetail
 from coshsh.contact import Contact
 from coshsh.util import setup_logging
 
-sys.dont_write_bytecode = True
 logger = logging.getLogger('coshsh')
 
 class CommonCoshshTest(unittest.TestCase):
@@ -25,6 +27,11 @@ class CommonCoshshTest(unittest.TestCase):
 
     def setUp(self):
         self.print_header()
+        Application.class_factory = []
+        MonitoringDetail.class_factory = []
+        Contact.class_factory = []
+        Datasource.class_factory = []
+        Datarecipient.class_factory = []
         self.called_from_dir = os.getcwd()
         self.tests_run_in_dir = os.path.dirname(os.path.realpath(__file__))
         self.coshsh_base_dir = os.path.dirname(self.tests_run_in_dir)
@@ -57,14 +64,6 @@ class CommonCoshshTest(unittest.TestCase):
 
     def setUpConfig(self, configfile, default_recipe, default_log_level="info", force=False, safe_output=False):
         self.generator.read_cookbook([configfile], default_recipe, default_log_level, force, safe_output)
-        print("LLLLLL"+self.generator.log_dir)
-        return
-        import pprint
-        pprint.pprint(self.generator.__dict__)
-        for r in self.generator.recipes.values():
-            pprint.pprint(r.__dict__)
- 
-
 
     def setUpObjectsDir(self):
         if not isinstance(self._objectsdir, list):
@@ -80,7 +79,8 @@ class CommonCoshshTest(unittest.TestCase):
                     objects_dir = os.path.realpath(recipe.objects_dir)
                     if objects_dir.startswith(self.tests_run_in_dir) and len(objects_dir) > len(self.tests_run_in_dir):
                         shutil.rmtree(objects_dir, True)
-            shutil.rmtree(self.generator.log_dir, True)
+            if hasattr(self.generator, "log_dir"):
+                shutil.rmtree(self.generator.log_dir, True)
 
         if hasattr(self, '_objectsdir'):
             if not isinstance(self._objectsdir, list):

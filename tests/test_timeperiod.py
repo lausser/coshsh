@@ -1,20 +1,5 @@
-import unittest
 import os
-import sys
-import shutil
-import string
-from optparse import OptionParser
-import logging
-
-import coshsh
-from coshsh.generator import Generator
-from coshsh.datasource import Datasource
-from coshsh.application import Application
-from coshsh.configparser import CoshshConfigParser
-from coshsh.util import setup_logging
 from tests.common_coshsh_test import CommonCoshshTest
-
-sys.dont_write_bytecode = True
 
 class CoshshTest(CommonCoshshTest):
     _configfile = 'etc/timeperiods.cfg'
@@ -39,37 +24,22 @@ class CoshshTest(CommonCoshshTest):
         pass
 
     def test_create_recipe_multiple_sources(self):
-        self.print_header()
-        #self.generator.add_recipe(name='test10', **dict(self.config.items('recipe_TEST10')))
-        #self.config.set("datasource_TP", "name", "TP")
-        #cfg = self.config.items("datasource_TP")
-        #self.generator.recipes['test10'].add_datasource(**dict(cfg))
-        import pprint
-        pprint.pprint(self.generator.recipes['test10'].datasources[0].__dict__)
+        self.setUpConfig("etc/timeperiods.cfg", "test10")
+        r = self.generator.get_recipe("test10")
         # remove target dir / create empty
-        self.generator.recipes['test10'].count_before_objects()
-        self.generator.recipes['test10'].cleanup_target_dir()
-
-        self.generator.recipes['test10'].prepare_target_dir()
-
-        self.generator.recipes['test10'].collect()
-        self.generator.recipes['test10'].assemble()
-        self.generator.recipes['test10'].render()
-
-        print(self.generator.recipes['test10'].objects['hosts'])
-        print(self.generator.recipes['test10'].objects['applications'])
-        print(self.generator.recipes['test10'].objects['details'])
-        self.assertTrue(hasattr(self.generator.recipes['test10'].objects['hosts']['monops_tp_cmd_dummy_host'], 'config_files'))
-        self.assertTrue('host.cfg' in self.generator.recipes['test10'].objects['hosts']['monops_tp_cmd_dummy_host'].config_files['nagios'])
+        r.count_before_objects()
+        r.cleanup_target_dir()
+        r.prepare_target_dir()
+        r.collect()
+        r.assemble()
+        r.render()
+        self.assertTrue(hasattr(r.objects['hosts']['monops_tp_cmd_dummy_host'], 'config_files'))
+        self.assertTrue('host.cfg' in r.objects['hosts']['monops_tp_cmd_dummy_host'].config_files['nagios'])
 
         # write hosts/apps to the filesystem
         self.generator.recipes['test10'].output()
         self.assertTrue(os.path.exists("var/objects/test10/dynamic/hosts"))
         self.assertTrue(os.path.exists("var/objects/test10/dynamic/hosts/monops_tp_cmd_dummy_host"))
         self.assertTrue(os.path.exists("var/objects/test10/dynamic/hosts//monops_tp_cmd_dummy_host/timeperiods_monops.cfg"))
-
-
-if __name__ == '__main__':
-    unittest.main()
 
 

@@ -1,47 +1,22 @@
-import unittest
 import os
 import io
-import sys
 import shutil
-from optparse import OptionParser
-from configparser import RawConfigParser
 import logging
-
-
-sys.path.insert(0, os.path.abspath(".."))
-sys.path.insert(0, os.path.abspath(os.path.join("..", "coshsh")))
-
-import coshsh
-from coshsh.generator import Generator
-from coshsh.datasource import Datasource
-from coshsh.application import Application
 from coshsh.util import setup_logging
 from tests.common_coshsh_test import CommonCoshshTest
 
-sys.dont_write_bytecode = True
-
 class CoshshTest(CommonCoshshTest):
-    _configfile = 'etc/coshsh.cfg'
-    _objectsdir = "./var/objects/test1"
 
-    def print_header(self):
-        print("#" * 80 + "\n" + "#" + " " * 78 + "#")
-        print("#" + str.center(self.id(), 78) + "#")
-        print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
+    def tearDown(self):
+        #shutil.rmtree("./var/objects/test1", True)
+        print()
 
-    def setUp(self):
-        super(CoshshTest, self).setUp()
+    def test_log(self):
         shutil.rmtree("./var/log", True)
         os.makedirs("./var/log")
         setup_logging(logfile="zishsh.log", logdir="./var/log", scrnloglevel=logging.DEBUG, txtloglevel=logging.INFO)
         # default, wie im coshsh-cook
         setup_logging(logdir="./var/log", scrnloglevel=logging.INFO)
-
-    def tearDowns(self):
-        #shutil.rmtree("./var/objects/test1", True)
-        print()
-
-    def test_log(self):
         logger = logging.getLogger('zishsh')
         print(logger.__dict__)
         print
@@ -59,33 +34,12 @@ class CoshshTest(CommonCoshshTest):
         self.assertTrue("DEBUG" not in zishshlog)
 
     def test_write(self):
-        # innendrin im Code wird logging.getLogger('coshsh') aufgerufen
-        self.print_header()
-        self.generator.add_recipe(name='test4', **dict(self.config.items('recipe_TEST4')))
-        self.config.set("datasource_SIMPLESAMPLE", "name", "simplesample")
-        cfg = self.config.items("datasource_SIMPLESAMPLE")
-        self.generator.recipes['test4'].add_datasource(**dict(cfg))
-
-        # remove target dir / create empty
-        self.generator.recipes['test4'].count_before_objects()
-        self.generator.recipes['test4'].cleanup_target_dir()
-
-        self.generator.recipes['test4'].prepare_target_dir()
-        # check target
-
-        # read the datasources
-        self.generator.recipes['test4'].collect()
-        self.generator.recipes['test4'].assemble()
-
-        # for each host, application get the corresponding template files
-        # get the template files and cache them in a struct owned by the recipe
-        # resolve the templates and attach the result as config_files to host/app
-        self.generator.recipes['test4'].render()
-        self.assertTrue(hasattr(self.generator.recipes['test4'].objects['hosts']['test_host_0'], 'config_files'))
-        self.assertTrue('host.cfg' in self.generator.recipes['test4'].objects['hosts']['test_host_0'].config_files['nagios'])
-
-        # write hosts/apps to the filesystem
-        self.generator.recipes['test4'].output()
+        self.setUpConfig("etc/coshsh.cfg", "test4")
+        r = self.generator.get_recipe("test4")
+        self.generator.run()
+        self.assertTrue(hasattr(r.objects['hosts']['test_host_0'], 'config_files'))
+        self.assertTrue('host.cfg' in r.objects['hosts']['test_host_0'].config_files['nagios'])
+        #r.output()
         self.assertTrue(os.path.exists("var/objects/test1/dynamic/hosts"))
         self.assertTrue(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0"))
         self.assertTrue(os.path.exists("var/objects/test1/dynamic/hosts/test_host_0/os_linux_default.cfg"))
@@ -98,8 +52,5 @@ class CoshshTest(CommonCoshshTest):
             coshshlog = x.read()
         self.assertTrue("test_host_0" in coshshlog)
 
-
-if __name__ == '__main__':
-    unittest.main()
 
 

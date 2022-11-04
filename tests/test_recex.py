@@ -1,70 +1,40 @@
-#!/usr/bin/env python3
-
-import unittest
 import os
-import io
-import sys
 import shutil
-from optparse import OptionParser
-from configparser import RawConfigParser
-import logging
 import subprocess
-
-import coshsh
-from coshsh.generator import Generator
-from coshsh.util import setup_logging
 from tests.common_coshsh_test import CommonCoshshTest
 
-sys.dont_write_bytecode = True
-
 class CoshshTest(CommonCoshshTest):
-    _configfile = 'etc/coshsh.regex.cfg'
-    _objectsdir = "./var/objects/test12"
 
-    def print_header(self):
-        print("#" * 80 + "\n" + "#" + " " * 78 + "#")
-        print("#" + str.center(self.id(), 78) + "#")
-        print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
-
-    def setUps(self):
+    def tearDown(self):
         shutil.rmtree("./var/objects/test12", True)
-        os.makedirs("./var/objects/test12")
-        self.config = RawConfigParser()
-        self.config.read('etc/coshsh_regex.cfg')
-        self.generator = coshsh.generator.Generator()
-        setup_logging()
-
-    def tearDowns(self):
-        shutil.rmtree("./var/objects/test12", True)
-        pass 
-
 
     def test_match1(self):
-        os.makedirs("./var/objects/test12/at-hq")
-        subprocess.call("../bin/coshsh-cook --cookbook etc/coshsh_regex.cfg --recipe at_hq --debug", shell=True)
-        self.assertTrue(os.path.exists("var/objects/test12/at-hq/dynamic/hosts"))
-        self.assertTrue(os.path.exists("var/objects/test12/at-hq/dynamic/hosts/test_host_1/os_windows_default.cfg"))
+        shutil.rmtree("./var/objects/test12", True)
+        os.makedirs("./var/objects/test12/at-zentrale/dynamic")
+        subprocess.call("../bin/coshsh-cook --cookbook etc/coshsh_regex.cfg --recipe at_zentrale --debug", shell=True)
+        self.assertTrue(os.path.exists("var/objects/test12/atzentralezentrale/dynamic/hosts"))
+        self.assertTrue(os.path.exists("var/objects/test12/atzentralezentrale/dynamic/hosts/test_host_1/os_windows_default.cfg"))
 
     def test_match2(self):
-        os.makedirs("./var/objects/test12/at-wh005")
-        subprocess.call("../bin/coshsh-cook --cookbook etc/coshsh_regex.cfg --recipe at_wh005 --debug", shell=True)
-        self.assertTrue(os.path.exists("var/objects/test12/at-wh005/dynamic/hosts"))
-        self.assertTrue(os.path.exists("var/objects/test12/at-wh005/dynamic/hosts/test_host_1/os_windows_default.cfg"))
+        shutil.rmtree("./var/objects/test12", True)
+        os.makedirs("./var/objects/test12/at-lh2000")
+        subprocess.call("../bin/coshsh-cook --cookbook etc/coshsh_regex.cfg --recipe at_lh2000 --debug", shell=True)
+        self.assertTrue(os.path.exists("var/objects/test12/at-lh2000/dynamic/hosts"))
+        self.assertTrue(os.path.exists("var/objects/test12/at-lh2000/dynamic/hosts/test_host_1/os_windows_default.cfg"))
 
     def test_pl(self):
-        os.makedirs("./var/objects/test12/plplhqhq")
-        subprocess.call("../bin/coshsh-cook --cookbook etc/coshsh_regex.cfg --recipe pl_hq --debug", shell=True)
-        self.assertTrue(os.path.exists("var/objects/test12/plplhqhq/dynamic/hosts"))
-        self.assertTrue(os.path.exists("var/objects/test12/plplhqhq/dynamic/hosts/test_host_1/os_windows_default.cfg"))
+        shutil.rmtree("./var/objects/test12", True)
+        os.makedirs("./var/objects/test12/plplzentralezentrale")
+        subprocess.call("../bin/coshsh-cook --cookbook etc/coshsh_regex.cfg --recipe pl_zentrale --debug", shell=True)
+        self.assertTrue(os.path.exists("var/objects/test12/plplzentralezentrale/dynamic/hosts"))
+        self.assertTrue(os.path.exists("var/objects/test12/plplzentralezentrale/dynamic/hosts/test_host_1/os_windows_default.cfg"))
 
     def test_pt(self):
-        os.makedirs("./var/objects/test12/ptpthqhq")
-        subprocess.call("../bin/coshsh-cook --cookbook etc/coshsh_regex.cfg --recipe pt_hq --debug", shell=True)
-        self.assertTrue(os.path.exists("var/objects/test12/ptpthqhq/dynamic/hosts"))
-        self.assertTrue(os.path.exists("var/objects/test12/ptpthqhq/dynamic/hosts/test_host_1/os_windows_default.cfg"))
+        shutil.rmtree("./var/objects/test12", True)
+        os.makedirs("./var/objects/test12/ptptzentralezentrale")
+        subprocess.call("../bin/coshsh-cook --cookbook etc/coshsh_regex.cfg --recipe pt_zentrale --debug", shell=True)
+        self.assertTrue(os.path.exists("var/objects/test12/ptptzentralezentrale/dynamic/hosts"))
+        self.assertTrue(os.path.exists("var/objects/test12/ptptzentralezentrale/dynamic/hosts/test_host_1/os_windows_default.cfg"))
 
-
-if __name__ == '__main__':
-    unittest.main()
 
 

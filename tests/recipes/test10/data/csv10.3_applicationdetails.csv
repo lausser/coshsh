@@ -1,0 +1,7 @@
+host_name,name,type,monitoring_type,monitoring_0,monitoring_1,monitoring_2,monitoring_3,monitoring_4,monitoring_5
+test_host_0,os,Red Hat,KEYVALUES,temp_warning,15%,temp_critical,8%
+test_host_1,os,Windows2k8r2,FILESYSTEM,D,20,10,,,
+test_host_1,os,Windows2k8r2,FILESYSTEM,G,20,10,,,
+test_host_1,os,Windows2k8r2,FILESYSTEM,Z,20,10,,,
+test_host_1,os,Windows2k8r2,FILESYSTEM,F,20,10,,,
+test_host_1,os,Windows2k8r2,FILESYSTEM,C,20,10,,,

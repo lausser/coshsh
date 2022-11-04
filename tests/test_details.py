@@ -1,57 +1,20 @@
-import unittest
 import os
 import io
-import sys
-import shutil
-from optparse import OptionParser
-from configparser import RawConfigParser
-import logging
-from logging import INFO, DEBUG
-
-logger = logging.getLogger('coshsh')
-
-import coshsh
-from coshsh.generator import Generator
-from coshsh.datasource import Datasource
+from coshsh.host import Host
 from coshsh.application import Application
 from coshsh.monitoringdetail import MonitoringDetail
-from coshsh.util import setup_logging
 from tests.common_coshsh_test import CommonCoshshTest
 
-sys.dont_write_bytecode = True
-
 class CoshshTest(CommonCoshshTest):
-    _configfile = 'etc/coshsh.cfg'
-    _objectsdir = "./var/objects/test6"
-
-    def print_header(self):
-        print("#" * 80 + "\n" + "#" + " " * 78 + "#")
-        print("#" + str.center(self.id(), 78) + "#")
-        print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
-
-    def setUps(self):
-        shutil.rmtree("./var/objects/test6", True)
-        os.makedirs("./var/objects/test6")
-        self.config = RawConfigParser()
-        self.config.read('etc/coshsh.cfg')
-        self.generator = coshsh.generator.Generator()
-        setup_logging(scrnloglevel=DEBUG)
-        self.generator.add_recipe(name='test6', **dict(self.config.items('recipe_TEST6')))
-        self.config.set("datasource_CSVDETAILS", "name", "test6")
-
-    def tearDowns(self):
-        shutil.rmtree("./var/objects/test6", True)
-        print()
 
     def test_detail_keyvalues(self):
-        self.print_header()
-        self.generator.add_recipe(name='test6', **dict(self.config.items('recipe_TEST6')))
-        self.config.set("datasource_CSVDETAILS", "name", "test6")
-        cfg = self.config.items("datasource_CSVDETAILS")
-        self.generator.recipes['test6'].add_datasource(**dict(cfg))
-        self.generator.recipes['test6'].collect()
-        self.generator.recipes['test6'].assemble()
-        objects = self.generator.recipes['test6'].objects
+        self.setUpConfig("etc/coshsh.cfg", "test6")
+        r = self.generator.get_recipe("test6")
+        ds = r.get_datasource("csvdetails")
+        r.collect()
+        r.assemble()
+        objects = r.objects
+        print(objects)
         app1 = list(objects['applications'].values())[0]
         app1.resolve_monitoring_details()
         app2 = list(objects['applications'].values())[1]
@@ -72,17 +35,16 @@ class CoshshTest(CommonCoshshTest):
         self.assertTrue(app2.thresholds.cron_warning == "31")
 
     def test_detail_keyvaluearrays(self):
-        self.print_header()
-        self.generator.add_recipe(name='test6', **dict(self.config.items('recipe_TEST6')))
-        self.config.set("datasource_CSVDETAILS", "name", "test6")
-        cfg = self.config.items("datasource_CSVDETAILS")
-        self.generator.recipes['test6'].add_datasource(**dict(cfg))
-        self.generator.recipes['test6'].collect()
-        self.generator.recipes['test6'].assemble()
-        objects = self.generator.recipes['test6'].objects
+        self.setUpConfig("etc/coshsh.cfg", "test6")
+        r = self.generator.get_recipe("test6")
+        ds = r.get_datasource("csvdetails")
+        r.collect()
+        r.assemble()
+        objects = r.objects
         app1 = list(objects['applications'].values())[0]
         app1.resolve_monitoring_details()
         app2 = list(objects['applications'].values())[1]
+        app2.resolve_monitoring_details()
         app2.resolve_monitoring_details()
         self.assertTrue(hasattr(app2, "roles"))
         self.assertTrue("dach" in app2.roles)
@@ -95,15 +57,14 @@ class CoshshTest(CommonCoshshTest):
 
 
     def test_detail_url(self):
-        self.print_header()
-        self.generator.add_recipe(name='test6', **dict(self.config.items('recipe_TEST6')))
-        self.config.set("datasource_CSVDETAILS", "name", "test6")
-        oracle = coshsh.application.Application({
+        self.setUpConfig("etc/coshsh.cfg", "test6")
+        r = self.generator.get_recipe("test6")
+        oracle = Application({
             'host_name': 'test',
             'name': 'test',
             'type': 'generic',
         })
-        url = coshsh.monitoringdetail.MonitoringDetail({
+        url = MonitoringDetail({
             'host_name': 'test',
             'name': 'test',
             'type': 'generic',
@@ -123,17 +84,10 @@ class CoshshTest(CommonCoshshTest):
         self.assertTrue(oracle.urls[0].path == '/svc')
 
     def test_detail_ram(self):
-        self.generator.add_recipe(name='test6', **dict(self.config.items('recipe_TEST6')))
-        self.config.set("datasource_CSVDETAILS", "name", "test6")
-        coshsh.application.Application.init_classes([
-            os.path.join(os.path.dirname(__file__), 'recipes/test6/classes'),
-            os.path.join(os.path.dirname(__file__), '../recipes/default/classes')])
-        coshsh.monitoringdetail.MonitoringDetail.init_classes([
-            os.path.join(os.path.dirname(__file__), 'recipes/test6/classes'),
-            os.path.join(os.path.dirname(__file__), '../recipes/default/classes')])
-        self.print_header()
-        opsys = coshsh.application.Application({'name': 'os', 'type': 'red hat 6.1'})
-        ram = coshsh.monitoringdetail.MonitoringDetail({'name': 'os',
+        self.setUpConfig("etc/coshsh.cfg", "test6")
+        r = self.generator.get_recipe("test6")
+        opsys = Application({'name': 'os', 'type': 'red hat 6.1'})
+        ram = MonitoringDetail({'name': 'os',
             'type': 'red hat 6.1',
             'monitoring_type': 'RAM',
             'monitoring_0': '80',
@@ -147,13 +101,11 @@ class CoshshTest(CommonCoshshTest):
         self.assertTrue(opsys.ram.warning == '80')
 
     def test_detail_2url(self):
-        self.print_header()
-        self.generator.add_recipe(name='test6', **dict(self.config.items('recipe_TEST6')))
-        self.config.set("datasource_CSVDETAILS", "name", "test6")
-        cfg = self.config.items("datasource_CSVDETAILS")
-        objects = self.generator.recipes['test6'].objects
-        ds = coshsh.datasource.Datasource(**dict(cfg))
+        self.setUpConfig("etc/coshsh.cfg", "test6")
+        r = self.generator.get_recipe("test6")
+        ds = r.get_datasource("csvdetails")
         ds.open()
+        objects = r.objects
         ds.read(objects=objects)
 
 
@@ -164,8 +116,8 @@ class CoshshTest(CommonCoshshTest):
         #coshsh.monitoringdetail.MonitoringDetail.init_classes([
         #    os.path.join(os.path.dirname(__file__), 'recipes/test6/classes'),
         #    os.path.join(os.path.dirname(__file__), '../recipes/default/classes')])
-        opsys = coshsh.application.Application({'host_name': 'test_host_0', 'name': 'testapp', 'type': 'webapp'})
-        url1 = coshsh.monitoringdetail.MonitoringDetail({
+        opsys = Application({'host_name': 'test_host_0', 'name': 'testapp', 'type': 'webapp'})
+        url1 = MonitoringDetail({
             'host_name': 'test_host_0',
             'name': 'testapp',
             'type': 'webapp',
@@ -175,7 +127,7 @@ class CoshshTest(CommonCoshshTest):
             'monitoring_2': '15',
         })
         opsys.monitoring_details.append(url1)
-        url2 = coshsh.monitoringdetail.MonitoringDetail({
+        url2 = MonitoringDetail({
             'host_name': 'test_host_0',
             'name': 'testapp',
             'type': 'webapp',
@@ -192,35 +144,27 @@ class CoshshTest(CommonCoshshTest):
         self.assertTrue(hasattr(opsys, 'urls'))
         for u in opsys.urls:
             print("url is", u, u.__dict__)
-        shutil.rmtree("./var/objects/test6", True)
         os.makedirs("./var/objects/test6/dynamic")
-        self.generator.recipes['test6'].collect()
-        self.generator.recipes['test6'].assemble()
-        self.generator.recipes['test6'].render()
-        self.generator.recipes['test6'].output()
+        r.collect()
+        r.assemble()
+        r.render()
+        r.output()
         self.assertTrue(os.path.exists('var/objects/test6/dynamic/hosts/test_host_0/app_generic_web.cfg'))
         with io.open('var/objects/test6/dynamic/hosts/test_host_0/app_generic_web.cfg', 'r') as outfile:
             for line in outfile.read().split('\n'):
                 print(line)
 
     def test_lazy_datasource(self):
+        self.setUpConfig("etc/coshsh.cfg", "test14")
+        r = self.generator.get_recipe("test14")
+        ds = r.get_datasource("lazy")
         self.print_header()
-        self.generator.add_recipe(name='test6', **dict(self.config.items('recipe_TEST6')))
-        self.config.set("datasource_CSVDETAILS", "name", "test6")
-
-        self.generator.add_recipe(name='test14', **dict(self.config.items('recipe_TEST14')))
-        self.config.set("datasource_LAZY", "name", "test14")
-        objects = self.generator.recipes['test14'].objects
-        cfg = self.config.items("datasource_LAZY")
-        ds = coshsh.datasource.Datasource(**dict(cfg))
+        objects = r.objects
         ds.read(objects=objects)
-
-        shutil.rmtree("./var/objects/test14", True)
-        os.makedirs("./var/objects/test14/dynamic")
-        self.generator.recipes['test14'].collect()
-        self.generator.recipes['test14'].assemble()
-        self.generator.recipes['test14'].render()
-        self.generator.recipes['test14'].output()
+        r.collect()
+        r.assemble()
+        r.render()
+        r.output()
         app1 = list(objects['applications'].values())[0]
         self.assertTrue(hasattr(app1, 'huhu'))
         self.assertTrue(app1.huhu == 'dada')
