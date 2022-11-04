@@ -8,8 +8,7 @@
 
 import os
 import coshsh
-from coshsh.item import Item
-from coshsh.templaterule import TemplateRule
+
 
 class ContactGroup(coshsh.item.Item):
 

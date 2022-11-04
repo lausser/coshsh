@@ -16,15 +16,6 @@ import logging
 import errno
 from jinja2 import FileSystemLoader, Environment, TemplateSyntaxError, TemplateNotFound
 import coshsh
-from coshsh.jinja2_extensions import is_re_match, filter_re_sub, filter_re_escape, filter_host, filter_service, filter_contact, filter_custom_macros, filter_rfc3986, filter_neighbor_applications, global_environ
-from coshsh.item import Item
-from coshsh.application import Application
-from coshsh.contact import Contact
-from coshsh.hostgroup import HostGroup
-from coshsh.monitoringdetail import MonitoringDetail
-from coshsh.datasource import Datasource, DatasourceCorrupt, DatasourceNotReady, DatasourceNotAvailable, DatasourceNotCurrent
-from coshsh.datarecipient import Datarecipient, DatarecipientCorrupt, DatarecipientNotReady, DatarecipientNotAvailable, DatarecipientNotCurrent
-from coshsh.util import compare_attr, substenv, switch_logging
 
 logger = logging.getLogger('coshsh')
 
@@ -36,9 +27,11 @@ class RecipePidAlreadyRunning(Exception):
     # found another generator instance
     pass
 
+
 class RecipePidNotWritable(Exception):
     # pid_dir is not writable
     pass
+
 
 class RecipePidGarbage(Exception):
     # pid_file contains no integer
@@ -61,13 +54,13 @@ class Recipe(object):
         self.additional_recipe_fields = {}
         for key in kwargs.keys():
             if isinstance(kwargs[key], str):
-                kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
+                kwargs[key] = re.sub('%.*?%', coshsh.util.substenv, kwargs[key])
                 if key not in self.attributes_for_adapters:
-                    self.additional_recipe_fields[key] = re.sub('%.*?%', substenv, kwargs[key])
+                    self.additional_recipe_fields[key] = re.sub('%.*?%', coshsh.util.substenv, kwargs[key])
         for key in kwargs.keys():
             if isinstance(kwargs[key], str):
                 for mapping in kwargs.get("coshsh_config_mappings", {}):
-                    mapping_keyword_pat = "(@MAPPING_"+mapping.upper()+"\[(.*?)\])"
+                    mapping_keyword_pat = "(@MAPPING_"+mapping.upper()+r"\[(.*?)\])"
                     for match in re.findall(mapping_keyword_pat, kwargs[key]):
                         if match[1] in kwargs["coshsh_config_mappings"][mapping]:
                             oldstr = "@MAPPING_"+mapping.upper()+"["+match[1]+"]"
@@ -82,6 +75,8 @@ class Recipe(object):
         self.log_file = kwargs.get("log_file", None)
         self.log_dir = kwargs.get("log_dir", None)
         self.backup_count = kwargs.get("backup_count", None)
+        coshsh.util.switch_logging(logdir=self.log_dir, logfile=self.log_file, backup_count=self.backup_count)
+        logger.info("recipe %s init" % self.name)
         self.force = kwargs.get("force")
         self.safe_output = kwargs.get("safe_output")
         self.pid_dir = kwargs.get("pid_dir")
@@ -92,10 +87,8 @@ class Recipe(object):
                 self.pid_dir = "/tmp"
             else:
                 self.pid_dir = os.environ.get("%TEMP%", "C:/TEMP")
+        self.pid_file = os.path.join(self.pid_dir, "coshsh.pid." + re.sub(r'[/\.]', '_', self.name))
 
-        self.pid_file = os.path.join(self.pid_dir, "coshsh.pid." + re.sub('[/\\\.]', '_', self.name))
-        switch_logging(logdir=self.log_dir, logfile=self.log_file, backup_count=self.backup_count)
-        logger.info("recipe %s init" % self.name)
         self.templates_dir = kwargs.get("templates_dir")
         self.classes_dir = kwargs.get("classes_dir")
         self.max_delta = kwargs.get("max_delta", ())
@@ -129,16 +122,16 @@ class Recipe(object):
         setattr(self.jinja2, 'loader', FileSystemLoader(self.templates_path))
         setattr(self.jinja2, 'env', Environment(loader=self.jinja2.loader, extensions=['jinja2.ext.do']))
         self.jinja2.env.trim_blocks = True
-        self.jinja2.env.tests['re_match'] = is_re_match
-        self.jinja2.env.filters['re_sub'] = filter_re_sub
-        self.jinja2.env.filters['re_escape'] = filter_re_escape
-        self.jinja2.env.filters['service'] = filter_service
-        self.jinja2.env.filters['host'] = filter_host
-        self.jinja2.env.filters['contact'] = filter_contact
-        self.jinja2.env.filters['custom_macros'] = filter_custom_macros
-        self.jinja2.env.filters['rfc3986'] = filter_rfc3986
-        self.jinja2.env.filters['neighbor_applications'] = filter_neighbor_applications
-        self.jinja2.env.globals['environ'] = global_environ
+        self.jinja2.env.tests['re_match'] = coshsh.jinja2_extensions.is_re_match
+        self.jinja2.env.filters['re_sub'] = coshsh.jinja2_extensions.filter_re_sub
+        self.jinja2.env.filters['re_escape'] = coshsh.jinja2_extensions.filter_re_escape
+        self.jinja2.env.filters['service'] = coshsh.jinja2_extensions.filter_service
+        self.jinja2.env.filters['host'] = coshsh.jinja2_extensions.filter_host
+        self.jinja2.env.filters['contact'] = coshsh.jinja2_extensions.filter_contact
+        self.jinja2.env.filters['custom_macros'] = coshsh.jinja2_extensions.filter_custom_macros
+        self.jinja2.env.filters['rfc3986'] = coshsh.jinja2_extensions.filter_rfc3986
+        self.jinja2.env.filters['neighbor_applications'] = coshsh.jinja2_extensions.filter_neighbor_applications
+        self.jinja2.env.globals['environ'] = coshsh.jinja2_extensions.global_environ
 
         if self.my_jinja2_extensions:
             for extension in [e.strip() for e in self.my_jinja2_extensions.split(",")]:
@@ -194,7 +187,7 @@ class Recipe(object):
         self.datasource_filters = {}
         self.filter = kwargs.get("filter")
         if kwargs.get("filter"):
-            dsfilter_p = re.compile('(([^,^(^)]+)\((.*?)\))')
+            dsfilter_p = re.compile(r'(([^,^(^)]+)\((.*?)\))')
             for rule in dsfilter_p.findall(self.filter):
                 if not rule[1].lower() in self.datasource_names:
                     # koennte ein regex sein
@@ -238,13 +231,13 @@ class Recipe(object):
                 chg_keys = [(key, post_count[key] - pre_count[key]) for key in set(list(pre_count.keys()) + list(post_count.keys())) if post_count[key] != pre_count[key]]
                 logger.info("recipe %s read from datasource %s %s" % (self.name, ds.name, ", ".join(["%d %s" % (k[1], k[0]) for k in chg_keys])))
                 ds.close()
-            except DatasourceNotCurrent:
+            except coshsh.datasource.DatasourceNotCurrent:
                 data_valid = False
                 logger.info("datasource %s is is not current" % ds.name, exc_info=False)
-            except DatasourceNotReady:
+            except coshsh.datasource.DatasourceNotReady:
                 data_valid = False
                 logger.info("datasource %s is busy" % ds.name, exc_info=False)
-            except DatasourceNotAvailable:
+            except coshsh.datasource.DatasourceNotAvailable:
                 data_valid = False
                 logger.info("datasource %s is not available" % ds.name, exc_info=False)
             except Exception as exp:
@@ -395,40 +388,27 @@ class Recipe(object):
         return self.class_factory[cls][path_text]
 
     def init_ds_dr_class_factories(self):
-        print("XXXinit_ds_dr_class_cache "+self.name)
-        self.add_class_factory(Datasource, self.classes_path, Datasource.init_class_factory(self.classes_path))
-        self.add_class_factory(Datarecipient, self.classes_path, Datarecipient.init_class_factory(self.classes_path))
+        self.add_class_factory(coshsh.datasource.Datasource, self.classes_path, coshsh.datasource.Datasource.init_class_factory(self.classes_path))
+        self.add_class_factory(coshsh.datarecipient.Datarecipient, self.classes_path, coshsh.datarecipient.Datarecipient.init_class_factory(self.classes_path))
 
     def update_ds_dr_class_factories(self):
-        Datasource.update_class_factory(self.get_class_factory(Datasource, self.classes_path))
-        Datarecipient.update_class_factory(self.get_class_factory(Datarecipient, self.classes_path))
+        coshsh.datasource.Datasource.update_class_factory(self.get_class_factory(coshsh.datasource.Datasource, self.classes_path))
+        coshsh.datarecipient.Datarecipient.update_class_factory(self.get_class_factory(coshsh.datarecipient.Datarecipient, self.classes_path))
 
     def init_item_class_factories(self):
-        print("XXXinit_item_class_factories "+self.name)
-        self.add_class_factory(Application, self.classes_path, Application.init_class_factory(self.classes_path))
-        self.add_class_factory(MonitoringDetail, self.classes_path, MonitoringDetail.init_class_factory(self.classes_path))
-        self.add_class_factory(Contact, self.classes_path, Contact.init_class_factory(self.classes_path))
+        self.add_class_factory(coshsh.application.Application, self.classes_path, coshsh.application.Application.init_class_factory(self.classes_path))
+        self.add_class_factory(coshsh.monitoringdetail.MonitoringDetail, self.classes_path, coshsh.monitoringdetail.MonitoringDetail.init_class_factory(self.classes_path))
+        self.add_class_factory(coshsh.contact.Contact, self.classes_path, coshsh.contact.Contact.init_class_factory(self.classes_path))
 
     def update_item_class_factories(self):
-        print("XXXupdate_item_class_factories "+self.name)
-        Application.update_class_factory(self.get_class_factory(Application, self.classes_path))
-        MonitoringDetail.update_class_factory(self.get_class_factory(MonitoringDetail, self.classes_path))
-        Contact.update_class_factory(self.get_class_factory(Contact, self.classes_path))
-
-    def xxxxinit_class_cache(self):
-        print("XXXinit_class_cache "+self.name)
-        Application.init_classes(self.classes_path)
-        logger.debug("init Application classes (%d)" % len(Application.class_factory))
-        MonitoringDetail.init_classes(self.classes_path)
-        logger.debug("init MonitoringDetail classes (%d)" % len(MonitoringDetail.class_factory))
-        Contact.init_classes(self.classes_path)
-        logger.debug("init Contact classes (%d)" % len(Contact.class_factory))
+        coshsh.application.Application.update_class_factory(self.get_class_factory(coshsh.application.Application, self.classes_path))
+        coshsh.monitoringdetail.MonitoringDetail.update_class_factory(self.get_class_factory(coshsh.monitoringdetail.MonitoringDetail, self.classes_path))
+        coshsh.contact.Contact.update_class_factory(self.get_class_factory(coshsh.contact.Contact, self.classes_path))
 
     def add_datasource(self, **kwargs):
         for key in [k for k in kwargs.keys() if isinstance(kwargs[k], str)]:
-            kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
-        print("I ADD A DATASOURCE"+str(kwargs))
-        newcls = Datasource.get_class(kwargs)
+            kwargs[key] = re.sub('%.*?%', coshsh.util.substenv, kwargs[key])
+        newcls = coshsh.datasource.Datasource.get_class(kwargs)
         if newcls:
             for key in [attr for attr in self.attributes_for_adapters if hasattr(self, attr)]:
                 kwargs['recipe_'+key] = getattr(self, key)
@@ -447,9 +427,8 @@ class Recipe(object):
 
     def add_datarecipient(self, **kwargs):
         for key in [k for k in kwargs.keys() if isinstance(kwargs[k], str)]:
-            kwargs[key] = re.sub('%.*?%', substenv, kwargs[key])
-        print("I ADD A DATARECIPIENT")
-        newcls = Datarecipient.get_class(kwargs)
+            kwargs[key] = re.sub('%.*?%', coshsh.util.substenv, kwargs[key])
+        newcls = coshsh.datarecipient.Datarecipient.get_class(kwargs)
         if newcls:
             for key in [attr for attr in self.attributes_for_adapters if hasattr(self, attr)]:
                 kwargs['recipe_'+key] = getattr(self, key)

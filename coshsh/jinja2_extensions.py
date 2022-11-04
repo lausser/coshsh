@@ -11,7 +11,7 @@ import urllib.request
 import os
 
 # Jinja2 extensions
-"""
+r"""
 ** test re_match(pattern[, flags])
 If regex pattern matches the string, return True.
 Otherwise return False. The optional argument "flags"
@@ -68,16 +68,13 @@ def is_re_match(s, rs, flagstr=None):
     else:
         return False
 
-
 def filter_re_sub(s, rs, repl, flagstr=None, count=0):
     reflags = get_re_flags(flagstr)
     myre = re.compile(rs, reflags)
     return re.sub(myre, repl, s, count)
 
-
 def filter_re_escape(s):
     return re.escape(s)
-
 
 # ['libkbo01.muc', 'os', 'linux', 'NAGIOSCONF', 'os_linux_default_check_ssh', 'max_check_attempts', '2', None, None, None],
 # if a NAGIOSCONF attribute exists, the service is transformed into a

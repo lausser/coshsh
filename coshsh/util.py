@@ -15,7 +15,6 @@ import logging
 from logging.handlers import RotatingFileHandler
 from collections.abc import MutableMapping
 
-global_log_dir = "/"
 
 class odict(MutableMapping):
     """
@@ -185,7 +184,7 @@ def switch_logging(**kwargs):
 def restore_logging():
     switch_logging(logdir=setup_logging.logdir, logfile=setup_logging.logfile)
     logger = logging.getLogger('coshsh')
-    logger.debug("Logger restored to " + setup_logging.abs_logfile)
+    logger.debug("Logger restored to " + setup_logging.logdir+"/"+setup_logging.logfile+"\n")
 
 def get_logger(self, name="coshsh"):
     return logging.getLogger(name)

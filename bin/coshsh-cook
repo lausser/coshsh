@@ -7,21 +7,17 @@
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
 import sys
+sys.dont_write_bytecode = True
+import os
+os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 try:
+    importlib.reload(sys)
+except Exception:
+    pass
     import imp
     imp.reload(sys)
-except Exception:
-    importlib.reload(sys)
-
 from optparse import OptionParser
-import sys
-import os
-import re
-import shutil
-from tempfile import gettempdir
-from logging import INFO, DEBUG, getLogger
 
-sys.dont_write_bytecode = True
 try:
     import coshsh
 except Exception:
@@ -36,31 +32,12 @@ except Exception:
     except Exception:
         print("Could not load package coshsh. Check your PYTHONPATH")
         sys.exit(3)
-
-from coshsh.util import setup_logging
 from coshsh.generator import Generator
-from coshsh.recipe import Recipe
-from coshsh.util import substenv
-from coshsh.configparser import CoshshConfigParser
 
-
-class GeneratorMessage(object):
-    def __init__(self, message):
-        self.message = message
-
-class WarningMessage(GeneratorMessage):
-    pass
-
-class CriticalMessage(GeneratorMessage):
-    pass
-
-class OkMessage(GeneratorMessage):
-    pass
 
 
 if __name__ == '__main__':
     VERSION = "1.0"
-
 
     parser = OptionParser(
         "%prog [options] --cookbook cookbookfile [--recipe recipe]",

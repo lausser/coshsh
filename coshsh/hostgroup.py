@@ -6,7 +6,6 @@
 # This software is licensed under the
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
-import os
 import coshsh
 
 
@@ -20,7 +19,6 @@ class HostGroup(coshsh.item.Item):
         ),
     ]
 
-
     def __init__(self, params={}):
         self.members = []
         self.contacts = []
@@ -29,10 +27,8 @@ class HostGroup(coshsh.item.Item):
         superclass = super(HostGroup, self)
         superclass.__init__(params)
         
-
     def is_correct(self):
         return True
-
 
     def write_config(self, target_dir, want_tool=None):
         my_target_dir = os.path.join(target_dir, "hostgroups", self.hostgroup_name)
@@ -46,14 +42,11 @@ class HostGroup(coshsh.item.Item):
                         f.write(content)
 
 
-
     def create_members(self):
         pass
 
-
     def create_contacts(self):
         pass
-
 
     def create_templates(self):
         pass

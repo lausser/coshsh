@@ -12,13 +12,8 @@ import imp
 import inspect
 import logging
 import coshsh
-from coshsh.item import Item
-from coshsh.templaterule import TemplateRule
 
 logger = logging.getLogger('coshsh')
-
-class ApplicationNotImplemented(Exception):
-    pass
 
 
 class Application(coshsh.item.Item):
@@ -51,7 +46,6 @@ class Application(coshsh.item.Item):
                 self.contact_groups = []
                 super(Application, self).__init__(params)
                 self.__init__(params)
-                #raise ApplicationNotImplemented
                 self.fingerprint = lambda s=self:s.__class__.fingerprint(params)
         else:
             pass
@@ -59,10 +53,6 @@ class Application(coshsh.item.Item):
     @classmethod
     def fingerprint(self, params={}):
         return "%s+%s+%s" % (params["host_name"], params["name"], params["type"])
-
-    def _i_init__(self, params={}):
-        super(Application, self).__init__(params)
-        self.contact_groups = []
 
     def create_servicegroups(self):
         pass
@@ -73,50 +63,11 @@ class Application(coshsh.item.Item):
     def create_templates(self):
         pass
 
-    @classmethod
-    def xxxinit_classes(cls, classpath):
-        print ("Application.init_classes")
-        class_factory = []
-        sys.dont_write_bytecode = True
-        for p in [p for p in reversed(classpath) if os.path.exists(p) and os.path.isdir(p)]:
-            print ("SEARCH APP in "+p)
-            for module, path in [(item, p) for item in sorted(os.listdir(p), reverse=True) if item[-3:] == ".py" and (item.startswith('app_') or item.startswith('os_'))]:
-                try:
-                    print (" TRY APP in "+module+" "+path)
-                    path = os.path.abspath(path)
-                    fp, filename, data = imp.find_module(module.replace('.py', ''), [path])
-                    toplevel = imp.load_source(module.replace(".py", ""), filename)
-                    for cl in inspect.getmembers(toplevel, inspect.isfunction):
-                        if cl[0] ==  "__mi_ident__":
-                            class_factory.append([path, module, cl[1]])
-                except Exception as e:
-                    print(e)
-                finally:
-                    if fp:
-                        fp.close()
-        #print ".............fill %s / %s woth %s" % (cls, cls.__name__, cls.class_factory)
-        return class_factory
-
-
-    @classmethod
-    def xxxget_class(cls, class_factory, params={}):
-        #print("getclass from cache", cls, cls.__name__,  cls.class_factory)
-        for path, module, class_func in reversed(cls.class_factory):
-            try:
-                #print("get_class trys", path, module, class_func)
-                newcls = class_func(params)
-                #print "get_class says", newcls.__module__, sys.modules[newcls.__module__].__file__
-                if newcls:
-                    return newcls
-            except Exception:
-                pass
-        logger.debug("found no matching class for this monitoring item %s" % params)
-        return None
-
 
 class GenericApplication(Application):
+
     template_rules = [
-        TemplateRule(needsattr=None, 
+        coshsh.templaterule.TemplateRule(needsattr=None, 
             template="app_generic_default",
             unique_attr=['type', 'name'], unique_config="app_%s_%s_default"),
     ]
@@ -131,5 +82,4 @@ class GenericApplication(Application):
             return super(GenericApplication, self).render(template_cache, jinja2, recipe)
         else:
             return 0
-
 

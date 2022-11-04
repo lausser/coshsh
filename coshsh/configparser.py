@@ -1,5 +1,6 @@
 from configparser import RawConfigParser
 
+
 class CoshshConfigParser(RawConfigParser, object):
 
     def read(self, files):
@@ -9,5 +10,4 @@ class CoshshConfigParser(RawConfigParser, object):
                     for key in self._sections[section["isa"]]:
                         if not key in section and not key == "isa":
                             section[key] = self._sections[section["isa"]][key]
-
 

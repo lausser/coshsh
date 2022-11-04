@@ -6,15 +6,8 @@
 # This software is licensed under the
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
-import sys
-import os
-import imp
-import inspect
 import logging
 import coshsh
-from coshsh.item import Item
-from coshsh.templaterule import TemplateRule
-from coshsh.util import clean_umlauts
 
 logger = logging.getLogger('coshsh')
 
@@ -80,8 +73,7 @@ class Contact(coshsh.item.Item):
             pass
 
     def clean_name(self):
-        self.name = clean_umlauts(self.name)
-
+        self.name = coshsh.util.clean_umlauts(self.name)
 
     @classmethod
     def fingerprint(self, params):
@@ -91,41 +83,6 @@ class Contact(coshsh.item.Item):
         fipri = " ".join([str(getattr(self, a, "")) for a in ["name", "type", "address", "userid"]])
         grps = ",".join(self.contactgroups)
         return str("contact %s groups (%s)" % (fipri, grps))
-
-    @classmethod
-    def xxxinit_classes(cls, classpath):
-        sys.dont_write_bytecode = True
-        for p in [p for p in reversed(classpath) if os.path.exists(p) and os.path.isdir(p)]:
-            for module, path in [(item, p) for item in sorted(os.listdir(p), reverse=True) if item[-3:] == ".py" and (item.startswith('contact_') or item == 'contact.py')]:
-                try:
-                    path = os.path.abspath(path)
-                    fp, filename, data = imp.find_module(module.replace('.py', ''), [path])
-                    toplevel = imp.load_source(module.replace(".py", ""), filename)
-                    for cl in inspect.getmembers(toplevel, inspect.isfunction):
-                        if cl[0] ==  "__mi_ident__":
-                            cls.class_factory.append([path, module, cl[1]])
-                except Exception as e:
-                    print(e)
-                finally:
-                    if fp:
-                        fp.close()
-        #print ".............fill %s / %s woth %s" % (cls, cls.__name__, cls.class_factory)
-
-
-    @classmethod
-    def xxxget_class(cls, params={}):
-        #print "getclass from cache", cls, cls.__name__,  cls.class_factory
-        for path, module, class_func in reversed(cls.class_factory):
-            try:
-                #print "get_class trys", path, module, class_func
-                newcls = class_func(params)
-                #print "get_class says", newcls.__module__, sys.modules[newcls.__module__].__file__
-                if newcls:
-                    return newcls
-            except Exception:
-                pass
-        logger.debug("found no matching class for this monitoring item %s" % params)
-        return None
 
 
 class GenericContact(Contact):

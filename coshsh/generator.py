@@ -13,12 +13,10 @@ import time
 import getpass
 from tempfile import gettempdir
 import coshsh
-from coshsh.recipe import Recipe, RecipePidAlreadyRunning, RecipePidNotWritable, RecipePidGarbage
-from coshsh.util import odict, switch_logging, restore_logging
 from logging import INFO, DEBUG, getLogger
-from coshsh.util import setup_logging
 
 logger = logging.getLogger('coshsh')
+
 
 class Generator(object):
 
@@ -34,7 +32,6 @@ class Generator(object):
             self.recipes[kwargs["name"]] = recipe
         except Exception as e:
             logger.error("exception creating a recipe: %s" % e)
-        pass
 
     def get_recipe(self, name):
         return self.recipes.get(name, None)
@@ -57,7 +54,6 @@ class Generator(object):
             except Exception:
                 coshshuser = os.getenv("username")
             hostname = gethostname()
-            cookbook = self.cookbook
             if hasattr(self, "pg_username"):
                 pg_auth_handler = lambda url, method, timeout, headers, data: basic_auth_handler(url, method, timeout, headers, data, self.pg_username, self.pg_password)
             else:
@@ -72,7 +68,7 @@ class Generator(object):
             recipe_completed = False
             try:
                 recipe.update_item_class_factories()
-                switch_logging(logfile=recipe.log_file)
+                coshsh.util.switch_logging(logfile=recipe.log_file)
                 if recipe.pid_protect():
                     if has_prometheus:
                         registry = CollectorRegistry()
@@ -109,7 +105,7 @@ class Generator(object):
                             pushadd_to_gateway(self.pg_address, grouping_key={
                                 'hostname': hostname,
                                 'username': coshshuser,
-                                'cookbook': cookbook,
+                                'cookbook': self.cookbook_files,
                                 'recipe': recipe.name
                             }, job=self.pg_job, registry=registry, handler=pg_auth_handler)
                         except Exception as e:
@@ -126,10 +122,10 @@ class Generator(object):
             else:
                 if recipe_completed:
                     logger.info("recipe {} completed with {} problems".format(recipe.name, recipe.render_errors))
-            restore_logging()
+            coshsh.util.restore_logging()
 
     def read_cookbook(self, cookbook_files, default_recipe, default_log_level, force, safe_output):
-        self.cookbook = '___'.join(map(lambda cf: os.path.basename(os.path.abspath(cf)), cookbook_files))
+        self.cookbook_files = '___'.join(map(lambda cf: os.path.basename(os.path.abspath(cf)), cookbook_files))
         recipe_configs = {}
         datasource_configs = {}
         datarecipient_configs = {}
@@ -174,9 +170,9 @@ class Generator(object):
         else:
             backup_count = 2
         if default_log_level and default_log_level.lower() == "debug" or "defaults" in cookbook.sections() and "log_level" in [c[0] for c in cookbook.items("defaults")] and cookbook.items("defaults")["log_level"].lower() == "debug":
-            setup_logging(logdir=log_dir, scrnloglevel=DEBUG, backup_count=backup_count)
+            coshsh.util.setup_logging(logdir=log_dir, scrnloglevel=DEBUG, backup_count=backup_count)
         else:
-            setup_logging(logdir=log_dir, scrnloglevel=INFO, backup_count=backup_count)
+            coshsh.util.setup_logging(logdir=log_dir, scrnloglevel=INFO, backup_count=backup_count)
         self.log_dir = log_dir
         logger = getLogger('coshsh')
 
@@ -196,7 +192,6 @@ class Generator(object):
                     recipe_configs[recipe].append(('pid_dir', pid_dir))
                 recipe_configs[recipe].append(('coshsh_config_mappings', coshsh_config_mappings))
                 self.add_recipe(**dict(recipe_configs[recipe]))
-                print("GENERATOR ADD RECIPE "+recipe)
                 if recipe not in self.recipes:
                     # something went wrong in add_recipe. we should already see
                     # an error message here.

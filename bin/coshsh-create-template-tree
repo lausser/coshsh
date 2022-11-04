@@ -6,16 +6,18 @@
 # This software is licensed under the
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
-from optparse import OptionParser
 import sys
-import os
-import shutil
-from subprocess import Popen, PIPE, STDOUT
-from tempfile import gettempdir
-import time
-from logging import INFO, DEBUG
-
 sys.dont_write_bytecode = True
+import os
+os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+try:
+    importlib.reload(sys)
+except Exception:
+    pass
+    import imp
+    imp.reload(sys)
+from optparse import OptionParser
+
 try:
     import coshsh
 except Exception:
@@ -30,42 +32,34 @@ except Exception:
     except Exception:
         print("Could not load package coshsh. Check your PYTHONPATH")
         sys.exit(3)
-
 from coshsh.generator import Generator
-from coshsh.util import substenv, setup_logging
-from coshsh.configparser import CoshshConfigParser
 
-
-class GeneratorMessage(object):
-    def __init__(self, message):
-        self.message = message
-
-class WarningMessage(GeneratorMessage):
-    pass
-
-class CriticalMessage(GeneratorMessage):
-    pass
-
-class OkMessage(GeneratorMessage):
-    pass
 
 
 if __name__ == '__main__':
     VERSION = "1.0"
 
-
     parser = OptionParser(
         "%prog [options] --cookbook cookbookfile [--recipe recipe]",
         version="%prog " + VERSION)
-    parser.add_option('--cookbook', action='store',
-                      dest="cookbook_file",
-                      help='Config file')
+    parser.add_option('--cookbook', action='append',
+                      dest="cookbook_files",
+                      help='One or more Config files')
     parser.add_option('--recipe', action='store',
                       dest="default_recipe",
-                      help="Only create a cookbook for <recipe>")
+                      help="Cook a configuration following <recipe>")
     parser.add_option('--template', action='store',
                       dest="template_name",
                       help="Build a template hierarchy for this service profile")
+    parser.add_option('--force', action='store_true',
+                      default=False,
+                      dest="force",
+                      help="Force datasource to be read")
+    parser.add_option('--safe-output', action='store_true',
+                      default=False,
+                      dest="safe_output",
+                      help="Do not commit when hosts disappeared")
+
     parser.add_option('--debug', action='store_const',
                       const="debug",
                       default="info",
@@ -73,42 +67,15 @@ if __name__ == '__main__':
                       help="Output additional messages on stdout")
 
     opts, args = parser.parse_args()
-    generator = coshsh.generator.Generator()
-    if opts.cookbook_file:
-        cookbook = coshsh.configparser.CoshshConfigParser()
-        cookbook.read(opts.cookbook_file)
-        if cookbook._sections == {}:
-            print("Bad or missing cookbook file : %s " % opts.cookbook_file)
-            sys.exit(2)
-            
-        recipes = []
+    generator = Generator()
+    if opts.cookbook_files:
+        generator.read_cookbook(opts.cookbook_files, opts.default_recipe, opts.default_log_level, opts.force, opts.safe_output)
+        cookbook = generator.cookbook
         if not opts.template_name:
             parser.error("Which template hierarchy should i create? Use --template")
-        if opts.default_recipe:
-            recipes = [opts.default_recipe.lower()]
-        else:
-            try:
-                recipes = [s.strip().lower() for s in cookbook.get("defaults", "recipes").split(",")]
-            except Exception:
-                recipes = []
-        if "defaults" in cookbook.sections() and "log_dir" in [c[0] for c in cookbook.items("defaults")]:
-            log_dir = dict(cookbook.items("defaults"))["log_dir"]
-            log_dir = re.sub('%.*?%', coshsh.util.substenv, log_dir)
-        elif 'OMD_ROOT' in os.environ:
-            log_dir = os.path.join(os.environ['OMD_ROOT'], "var", "coshsh")
-        else:
-            log_dir = gettempdir()
 
-        if opts.default_log_level and opts.default_log_level.lower() == "debug" or "defaults" in cookbook.sections() and "log_level" in [c[0] for c in cookbook.items("defaults")] and cookbook.items("defaults")["log_level"].lower() == "debug":
-            setup_logging(logdir=log_dir, scrnloglevel=DEBUG)
-        else:
-            setup_logging(logdir=log_dir, scrnloglevel=INFO)
-
-        for recipe in [section for section in cookbook.sections() if section.startswith('recipe_')]:
-            if recipe.replace("recipe_", "", 1).lower() in recipes:
-                generator.add_recipe(name=recipe.replace("recipe_", "", 1), **dict(cookbook.items(recipe)))
     else:
-        parser.error("Please use option -c/--cookbook")
+        parser.error("Use option -c/--cookbook")
     if args:
         parser.error("Does not accept any argument. Use option -c/--cookbook")
 

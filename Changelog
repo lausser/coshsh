@@ -1,3 +1,6 @@
+* 2022-11-04 9.0
+  rewrite the class factories, refactor with datainterface parent class
+  code cleanup, reduce imports
 * 2022-08-18 8.0.0.3
   update deprecated collections import
 * 2022-05-05 8.0.0.2

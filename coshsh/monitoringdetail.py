@@ -13,10 +13,11 @@ import inspect
 import logging
 from urllib.parse import urlparse
 import coshsh
-from coshsh.item import Item
-from coshsh.application import Application
+#from coshsh.item import Item
+#from coshsh.application import Application
 
 logger = logging.getLogger('coshsh')
+
 
 class MonitoringDetailNotImplemented(Exception):
     pass
@@ -31,7 +32,6 @@ class MonitoringDetail(coshsh.item.Item):
     lower_columns = ['name', 'type', 'application_name', 'application_type']
 
     def __init__(self, params):
-        #print "Detail init", self.__class__, self.__class__.__name__, len(self.__class__.class_factory)
         if self.__class__.__name__ == "MonitoringDetail":
             for c in self.__class__.lower_columns:
                 try:
@@ -69,40 +69,6 @@ class MonitoringDetail(coshsh.item.Item):
         elif self.host_name:
             return "%s" % (self.host_name, )
         raise "impossible fingerprint"
-
-    @classmethod
-    def xinit_classes(cls, classpath):
-        sys.dont_write_bytecode = True
-        for p in [p for p in reversed(classpath) if os.path.exists(p) and os.path.isdir(p)]:
-            for module, path in [(item, p) for item in os.listdir(p) if item[-3:] == ".py" and item.startswith('detail_')]:
-                try:
-                    path = os.path.abspath(path)
-                    fp, filename, data = imp.find_module(module.replace('.py', ''), [path])
-                    toplevel = imp.load_source(module.replace(".py", ""), filename)
-                    for cl in inspect.getmembers(toplevel, inspect.isfunction):
-                        if cl[0] ==  "__detail_ident__":
-                            cls.class_factory.append([path, module, cl[1]])
-                except Exception as e:
-                    print(e)
-                finally:
-                    if fp:
-                        fp.close()
-
-
-    @classmethod
-    def xget_class(cls, params={}):
-        print("getclass from cache", cls, cls.__name__, len(cls.class_factory))
-        for path, module, class_func in reversed(cls.class_factory):
-            try:
-                print("get_class trys", path, module, class_func)
-                newcls = class_func(params)
-                #print "get_class says", newcls
-                if newcls:
-                    return newcls
-            except Exception:
-                pass
-        logger.debug("found no matching class for this monitoring detail %s" % params)
-        return None
 
     def __eq__(self, other):
         return ((self.monitoring_type, str(self.monitoring_0)) == (other.monitoring_type, str(other.monitoring_0)))
