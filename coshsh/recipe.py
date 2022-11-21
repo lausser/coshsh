@@ -311,7 +311,7 @@ class Recipe(object):
                     self.objects['hostgroups'][hostgroup].append(host.host_name)
         for (hostgroup_name, members) in self.objects['hostgroups'].items():
             logger.debug("creating hostgroup %s" % hostgroup_name)
-            self.objects['hostgroups'][hostgroup_name] = HostGroup({ "hostgroup_name" : hostgroup_name, "members" : members})
+            self.objects['hostgroups'][hostgroup_name] = coshsh.hostgroup.HostGroup({ "hostgroup_name" : hostgroup_name, "members" : members})
             self.objects['hostgroups'][hostgroup_name].create_templates()
             self.objects['hostgroups'][hostgroup_name].create_contacts()
 

@@ -20,3 +20,7 @@ class MySQL(coshsh.application.Application):
         super(MySQL, self).__init__(params)
         self.access = "remote"
         self.port = 3306
+
+    def wemustrepeat(self):
+        if "cluster" in self.host_name:
+            self.host.hostgroups.append("mysql-clusters")
