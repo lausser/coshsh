@@ -7,8 +7,8 @@ def __detail_ident__(params={}):
 
 
 class MonitoringDetailNagiosConf(coshsh.monitoringdetail.MonitoringDetail):
-    property = "generic"
-    property_type = str
+    property = "nagios_config_attributes"
+    property_type = list
 
     def __init__(self, params):
         self.monitoring_type = params["monitoring_type"]

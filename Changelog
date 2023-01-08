@@ -1,3 +1,5 @@
+* 2023-01-08 9.1
+  fix the NAGIOSCONF detail
 * 2022-11-21 9.0.0.1
   fix a bug in recipe.py, raised by hostgroups.
 * 2022-11-04 9.0

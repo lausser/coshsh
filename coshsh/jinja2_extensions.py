@@ -82,7 +82,7 @@ def filter_re_escape(s):
 # is created. the new service has all the NAGIOSCONF attributes and then
 # uses the template
 def filter_service(application, service_description):
-    relevant_details = [d for d in application.monitoring_details if d.monitoring_type == "NAGIOSCONF" and d.name == service_description]
+    relevant_details = [d for d in getattr(application, "nagios_config_attributes", []) if d.name == service_description]
     if not relevant_details:
         snippet = "define service {\n  service_description             %s" % service_description
         if len(application.contact_groups) > 0:
@@ -102,7 +102,7 @@ def filter_service(application, service_description):
     return snippet
 
 def filter_host(host):
-    relevant_details = [d for d in host.monitoring_details if d.monitoring_type == "NAGIOSCONF"]
+    relevant_details = getattr(host, "nagios_config_attributes", [])
     if not relevant_details:
         snippet = "define host {\n  host_name                         %s" % host.host_name
         if len(host.contact_groups) > 0:
@@ -122,7 +122,7 @@ def filter_host(host):
     return snippet
 
 def filter_contact(contact):
-    relevant_details = [d for d in contact.monitoring_details if d.monitoring_type == "NAGIOSCONF"]
+    relevant_details = getattr(contact, "nagios_config_attributes", [])
     if not relevant_details:
         snippet = "define contact {\n  contact_name                      %s" % contact.contact_name
         if len(contact.contactgroups) > 0:
