@@ -1,3 +1,5 @@
+* 2023-02-20 9.1.1
+  mode nagios-specific code away from the datarecipient base class
 * 2023-01-08 9.1
   fix the NAGIOSCONF detail
 * 2022-11-21 9.0.0.1

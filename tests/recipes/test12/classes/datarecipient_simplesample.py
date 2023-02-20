@@ -73,6 +73,23 @@ class DrSimpleSample(coshsh.datarecipient.Datarecipient):
         logger.info('write items to simplesample')
         logger.info("writing...")
         super(self.__class__, self).output(filter)
+        for hostgroup in self.objects.get('hostgroups', {}).values():
+            self.item_write_config(hostgroup, self.dynamic_dir, "hostgroups", "nagios")
+        for host in self.objects.get('hosts', {}).values():
+            self.item_write_config(host, self.dynamic_dir, os.path.join("hosts", host.host_name), "nagios")
+        for app in self.objects.get('applications', {}).values():
+            self.item_write_config(app, self.dynamic_dir, os.path.join("hosts", app.host_name), "nagios")
+        for cg in self.objects.get('contactgroups', {}).values():
+            self.item_write_config(cg, self.dynamic_dir, "contactgroups", "nagios")
+        for c in self.objects.get('contacts', {}).values():
+            self.item_write_config(c, self.dynamic_dir, "contacts", "nagios")
+        for sg in self.objects.get('servicegroups', {}).values():
+            # Auf Kundenwunsch. Normalerweise sollte es allein schon fuer den
+            # Vorschlag links und rechts eine geben und dann gleich nochmal und
+            # einen Arschtritt und der Vollstaendigkeit halber noch einen
+            # Tritt in den Sack. Aber was willste machen, wenn disch einer
+            # zuscheisst mit seine Jeld.
+            self.item_write_config(c, self.dynamic_dir, "servicegroups", want_tool)
         self.count_after_objects()
         try:
             delta_hosts = 100 * abs(self.new_objects[0] - self.old_objects[0]) / self.old_objects[0]

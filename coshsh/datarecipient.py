@@ -101,16 +101,9 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
                         f.write(content)
 
     def output(self, filter=None, want_tool=None):
-        for hostgroup in self.objects['hostgroups'].values():
-            self.item_write_config(hostgroup, self.dynamic_dir, "hostgroups", want_tool)
-        for host in self.objects['hosts'].values():
-            self.item_write_config(host, self.dynamic_dir, os.path.join("hosts", host.host_name), want_tool)
-        for app in self.objects['applications'].values():
-            self.item_write_config(app, self.dynamic_dir, os.path.join("hosts", app.host_name), want_tool)
-        for cg in self.objects['contactgroups'].values():
-            self.item_write_config(cg, self.dynamic_dir, "contactgroups", want_tool)
-        for c in self.objects['contacts'].values():
-            self.item_write_config(c, self.dynamic_dir, "contacts", want_tool)
+        pass
+        # for obj in self-objects["objtype"].values():
+        #     self.item_write_config(obj, self.dynamic_dir, "objfolder", want_tool)
 
     def count_objects(self):
         try:
