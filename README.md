@@ -6,12 +6,6 @@
 
 Coshsh is a framework which helps you producing configuration files for open source monitoring systems.
 
-## Can i have a sticker?
-
-Yes! Visit me at Consol, Franziskanerstraße 38, 81669 München and i give you one. 
-
-![Logo](https://labs.consol.de/assets/images/coshsh_logo_small.png)
-
 ## Features
 
 * coshsh is very fast. (~60000 services in 10 seconds)
