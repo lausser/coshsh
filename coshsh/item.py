@@ -193,12 +193,12 @@ class Item(coshsh.datainterface.CoshshDatainterface):
                 template_cache[name] = jinja2.env.get_template(name + ".tpl")
                 logger.info("load template " + name)
         except TemplateSyntaxError as e:
-            logger.critical("%s template %s has an error in line %d: %s" % (self.__class__.__name__, name, e.lineno, e.message))
+            logger.critical("%s template %s has an error in line %d: %s" % (self.__class__.__name__, name, e.lineno, e.message), exc_info=1)
             render_errors += 1
         except TemplateNotFound:
             logger.error("cannot find template " + name)
         except Exception as exp:
-            logger.critical("error in template %s (%s,%s)" % (name, exp.__class__.__name__, exp))
+            logger.critical("error in template %s (%s,%s)" % (name, exp.__class__.__name__, exp), exc_info=1)
             render_errors += 1
 
         if name in template_cache:
@@ -214,9 +214,9 @@ class Item(coshsh.datainterface.CoshshDatainterface):
                     self.config_files[for_tool][output_name] = template_cache[name].render(kwargs)
             except Exception as exp:
                 if hasattr(self, "fingerprint"):
-                    logger.critical("render exception in template %s for %s %s: %s" % (name, self, self.fingerprint(), exp))
+                    logger.critical("render exception in template %s for %s %s: %s" % (name, self, self.fingerprint(), exp), exc_info=1)
                 else:
-                    logger.critical("render exception in template %s for %s: %s" % (name, self, exp))
+                    logger.critical("render exception in template %s for %s: %s" % (name, self, exp), exc_info=1)
                 render_errors += 1
             # transform hostgroups, contacts, etc. back to lists
             self.pythonize()
@@ -251,7 +251,7 @@ class Item(coshsh.datainterface.CoshshDatainterface):
                 elif hasattr(self, rule.needsattr) and isinstance (getattr(self, rule.needsattr), list):
                     pass
             except Exception as e:
-                logger.critical("error in %s template rules. please check %s. Error was: %s" % (self.__class__.__name__, rule, str(e)))
+                logger.critical("error in %s template rules. please check %s. Error was: %s" % (self.__class__.__name__, rule, str(e)), exc_info=1)
                 render_errors += 1
 
             if render_this:
