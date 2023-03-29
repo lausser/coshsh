@@ -63,7 +63,7 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
                 self.__class__ = newcls
                 self.__init__(**params)
             else:
-                logger.critical('datarecipient for %s is not implemented' % params)
+                logger.critical('datarecipient for %s is not implemented' % params, exc_info=1)
                 raise DatarecipientNotImplemented
         else:
             setattr(self, 'name', params["name"])
@@ -158,4 +158,3 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
         if self.max_delta[1] >= 0 and abs(self.delta_services) > self.max_delta[1]:
             return True
         return False
-

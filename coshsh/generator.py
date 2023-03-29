@@ -60,7 +60,7 @@ class Generator(object):
                 pg_auth_handler = default_handler
         except Exception as e:
             if hasattr(self, "pg_job"):
-                logger.critical("problem with prometheus modules: %s" % e)
+                logger.critical("problem with prometheus modules: %s" % e, exc_info=1)
             has_prometheus = False
         if has_prometheus and not hasattr(self, "pg_address"):
             has_prometheus = False
