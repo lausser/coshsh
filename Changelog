@@ -1,3 +1,5 @@
+* 2023-03-29 9.1.2
+  print the stacktrace after exceptions (PR#7 datamuc)
 * 2023-02-20 9.1.1
   mode nagios-specific code away from the datarecipient base class
 * 2023-01-08 9.1
