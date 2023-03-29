@@ -10,6 +10,7 @@ import os
 import re
 import logging
 import time
+import sys
 import getpass
 from tempfile import gettempdir
 import coshsh
