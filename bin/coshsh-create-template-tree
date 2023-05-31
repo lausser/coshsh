@@ -10,6 +10,7 @@ import sys
 sys.dont_write_bytecode = True
 import os
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+import importlib
 try:
     importlib.reload(sys)
 except Exception:
@@ -17,6 +18,7 @@ except Exception:
     import imp
     imp.reload(sys)
 from optparse import OptionParser
+from subprocess import Popen, PIPE, STDOUT
 
 try:
     import coshsh

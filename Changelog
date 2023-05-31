@@ -1,3 +1,5 @@
+* 2023-05-31 9.1.2.1
+  bugfix in coshsh-create-template-tree (python2 deprecation warning)
 * 2023-03-29 9.1.2
   print the stacktrace after exceptions (PR#7 datamuc)
 * 2023-02-20 9.1.1
