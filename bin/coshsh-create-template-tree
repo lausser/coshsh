@@ -19,6 +19,7 @@ except Exception:
     imp.reload(sys)
 from optparse import OptionParser
 from subprocess import Popen, PIPE, STDOUT
+import time
 
 try:
     import coshsh
