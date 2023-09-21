@@ -168,23 +168,23 @@ class Item(coshsh.datainterface.CoshshDatainterface):
         if hasattr(self, "templates"):
             self.templates = ",".join(self.templates)
         if hasattr(self, "contactgroups"):
-            self.contactgroups = ",".join(sorted(self.contactgroups))
+            self.contactgroups = ",".join(sorted(list(set(self.contactgroups))))
         if hasattr(self, "contact_groups"):
-            self.contact_groups = ",".join(sorted(self.contact_groups))
+            self.contact_groups = ",".join(sorted(list(set(self.contact_groups))))
         if hasattr(self, "contacts"):
-            self.contacts = ",".join(sorted(self.contacts))
+            self.contacts = ",".join(sorted(list(set(self.contacts))))
         if hasattr(self, "hostgroups"):
-            self.hostgroups = ",".join(sorted(self.hostgroups))
+            self.hostgroups = ",".join(sorted(list(set(self.hostgroups))))
         if hasattr(self, "servicegroups"):
-            self.servicegroups = ",".join(sorted(self.servicegroups))
+            self.servicegroups = ",".join(sorted(list(set(self.servicegroups))))
         if hasattr(self, "members"):
-            self.members = ",".join(sorted(self.members))
+            self.members = ",".join(sorted(list(set(self.members))))
         if hasattr(self, "parents"):
-            self.parents = ",".join(sorted(self.parents))
+            self.parents = ",".join(sorted(list(set(self.parents))))
         if hasattr(self, "host_notification_commands"):
-            self.host_notification_commands = ",".join(sorted(self.host_notification_commands))
+            self.host_notification_commands = ",".join(sorted(list(set(self.host_notification_commands))))
         if hasattr(self, "service_notification_commands"):
-            self.service_notification_commands = ",".join(sorted(self.service_notification_commands))
+            self.service_notification_commands = ",".join(sorted(list(set(self.service_notification_commands))))
 
     def render_cfg_template(self, jinja2, template_cache, name, output_name, suffix, for_tool, **kwargs):
         render_errors = 0
