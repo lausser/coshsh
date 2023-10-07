@@ -1,0 +1,31 @@
+on:
+  push:
+    tags:
+      - 'v*' # trigger this when a tag starting with v is pushed
+
+name: Create Release from v-Tag
+
+jobs:
+  build:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: De-v the release tag
+        id: de_v_tag
+        run: |
+          # Use the 'replace' function to remove the "v" from the tag
+          TAG="${{ github.ref }}"
+          TAG_WITHOUT_V="${TAG#"v"}"
+          echo "::set-output name=tag_without_v::$TAG_WITHOUT_V"
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        with:
+          tag_name: ${{ steps.de_v_tag.outputs.tag_without_v }}
+          release_name: Release ${{ steps.de_v_tag.outputs.tag_without_v }}
+          draft: false
+          prerelease: false
