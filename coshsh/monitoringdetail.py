@@ -11,8 +11,6 @@ import os
 import logging
 from urllib.parse import urlparse
 import coshsh
-#from coshsh.item import Item
-#from coshsh.application import Application
 
 logger = logging.getLogger('coshsh')
 

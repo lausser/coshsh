@@ -1,7 +1,4 @@
 import coshsh
-from coshsh.application import Application
-from coshsh.templaterule import TemplateRule
-from coshsh.util import compare_attr
 
 def __mi_ident__(params={}):
     if coshsh.util.compare_attr("type", params, r".*red\s*hat.*|.*rhel.*|.*sles.*|.*linux.*|.*limux.*|.*debian.*|.*ubuntu.*|.*centos.*"):
@@ -17,7 +14,7 @@ class Linux(coshsh.application.Application):
     ]
 
     def __new__(cls, params={}):
-        if compare_attr("version", params, ".*embedded.*"):
+        if coshsh.util.compare_attr("version", params, ".*embedded.*"):
             cls = EmbeddedLinux
         return object.__new__(cls)
 

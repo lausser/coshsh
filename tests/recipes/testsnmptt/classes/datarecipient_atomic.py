@@ -15,21 +15,13 @@ import zlib
 from copy import copy
 import subprocess
 import coshsh
-from coshsh.datasource import Datasource, DatasourceNotAvailable
-from coshsh.datarecipient import Datarecipient, DatarecipientNotAvailable
-from coshsh.host import Host
-from coshsh.application import Application
-from coshsh.contactgroup import ContactGroup
-from coshsh.contact import Contact
-from coshsh.monitoringdetail import MonitoringDetail
-from coshsh.util import compare_attr
 
 logger = logging.getLogger('coshsh')
 
 def __dr_ident__(params={}):
-    if compare_attr("type", params, "atomic"):
+    if coshsh.util.compare_attr("type", params, "atomic"):
         return AtomicRecipient
-    if compare_attr("type", params, "remote_atomic"):
+    if coshsh.util.compare_attr("type", params, "remote_atomic"):
         return RemoteAtomicRecipient
 
 
@@ -78,7 +70,7 @@ class AtomicRecipient(coshsh.datarecipient.Datarecipient):
             logger.debug('stdout: ' + stdout)
             logger.debug('stderr: ' + stderr)
             if not status:
-                raise DatarecipientNotAvailable
+                raise coshsh.datarecipient.DatarecipientNotAvailable
         self.count_after_objects()
 
     def item_write_config(self, obj, dynamic_dir, objtype, want_tool=None):
@@ -115,7 +107,7 @@ class AtomicRecipient(coshsh.datarecipient.Datarecipient):
             stdout, stderr = process.communicate()
             status = process.poll()
             if status != 0:
-                raise DatarecipientNotAvailable
+                raise coshsh.datarecipient.DatarecipientNotAvailable
             status = True
         except Exception as e:
             status = False
@@ -135,11 +127,11 @@ class RemoteAtomicRecipient(AtomicRecipient):
         logger.info("recipient %s objects_dir %s" % (self.name, self.objects_dir))
         status, stdout, stderr = self.process("ssh -q %s mkdir -p %s" % (self.remote, self.objects_dir))
         if not status:
-            raise DatarecipientNotAvailable
+            raise coshsh.datarecipient.DatarecipientNotAvailable
         # sollte ueberfluessig sein, da rsync atomic genug ist
         #status, stdout, stderr = self.remote("ssh -q %s mktemp" % (self.remote, self.objects_dir)):
         #if not status:
-        #    raise DatarecipientNotAvailable
+        #    raise coshsh.datarecipient.DatarecipientNotAvailable
         #else:
         #    self.rem_tempdir = stdout
 
@@ -150,7 +142,7 @@ class RemoteAtomicRecipient(AtomicRecipient):
                     self.trapdest = f.replace("hostname=", "")
         if self.remote == None:
             logger.error('remote atomic needs a valid hostname')
-            raise DatarecipientNotAvailable
+            raise coshsh.datarecipient.DatarecipientNotAvailable
 
         local_tempdir = tempfile.mkdtemp()
         logger.info('write items to temporary local object_dir %s' % local_tempdir)
@@ -165,7 +157,7 @@ class RemoteAtomicRecipient(AtomicRecipient):
         status, stdout, stderr = self.process("rsync -ac %s/ %s:%s" % (local_tempdir, self.remote, self.objects_dir))
         if not status:
             shutil.rmtree(local_tempdir)
-            raise DatarecipientNotAvailable
+            raise coshsh.datarecipient.DatarecipientNotAvailable
         else:
             shutil.rmtree(local_tempdir)
 

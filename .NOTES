@@ -1,0 +1,26 @@
+$ podman run --rm -it --entrypoint bash -v `pwd`:/app python:3.11
+root@2fa757314aac:/# ls /app
+ls: cannot open directory '/app': Permission denied
+
+$ podman run --rm -it --entrypoint bash -v `pwd`:/app -u $(id -u):$(id -g)  python:3.11
+lausser@547887a45b31:/$ ls /app/
+ls: cannot open directory '/app/': Permission denied
+
+Was soll der Scheiss?
+
+[lausser@iqacnuc01 coshsh]$ sestatus
+SELinux status:                 enabled
+SELinuxfs mount:                /sys/fs/selinux
+SELinux root directory:         /etc/selinux
+Loaded policy name:             targeted
+Current mode:                   enforcing
+Mode from config file:          enforcing
+Policy MLS status:              enabled
+Policy deny_unknown status:     allowed
+Memory protection checking:     actual (secure)
+Max kernel policy version:      33
+
+Ah, daher weht der Wind.
+
+sudo chcon -Rt svirt_sandbox_file_t $(pwd)
+Was auch immer das bedeutet.

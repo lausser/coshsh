@@ -2,7 +2,6 @@ import os
 import sys
 import re
 import coshsh
-from coshsh.contact import Contact
 from tests.common_coshsh_test import CommonCoshshTest
 
 class CoshshTest(CommonCoshshTest):

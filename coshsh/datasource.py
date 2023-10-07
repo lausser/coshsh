@@ -11,8 +11,6 @@ import os
 import re
 import logging
 import coshsh
-from coshsh.util import compare_attr, substenv
-from coshsh.datainterface import CoshshDatainterface
 
 logger = logging.getLogger('coshsh')
 
@@ -40,7 +38,7 @@ class DatasourceCorrupt(Exception):
     pass
 
 
-class Datasource(CoshshDatainterface):
+class Datasource(coshsh.datainterface.CoshshDatainterface):
 
     my_type = 'datasource'
     class_file_prefixes = ["datasource"]
@@ -56,7 +54,7 @@ class Datasource(CoshshDatainterface):
                 params[short] = params[key]
         for key in params.keys():
             if isinstance(params[key], str):
-                params[key] = re.sub('%.*?%', substenv, params[key])
+                params[key] = re.sub('%.*?%', coshsh.util.substenv, params[key])
         if self.__class__ == Datasource:
             #print "generic ds", params
             newcls = self.__class__.get_class(params)
