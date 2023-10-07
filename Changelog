@@ -1,3 +1,5 @@
+* 2023-10-06 10.0.0.3
+  add publisher workflow
 * 2023-10-06 10.0
   replace the deprecated module imp with importlib
 * 2023-09-21 9.1.3
