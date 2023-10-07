@@ -11,6 +11,11 @@ name: Upload Python Package
 on:
   release:
     types: [published]
+  # eigentlich sollte das release genuegen, tut es aber nicht
+  workflow_run:
+    workflows: [Create Release from v-Tag]
+    types:
+      - completed
 
 permissions:
   contents: read
