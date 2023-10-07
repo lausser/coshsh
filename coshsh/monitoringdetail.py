@@ -8,8 +8,6 @@
 
 import sys
 import os
-import imp
-import inspect
 import logging
 from urllib.parse import urlparse
 import coshsh

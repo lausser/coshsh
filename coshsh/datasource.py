@@ -9,8 +9,6 @@
 import sys
 import os
 import re
-import imp
-import inspect
 import logging
 import coshsh
 from coshsh.util import compare_attr, substenv

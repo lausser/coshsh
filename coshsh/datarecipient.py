@@ -10,8 +10,6 @@ import sys
 import os
 import io
 import re
-import imp
-import inspect
 import logging
 import coshsh
 

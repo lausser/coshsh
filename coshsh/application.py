@@ -8,8 +8,6 @@
 
 import sys
 import os
-import imp
-import inspect
 import logging
 import coshsh
 
