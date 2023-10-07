@@ -1,1 +1,2 @@
 Jinja2
+prometheus_client
