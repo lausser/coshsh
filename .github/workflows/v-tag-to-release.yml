@@ -18,7 +18,12 @@ jobs:
           # Use the 'replace' function to remove the "v" from the tag
           TAG="${{ github.ref }}"
           TAG_WITHOUT_V="${TAG#"v"}"
+          echo "Extracted tag: $TAG_WITHOUT_V"
           echo "::set-output name=tag_without_v::$TAG_WITHOUT_V"
+      - name: Show the modified tag
+        run: |
+          MODIFIED_TAG="${{ steps.de_v_tag.outputs.tag_without_v }}"
+          echo "Modified tag: Release $MODIFIED_TAG"
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
