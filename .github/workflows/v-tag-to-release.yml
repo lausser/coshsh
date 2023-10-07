@@ -17,7 +17,7 @@ jobs:
         run: |
           # Use the 'replace' function to remove the "v" from the tag
           TAG="${{ github.ref }}"
-          TAG_WITHOUT_V="${TAG#"v"}"
+          TAG_WITHOUT_V="${TAG#refs/tags/v}"
           echo "Extracted tag: $TAG_WITHOUT_V"
           echo "::set-output name=tag_without_v::$TAG_WITHOUT_V"
       - name: Show the modified tag
