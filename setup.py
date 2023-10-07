@@ -56,6 +56,8 @@ class install_data(_install_data):
 setup(name='coshsh',
       version='10.0',
       description='Coshsh - config generator for monitoring systems',
+      long_description=open('README.md').read(),
+      long_description_content_type='text/markdown',
       url='http://github.com/lausser/coshsh',
       author='Gerhard Lausser',
       author_email='gerhard.lausser@consol.de',

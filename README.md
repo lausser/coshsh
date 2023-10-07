@@ -1,7 +1,5 @@
 # coshsh Config-Generator for Shinken / Nagios /Icinga
 
-<div><a href="https://www.buymeacoffee.com/bsNED0Wct" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/black_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a></div>
-
 ## What is coshsh?
 
 Coshsh is a framework which helps you producing configuration files for open source monitoring systems.
@@ -15,9 +13,13 @@ Coshsh is a framework which helps you producing configuration files for open sou
 ## Why should you use it?
 Because others use it too.
 * The city of Munich. https://bit.ly/2QhNCOJ
-* A car manufacturer at Munich with three letters. 
-* A global storage company with three letters.
+* A car manufacturer in Munich with three letters. 
+* A global storage company with three letters. (they were bought and now have four letters)
 * Lidl/Kaufland. https://bit.ly/2L459nH
+* A chinese car manufacturer in Shenyang.
+* An austrian company producing crystal products.
+* A world-wide operating consulting firm.
+* A venerable hanseatic bank.
 
 and many more companies which eliminated manual tasks in monitoring.
 
@@ -45,20 +47,18 @@ The only thing he knows is name, address and model of his new server and the app
 For example, your datasource is a database table with a column names "type". If you want to handle a value of "windows" or "windows 2008" all you need is a class file for it:
 
 ```python
-from application import Application
-from templaterule import TemplateRule
-from util import compare_attr
+import coshsh
 
 def __mi_ident__(params={}):
-    if compare_attr("type", params, ".*windows.*"):
+    if coshsh.util.compare_attr("type", params, ".*windows.*"):
         return Windows
 
 
-class Windows(Application):
+class Windows(coshsh.application.Application):
     template_rules = [
-        TemplateRule(needsattr=None,
+        coshsh.templaterule.TemplateRule(needsattr=None,
             template="os_windows_default"),
-        TemplateRule(needsattr="filesystems",
+        coshsh.templaterule.TemplateRule(needsattr="filesystems",
             template="os_windows_fs"),
     ]
 ```
