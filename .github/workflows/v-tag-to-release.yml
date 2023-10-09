@@ -19,7 +19,7 @@ jobs:
           TAG="${{ github.ref }}"
           TAG_WITHOUT_V="${TAG#refs/tags/v}"
           echo "Extracted tag: $TAG_WITHOUT_V"
-          echo "::set-output name=tag_without_v::$TAG_WITHOUT_V"
+          echo "{tag_without_v}=$TAG_WITHOUT_V" >> $GITHUB_OUTPUT
       - name: Show the modified tag
         run: |
           MODIFIED_TAG="${{ steps.de_v_tag.outputs.tag_without_v }}"
