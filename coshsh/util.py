@@ -173,7 +173,7 @@ def switch_logging(**kwargs):
     logger.debug("Logger switches to " + abs_logfile)
     # remove the txt_handler
     logger.removeHandler(setup_logging.txt_handler)
-    for handler in logger.handlers:
+    for handler in [h for h in logger.handlers]:
         if hasattr(handler, "baseFilename"):
             logger.removeHandler(handler)
     txt_handler = RotatingFileHandler(abs_logfile, backupCount=backup_count, maxBytes=20*1024*1024, delay=True)
