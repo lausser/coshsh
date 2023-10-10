@@ -127,7 +127,7 @@ def setup_logging(logdir=".", logfile="coshsh.log", scrnloglevel=logging.INFO, t
 
     if logger.hasHandlers():
         # this method can be called multiple times in the unittests
-        for handler in logger.handlers:
+        for handler in [h for h in logger.handlers]:
             handler.close()
             logger.removeHandler(handler)
 
