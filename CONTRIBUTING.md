@@ -17,7 +17,7 @@ If you encounter a bug or have a feature request, please [open an issue](https:/
 
 ## Code of Conduct
 
-Please follow our [Code of Conduct](https://github.com/lausser/coshsh/CODE_OF_CONDUCT.md) in all interactions with the project.
+Please follow our [Code of Conduct](https://github.com/lausser/coshsh/blob/master/CODE_OF_CONDUCT.md) in all interactions with the project.
 
 Thank you for your contributions!
 
