@@ -20,6 +20,8 @@ class CoshshDatainterface(object):
     class_file_ident_function = ""
     my_type = ""
 
+    usage_numbers = {}
+
     @classmethod
     def init_class_factory(cls, classpath):
         class_factory = []
@@ -53,9 +55,20 @@ class CoshshDatainterface(object):
             try:
                 newcls = class_func(params)
                 if newcls:
+                    try:
+                        cls.usage_numbers[path+"___"+newcls.__name__] += 1
+                    except Exception:
+                        cls.usage_numbers[path+"___"+newcls.__name__] = 1
                     return newcls
             except Exception as exp:
                 print(cls.__name__+".get_class exception", exp)
         logger.debug("found no matching class for this %s %s" % (cls.my_type, params))
         return None
+
+    @classmethod
+    def dump_classes_usage(cls):
+        print("Classes usage overview")
+        print("count  path__class")
+        for pmc in sorted(cls.usage_numbers.items(), key=lambda x: x[1]):
+            print("{:6d} {}".format(pmc[1], pmc[0]))
 

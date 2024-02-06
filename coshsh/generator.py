@@ -14,6 +14,7 @@ import sys
 import getpass
 from tempfile import gettempdir
 import coshsh
+from coshsh.datainterface import CoshshDatainterface
 from logging import INFO, DEBUG, getLogger
 
 logger = logging.getLogger('coshsh')
@@ -123,6 +124,8 @@ class Generator(object):
             else:
                 if recipe_completed:
                     logger.info("recipe {} completed with {} problems".format(recipe.name, recipe.render_errors))
+            if logger.level <= DEBUG:
+                CoshshDatainterface.dump_classes_usage()
             coshsh.util.restore_logging()
 
     def read_cookbook(self, cookbook_files, default_recipe, default_log_level, force, safe_output):
