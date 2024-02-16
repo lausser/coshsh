@@ -124,7 +124,7 @@ class Generator(object):
             else:
                 if recipe_completed:
                     logger.info("recipe {} completed with {} problems".format(recipe.name, recipe.render_errors))
-            if logger.level <= DEBUG:
+            if logger.level >= DEBUG:
                 CoshshDatainterface.dump_classes_usage()
             coshsh.util.restore_logging()
 
