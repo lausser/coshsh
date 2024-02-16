@@ -1,3 +1,5 @@
+* 2024-02-16 10.2.1
+  add a filter to datasource_csvfile (filter_column attribute)
 * 2024-02-14 10.2
   remove a deprecation warning, add datasource/recipient_discard
 * 2024-02-06 10.1

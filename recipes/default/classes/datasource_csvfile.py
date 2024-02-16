@@ -25,6 +25,7 @@ logger = logging.getLogger('coshsh')
 def __ds_ident__(params={}):
     if coshsh.util.compare_attr("type", params, "recipe_csv"):
         # csv-files have names like self.name+'_'+self.recipe_name+'_*.csv
+        # recommendation is to use CsvFile and add a coshsh_filter column
         return CsvFileRecipe
     if coshsh.util.compare_attr("type", params, "csv"):
         return CsvFile
@@ -53,6 +54,7 @@ class CsvFile(coshsh.datasource.Datasource):
         super(CsvFile, self).__init__(**kwargs)
         self.name = kwargs["name"]
         self.dir = kwargs["dir"]
+        self.filter_column = kwargs.get("filter_column", "coshsh_filter")
         self.objects = {}
 
     def open(self):
@@ -67,6 +69,13 @@ class CsvFile(coshsh.datasource.Datasource):
         self.csv_contacts = os.path.join(self.dir, self.name+'_contacts.csv')
         self.file_class = CommentedFileEnv
 
+    def record_valid(self, filter, row):
+        print("filter={}, co={}, EX {}".format(filter, self.filter_column, self.filter_column in row))
+        if filter and self.filter_column in row:
+            return filter == row[self.filter_column]
+        else:
+            return True
+
     def read(self, filter=None, objects={}, force=False, **kwargs):
         self.objects = objects
         try:
@@ -78,6 +87,8 @@ class CsvFile(coshsh.datasource.Datasource):
             hostreader = []
         # host_name,address,type,os,hardware,virtual,notification_period,location,department
         for row in hostreader:
+            if not self.record_valid(filter, row):
+                continue
             row["templates"] = ["generic-host"]
             for attr in [k for k in row.keys() if k in ['type', 'os', 'hardware', 'virtual']]:
                 try:
@@ -97,6 +108,8 @@ class CsvFile(coshsh.datasource.Datasource):
         resolvedrows = []
         # name,type,component,version,host_name,check_period
         for row in appreader:
+            if not self.record_valid(filter, row):
+                continue
             for attr in [k for k in row.keys() if k in ['name', 'type', 'component', 'version']]:
                 try:
                     row[attr] = row[attr].lower()
@@ -124,6 +137,8 @@ class CsvFile(coshsh.datasource.Datasource):
         resolvedrows = []
         # host_name,name,type,monitoring_type,monitoring_0,monitoring_1,monitoring_2,monitoring_3,monitoring_4,monitoring_5
         for row in appdetailreader:
+            if not self.record_valid(filter, row):
+                continue
             if '[' in row['host_name'] or '*' in row['host_name']:
                 # hostnames can be regular expressions
                 matching_hosts = [h for h in self.objects['hosts'].keys() if re.match('^('+row['host_name']+')', h)]
@@ -149,6 +164,8 @@ class CsvFile(coshsh.datasource.Datasource):
         resolvedrows = []
         # host_name,name,type,groups
         for row in contactgroupreader:
+            if not self.record_valid(filter, row):
+                continue
             if '[' in row['host_name'] or '*' in row['host_name']:
                 # hostnames can be regular expressions
                 matching_hosts = [h for h in self.objects['hosts'].keys() if re.match('^('+row['host_name']+')', h)]
@@ -189,6 +206,8 @@ class CsvFile(coshsh.datasource.Datasource):
             contactreader = []
         # name,type,address,userid,notification_period,groups
         for row in contactreader:
+            if not self.record_valid(filter, row):
+                continue
             c = coshsh.contact.Contact(row)
             if not self.find('contacts', c.fingerprint()):
                 c.contactgroups.extend(row["groups"].split(":"))
