@@ -70,7 +70,6 @@ class CsvFile(coshsh.datasource.Datasource):
         self.file_class = CommentedFileEnv
 
     def record_valid(self, filter, row):
-        print("filter={}, co={}, EX {}".format(filter, self.filter_column, self.filter_column in row))
         if filter and self.filter_column in row:
             return filter == row[self.filter_column]
         else:
