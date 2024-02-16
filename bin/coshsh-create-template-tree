@@ -12,9 +12,9 @@ import os
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 import importlib
 try:
+    import importlib
     importlib.reload(sys)
 except Exception:
-    pass
     import imp
     imp.reload(sys)
 from optparse import OptionParser

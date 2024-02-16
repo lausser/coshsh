@@ -1,3 +1,5 @@
+* 2024-02-14 10.2
+  remove a deprecation warning, add datasource/recipient_discard
 * 2024-02-06 10.1
   output usage count of all classes
 * 2023-10-10 10.0.0.5
