@@ -18,7 +18,7 @@ from coshsh.util import compare_attr
 logger = logging.getLogger('coshsh')
 
 def __dr_ident__(params={}):
-    if coshsh.util.compare_attr("type", params, "snmp_exporter"):
+    if coshsh.util.compare_attr("type", params, "^snmp_exporter$"):
         return DatarecipientPrometheusSnmpExporter
 
 
