@@ -63,7 +63,8 @@ class CommonCoshshTest(unittest.TestCase):
 
 
     def setUpConfig(self, configfile, default_recipe, default_log_level="info", force=False, safe_output=False):
-        self.generator.read_cookbook([configfile], default_recipe, default_log_level, force, safe_output)
+        self.generator.set_default_log_level(default_log_level)
+        self.generator.read_cookbook([configfile], default_recipe, force, safe_output)
 
     def setUpObjectsDir(self):
         if not isinstance(self._objectsdir, list):

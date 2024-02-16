@@ -64,8 +64,9 @@ if __name__ == '__main__':
 
     opts, args = parser.parse_args()
     generator = Generator()
+    generator.set_default_log_level(opts.default_log_level)
     if opts.cookbook_files:
-        generator.read_cookbook(opts.cookbook_files, opts.default_recipe, opts.default_log_level, opts.force, opts.safe_output)
+        generator.read_cookbook(opts.cookbook_files, opts.default_recipe, opts.force, opts.safe_output)
     else:
         parser.error("Use option -c/--cookbook")
     if args:

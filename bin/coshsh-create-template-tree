@@ -72,7 +72,8 @@ if __name__ == '__main__':
     opts, args = parser.parse_args()
     generator = Generator()
     if opts.cookbook_files:
-        generator.read_cookbook(opts.cookbook_files, opts.default_recipe, opts.default_log_level, opts.force, opts.safe_output)
+        generator.set_default_log_level(opts.default_log_level)
+        generator.read_cookbook(opts.cookbook_files, opts.default_recipe, opts.force, opts.safe_output)
         cookbook = generator.cookbook
         if not opts.template_name:
             parser.error("Which template hierarchy should i create? Use --template")

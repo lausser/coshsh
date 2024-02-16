@@ -27,6 +27,10 @@ class Generator(object):
 
     def __init__(self):
         self.recipes = coshsh.util.odict()
+        self.default_log_level = "info"
+
+    def set_default_log_level(self, default_log_level):
+        self.default_log_level = default_log_level
 
     def add_recipe(self, *args, **kwargs):
         try:
@@ -124,11 +128,11 @@ class Generator(object):
             else:
                 if recipe_completed:
                     logger.info("recipe {} completed with {} problems".format(recipe.name, recipe.render_errors))
-            if logger.level >= DEBUG:
+            if self.default_log_level == "debug":
                 CoshshDatainterface.dump_classes_usage()
             coshsh.util.restore_logging()
 
-    def read_cookbook(self, cookbook_files, default_recipe, default_log_level, force, safe_output):
+    def read_cookbook(self, cookbook_files, default_recipe, force, safe_output):
         self.cookbook_files = '___'.join(map(lambda cf: os.path.basename(os.path.abspath(cf)), cookbook_files))
         recipe_configs = {}
         datasource_configs = {}
@@ -173,7 +177,7 @@ class Generator(object):
             backup_count = int(dict(cookbook.items("defaults"))["backup_count"])
         else:
             backup_count = 2
-        if default_log_level and default_log_level.lower() == "debug" or "defaults" in cookbook.sections() and "log_level" in [c[0] for c in cookbook.items("defaults")] and cookbook.items("defaults")["log_level"].lower() == "debug":
+        if self.default_log_level and self.default_log_level.lower() == "debug" or "defaults" in cookbook.sections() and "log_level" in [c[0] for c in cookbook.items("defaults")] and cookbook.items("defaults")["log_level"].lower() == "debug":
             coshsh.util.setup_logging(logdir=log_dir, scrnloglevel=DEBUG, backup_count=backup_count)
         else:
             coshsh.util.setup_logging(logdir=log_dir, scrnloglevel=INFO, backup_count=backup_count)
