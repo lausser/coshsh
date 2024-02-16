@@ -1,3 +1,5 @@
+* 2024-02-16 10.2.1.2
+  make all datasources and recipients strict
 * 2024-02-16 10.2.1.1
   check type of datarecipient_prometheus_snmp strict
 * 2024-02-16 10.2.1

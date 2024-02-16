@@ -23,11 +23,11 @@ from coshsh.util import compare_attr, substenv
 logger = logging.getLogger('coshsh')
 
 def __ds_ident__(params={}):
-    if coshsh.util.compare_attr("type", params, "recipe_csv"):
+    if coshsh.util.compare_attr("type", params, "^recipe_csv$"):
         # csv-files have names like self.name+'_'+self.recipe_name+'_*.csv
         # recommendation is to use CsvFile and add a coshsh_filter column
         return CsvFileRecipe
-    if coshsh.util.compare_attr("type", params, "csv"):
+    if coshsh.util.compare_attr("type", params, "^csv$"):
         return CsvFile
 
 class CommentedFile:
