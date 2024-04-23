@@ -233,7 +233,7 @@ class Recipe(object):
                 ds.close()
             except coshsh.datasource.DatasourceNotCurrent:
                 data_valid = False
-                logger.info("datasource %s is is not current" % ds.name, exc_info=False)
+                logger.info("datasource %s is not current" % ds.name, exc_info=False)
             except coshsh.datasource.DatasourceNotReady:
                 data_valid = False
                 logger.info("datasource %s is busy" % ds.name, exc_info=False)
