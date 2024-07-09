@@ -1,0 +1,15 @@
+host_name,address,type,os,hardware,virtual,notification_period,location,departm
+ent
+pa_1,10.0.0.1,firewall,,,ps,7x24,dc,net
+pa_2,10.0.0.2,firewall,,,ps,7x24,dc,net
+pa_3,10.0.0.3,firewall,,,ps,7x24,dc,net
+pa_4,10.0.0.4,firewall,,,ps,7x24,dc,net
+pa_5,10.0.0.5,firewall,,,ps,7x24,dc,net
+pa_6,10.0.0.6,firewall,,,ps,7x24,dc,net
+pa_7,10.0.0.7,firewall,,,ps,7x24,dc,net
+pa_8,10.0.0.8,firewall,,,ps,7x24,dc,net
+pa_9,10.0.0.9,firewall,,,ps,7x24,dc,net
+pa_a,10.0.0.10,firewall,,,ps,7x24,dc,net
+pa_b,10.0.0.11,firewall,,,ps,7x24,dc,net
+pa_c,10.0.0.12,firewall,,,ps,7x24,dc,net
+pa_d,10.0.0.13,firewall,,,ps,7x24,dc,net

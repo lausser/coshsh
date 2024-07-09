@@ -4,9 +4,6 @@ import os
 import io
 import shutil
 import subprocess
-import coshsh
-from coshsh.generator import Generator
-from coshsh.util import setup_logging
 from tests.common_coshsh_test import CommonCoshshTest
 
 
