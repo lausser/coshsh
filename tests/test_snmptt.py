@@ -128,6 +128,32 @@ class CoshshTest(CommonCoshshTest):
         self.assertTrue('PAN-TRAPS-8-MIB' in os_paloalto_traps_cfg)
         self.assertTrue('_OID                            .1.3.6.1.4.1.25461.2.1.3.2.0.51531' in os_paloalto_traps_cfg)
 
+    def test_ignored_traps(self):
+        # PAN-TRAPS-8-MIB.snmptt
+        # EVENT panBFDSessionStateChangeTrap .1.3.6.1.4.1.25461.2.1.3.2.0.3504 "Status Events" HIDDEN
+        # PAN-TRAPS-7-MIB.snmptt
+        # EVENT panBFDSessionStateChangeTrap .1.3.6.1.4.1.25461.2.1.3.2.0.3504 "Status Events" Normal
+        # HIDDEN = completely ignore this trap
+        # it will never become a service definition
+        # its oid will not be checked in the check_logfiles scan
+        self.setUpConfig("etc/coshsh.cfg", "testsnmptt_nodes")
+        r = self.generator.get_recipe("testsnmptt_nodes")
+        r.count_before_objects()
+        r.cleanup_target_dir()
+        r.prepare_target_dir()
+        r.collect()
+        r.assemble()
+        r.render()
+        r.output()
+        with io.open("etc/check_logfiles/snmptt/PAN-TRAPS-7-MIB.cfg") as f:
+            check_logfiles_cfg = f.read()
+        self.assertTrue('panBFDSessionStateChangeTrap' in check_logfiles_cfg)
+        self.assertFalse('panBFDAdminDownTrap' in check_logfiles_cfg)
+        with io.open("etc/check_logfiles/snmptt/PAN-TRAPS-8-MIB.cfg") as f:
+            check_logfiles_cfg = f.read()
+        self.assertFalse('panBFDSessionStateChangeTrap' in check_logfiles_cfg)
+        self.assertTrue('panBFDAdminDownTrap' in check_logfiles_cfg)
+
     def tearDown(self):
         pass
 # PAN-TRAP-MIB .1.3.6.1.4.1.25461.2.1.3.2.0.1531

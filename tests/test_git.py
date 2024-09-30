@@ -1,5 +1,6 @@
 import os
 import io
+import shutil
 from tests.common_coshsh_test import CommonCoshshTest
 
 class CoshshTest(CommonCoshshTest):
@@ -38,4 +39,53 @@ class CoshshTest(CommonCoshshTest):
         self.assertTrue(os.path.exists("var/objects/test10/dynamic/hosts/test_host_1/os_windows_default.cfg"))
         # git_init is yes by default
         self.assertTrue(not os.path.exists("var/objects/test10/dynamic/.git"))
+
+    # wenn null objekte generiert werden, dann muss dennoch das objects_dir
+    # als vollwertiges git-Repository initialisiert werden, sonst treten beim
+    # check_git_updates Fehler auf
+    def test_no_objects_init_empty_dir(self):
+        self.setUpConfig("etc/coshsh13.cfg", "test20gitno")
+        super(CoshshTest, self).tearDown()
+        test20 = self.generator.recipes['test20gitno'].datarecipients[0].objects_dir
+        test20prom = self.generator.recipes['test20gitno'].datarecipients[1].objects_dir
+        if os.path.exists(test20prom):
+            shutil.rmtree(test20prom, True)
+        if os.path.exists(test20):
+            shutil.rmtree(test20, True)
+        r = self.generator.get_recipe("test20gitno")
+        r.collect()
+        r.assemble()
+        r.render()
+        os.makedirs(test20, 0o755)
+        os.makedirs(test20prom, 0o755)
+        self.assertTrue(os.path.exists(test20))
+        self.assertTrue(os.path.exists(test20prom))
+        r.output()
+        self.assertTrue(os.path.exists(os.path.join(test20, "dynamic")))
+        self.assertTrue(os.path.exists(os.path.join(test20prom, "dynamic")))
+        self.assertFalse(os.path.exists(os.path.join(test20, "dynamic", ".git")))
+        self.assertFalse(os.path.exists(os.path.join(test20prom, "dynamic", "targets", ".git")))
+
+    def test_no_objects_init_empty_git(self):
+        self.setUpConfig("etc/coshsh13.cfg", "test20gityes")
+        super(CoshshTest, self).tearDown()
+        test20 = self.generator.recipes['test20gityes'].datarecipients[0].objects_dir
+        test20prom = self.generator.recipes['test20gityes'].datarecipients[1].objects_dir
+        if os.path.exists(test20prom):
+            shutil.rmtree(test20prom, True)
+        if os.path.exists(test20):
+            shutil.rmtree(test20, True)
+        r = self.generator.get_recipe("test20gityes")
+        r.collect()
+        r.assemble()
+        r.render()
+        os.makedirs(test20, 0o755)
+        os.makedirs(test20prom, 0o755)
+        self.assertTrue(os.path.exists(test20))
+        self.assertTrue(os.path.exists(test20prom))
+        r.output()
+        self.assertTrue(os.path.exists(os.path.join(test20, "dynamic")))
+        self.assertTrue(os.path.exists(os.path.join(test20prom, "dynamic")))
+        self.assertTrue(os.path.exists(os.path.join(test20, "dynamic", ".git")))
+        #kennt kein git_init#self.assertTrue(os.path.exists(os.path.join(test20prom, "dynamic", "targets", ".git")))
 

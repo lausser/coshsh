@@ -11,6 +11,9 @@ import os
 import io
 import re
 import logging
+from subprocess import Popen, PIPE, STDOUT
+import string
+import random
 import coshsh
 
 logger = logging.getLogger('coshsh')
@@ -156,3 +159,36 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
         if self.max_delta[1] >= 0 and abs(self.delta_services) > self.max_delta[1]:
             return True
         return False
+
+    def run_git_init(self, path):
+        save_dir = os.getcwd()
+        os.chdir(path)
+        print("git init------------------")
+        process = Popen(["git", "init", "."], stdout=PIPE, stderr=STDOUT, universal_newlines=True)
+        output, unused_err = process.communicate()
+        retcode = process.poll()
+        print(output)
+        init_file = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
+        open(init_file, "w").close()
+        print("git add {}------------------".format(init_file))
+        process = Popen(["git", "add", init_file], stdout=PIPE, stderr=STDOUT, universal_newlines=True)
+        output, unused_err = process.communicate()
+        retcode = process.poll()
+        print(output)
+        commitmsg = "initial dummy-commit add"
+        process = Popen(["git", "commit", "-a", "-m", commitmsg], stdout=PIPE, stderr=STDOUT, universal_newlines=True)
+        output, unused_err = process.communicate()
+        retcode = process.poll()
+        print(output)
+        print("git rm {}------------------".format(init_file))
+        process = Popen(["git", "rm", init_file], stdout=PIPE, stderr=STDOUT, universal_newlines=True)
+        output, unused_err = process.communicate()
+        retcode = process.poll()
+        print(output)
+        commitmsg = "initial dummy-commit rm"
+        process = Popen(["git", "commit", "-a", "-m", commitmsg], stdout=PIPE, stderr=STDOUT, universal_newlines=True)
+        output, unused_err = process.communicate()
+        retcode = process.poll()
+        print(output)
+        os.chdir(save_dir)
+

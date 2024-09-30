@@ -12426,44 +12426,46 @@ EDESC
 ##
 ##
 ##
-#EVENT panBFDAdminDownTrap .1.3.6.1.4.1.25461.2.1.3.2.0.3503 "Status Events" Normal
-#FORMAT Administrative down $*
-#SDESC
-#Administrative down
-#Variables:
-#  1: panReceiveTime
-#  2: panSerial
-#  3: panHostname
-#  4: panEventType
-#  5: panEventSubType
-#  6: panVsys
-#  7: panSeqno
-#  8: panActionflags
-#  9: panSystemEventId
-#  10: panSystemObject
-#  11: panSystemModule
-#  12: panSystemSeverity
-#  13: panSystemDescription
-#EDESC
+EVENT panBFDAdminDownTrap .1.3.6.1.4.1.25461.2.1.3.2.0.3503 "Status Events" Normal
+NODES MODE=IGNORE
+FORMAT Administrative down $*
+SDESC
+Administrative down
+Variables:
+  1: panReceiveTime
+  2: panSerial
+  3: panHostname
+  4: panEventType
+  5: panEventSubType
+  6: panVsys
+  7: panSeqno
+  8: panActionflags
+  9: panSystemEventId
+  10: panSystemObject
+  11: panSystemModule
+  12: panSystemSeverity
+  13: panSystemDescription
+EDESC
 ##
 ##
 ##
-#EVENT panBFDSessionStateChangeTrap .1.3.6.1.4.1.25461.2.1.3.2.0.3504 "Status Events" Normal
-#FORMAT Session state change $*
-#SDESC
-#Session state change
-#Variables:
-#  1: panReceiveTime
-#  2: panSerial
-#  3: panHostname
-#  4: panEventType
-#  5: panEventSubType
-#  6: panVsys
-#  7: panSeqno
-#  8: panActionflags
-#  9: panSystemEventId
-#  10: panSystemObject
-#  11: panSystemModule
-#  12: panSystemSeverity
-#  13: panSystemDescription
-#EDESC
+EVENT panBFDSessionStateChangeTrap .1.3.6.1.4.1.25461.2.1.3.2.0.3504 "Status Events" Normal
+NODES MODE=NEG
+FORMAT Session state change $*
+SDESC
+Session state change
+Variables:
+  1: panReceiveTime
+  2: panSerial
+  3: panHostname
+  4: panEventType
+  5: panEventSubType
+  6: panVsys
+  7: panSeqno
+  8: panActionflags
+  9: panSystemEventId
+  10: panSystemObject
+  11: panSystemModule
+  12: panSystemSeverity
+  13: panSystemDescription
+EDESC
