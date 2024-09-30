@@ -1,3 +1,5 @@
+* 2024-09-30 10.2.2.1
+  forgot to add the recipe
 * 2024-09-30 10.2.2
   add method run_git_init to the datarecipient baseclass
   add IGNORE to traps which should be completely ignored
