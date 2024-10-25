@@ -9,6 +9,7 @@
 import time
 import sys
 import re
+import hashlib
 import copy
 import os
 import logging
@@ -115,6 +116,17 @@ def clean_umlauts(text):
     for from_str, to_str in translations:
         text = text.replace(from_str, to_str)
     return text
+
+
+def sanitize_filename(filename):
+    name, ext = os.path.splitext(filename)
+    sanitized = re.sub(r'[\\/*?:"<>| ]+', '_', name)
+    if sanitized == name:
+        return filename
+    hash_suffix = hashlib.md5(filename.encode()).hexdigest()[:4]
+    sanitized_with_hash = "{}_{}{}".format(sanitized, hash_suffix, ext)
+    return sanitized_with_hash
+
 
 def setup_logging(logdir=".", logfile="coshsh.log", scrnloglevel=logging.INFO, txtloglevel=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", backup_count=2):
     logdir = os.path.abspath(logdir)

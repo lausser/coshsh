@@ -98,7 +98,7 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
             if not want_tool or want_tool == tool:
                 for file in obj.config_files[tool]:
                     content = obj.config_files[tool][file]
-                    with io.open(os.path.join(my_target_dir, file), "w") as f:
+                    with io.open(os.path.join(my_target_dir, coshsh.util.sanitize_filename(file)), "w") as f:
                         f.write(content)
 
     def output(self, filter=None, want_tool=None):

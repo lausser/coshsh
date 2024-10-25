@@ -1,3 +1,5 @@
+* 2024-10-25 10.2.3
+  sanitize filenames in the datarecipient (remove "/" etc. from the name)
 * 2024-09-30 10.2.2.1
   forgot to add the recipe
 * 2024-09-30 10.2.2
