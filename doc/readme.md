@@ -436,7 +436,7 @@ Coshsh comes with several built-in datasource handlers located in `recipes/defau
     [datasource_my_inventory]
     type = csv
     dir = /path/to/my/csv_data_directory  # Required: Directory containing the CSV files
-    
+
     # Optional: Specify exact filenames if they don't follow the default naming convention
     # Default convention is <datasource_name>_<item_type>.csv or <name_for_files>_<item_type>.csv
     csv_hosts_file = my_custom_hosts.csv
@@ -446,11 +446,11 @@ Coshsh comes with several built-in datasource handlers located in `recipes/defau
     # csv_contacts_file = my_custom_contacts.csv
     # csv_contactgroups_file = my_custom_cgroups.csv
     # csv_hostgroups_file = my_custom_hgroups.csv # Note: Hostgroups are often derived, but can be defined
-    
+
     # Optional: If your CSV filenames are prefixed differently than the datasource section name
     # For example, if files are "master_hosts.csv", "master_applications.csv"
-    name_for_files = master 
-    
+    name_for_files = master
+
     csv_delimiter = ;  # Optional: Defaults to comma (,)
     # csv_encoding = latin1 # Optional: Defaults to system default, often utf-8
     # csv_strip_attributes = yes # Optional: Defaults to no/false. If yes, strips whitespace from values.
@@ -501,7 +501,7 @@ Coshsh comes with several built-in datasource handlers located in `recipes/defau
     # This datasource typically does not require any parameters from the cookbook,
     # as its data is defined within its read() method in Python.
     # If the class were modified, it could accept parameters, e.g.:
-    # number_of_hosts = 5 
+    # number_of_hosts = 5
     # base_ip_prefix = 10.0.1
     ```
 *   **Data Definition:** The data is generated within the `read()` method of the `SimpleSample` class in `datasource_simplesample.py`. It usually creates a few `Host` objects with some `Application` and `MonitoringDetail` objects attached.
