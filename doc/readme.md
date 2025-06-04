@@ -4,8 +4,7 @@
 
 ## Introduction
 
-Coshsh (Configuration SHell SHaper) is a versatile and powerful configuration generator.
-(Pronunciation: like "cosh-sh" with a 'ts' sound as in 'cats' at the beginning, a short 'o' as in 'cot', and ending with a long 'sh' sound, like the 'sh' in 'silence, shshshsh!'; IPA-like: /tsɔʃʃː/).
+Coshsh is a versatile and powerful configuration generator (pronounced like "cosh-sh" with a 'ts' sound as in 'cats' at the beginning, a short 'o' as in 'cot', and ending with a sustained 'sh' sound, similar to the 'sh' in 'wish' but drawn out, as if saying 'wi-shhhh'; IPA: /tsɔʃː/).
 
 It's primarily designed to automate the creation of configurations for monitoring systems such as Nagios, Icinga, and Naemon. Its flexible architecture also allows it to generate configurations for other systems, like Prometheus (e.g., via `datarecipient_prometheus_snmp.py` for SNMP exporter targets) or any other text-based configuration format.
 
