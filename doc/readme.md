@@ -9,7 +9,7 @@ Coshsh is a versatile and powerful configuration generator (pronounced like "cos
 It's primarily designed to automate the creation of configurations for monitoring systems such as Nagios, Icinga, and Naemon. Its flexible architecture also allows it to generate configurations for other systems, like Prometheus (e.g., via `datarecipient_prometheus_snmp.py` for SNMP exporter targets) or any other text-based configuration format.
 
 ### Naming Origin
-Coshsh was created by a former active contributor to Shinken (a Nagios fork). The name "Coshsh" can be seen as relating to "Configurations for Services and Hosts for Shinken." Humorously, it was also chosen as a term that was unlikely to yield many irrelevant search engine results at the time of its inception.
+The name Coshsh originated when its creator was a co-author of Shinken, a Nagios fork. While it possibly stands for 'COnfigurations for Services and Hosts for SHinken' – a plausible explanation for its origin – the exact details are humorously elusive. It's also quipped that Coshsh might simply have been the result of a search for a unique name that didn't yet exist in search engine results.
 
 In Coshsh terminology:
 *   A **Cookbook** is an INI-style configuration file (or set of files) that contains one or more "recipes." It's the top-level plan defining what Coshsh should generate.
