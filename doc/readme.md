@@ -4,14 +4,17 @@
 
 ## Introduction
 
-Coshsh (Configuration SHell SHaper) is a versatile and powerful configuration generator, primarily designed to automate the creation of configurations for monitoring systems such as Nagios, Icinga, and Naemon. Its flexible architecture also allows it to generate configurations for other systems, like Prometheus (e.g., via `datarecipient_prometheus_snmp.py` for SNMP exporter targets) or any other text-based configuration format.
+Coshsh (Configuration SHell SHaper) is a versatile and powerful configuration generator.
+(Pronunciation: like "cosh-sh" with a 'ts' sound as in 'cats' at the beginning, a short 'o' as in 'cot', and ending with a long 'sh' sound, like the 'sh' in 'silence, shshshsh!'; IPA-like: /tsɔʃʃː/).
+
+It's primarily designed to automate the creation of configurations for monitoring systems such as Nagios, Icinga, and Naemon. Its flexible architecture also allows it to generate configurations for other systems, like Prometheus (e.g., via `datarecipient_prometheus_snmp.py` for SNMP exporter targets) or any other text-based configuration format.
 
 ### Naming Origin
-The name "Coshsh" (pronounced similarly to "gosh") originated as a playful acronym for "Configurations for Services and Hosts for Shinken," with Shinken being a Nagios-compatible monitoring system that was a primary target during Coshsh's early development. It also had the practical advantage of being a unique term, yielding few irrelevant search engine results.
+Coshsh was created by a former active contributor to Shinken (a Nagios fork). The name "Coshsh" can be seen as relating to "Configurations for Services and Hosts for Shinken." Humorously, it was also chosen as a term that was unlikely to yield many irrelevant search engine results at the time of its inception.
 
 In Coshsh terminology:
-*   A **Cookbook** is an INI-style configuration file that contains one or more "recipes." It's the top-level plan for what Coshsh should do.
-*   A **Recipe**, much like in cooking, defines the "ingredients" and steps for a specific configuration generation task. Key ingredients include datasources (where to get raw data), specialized Python classes (how to process specific types of data), and Jinja2 templates (how to format the output).
+*   A **Cookbook** is an INI-style configuration file (or set of files) that contains one or more "recipes." It's the top-level plan defining what Coshsh should generate.
+*   A **Recipe**, much like in cooking, outlines a specific generation task. It lists its "ingredients" – which are primarily datasources (to get raw data), specialized Python classes (to process and model different types of data like specific OSes or applications), and Jinja2 templates (to define how the final configuration output should be formatted). When a recipe is processed ("cooked"), the result is a set of configuration files or other outputs.
 
 ### Purpose and Benefits
 The core purpose of Coshsh is to streamline and automate the management of complex configurations, particularly in environments where inventory data, host attributes, and service definitions are spread across multiple or diverse sources. These sources can range from simple CSV files to comprehensive CMDBs (like ServiceNow) or infrastructure management platforms (like NetBox), which can be integrated via custom or provided datasources.
@@ -59,16 +62,16 @@ my_simple_coshsh_project/
 *   `my_simple_coshsh_project/data/inventory_hosts.csv`:
     ```csv
     host_name,address,type,alias
-    server01,192.168.1.10,linux_server,My First Server
+    server01,192.168.1.10,generic_server,My First Server
     ```
-    *(Note: The `type` column here (formerly `os_type`) could be 'server', 'linux_server', 'network_switch', etc. It's often used by datasources or later logic to categorize the host itself or to provide a default `type` for its primary OS application if not explicitly defined in an applications CSV.)*
+    *(Note: The `type` column here is a general categorization for the host, like 'server', 'network_switch'. It can be used by custom host classes or for hostgrouping. It's distinct from the application/OS type defined next.)*
 
 *   `my_simple_coshsh_project/data/inventory_apps.csv`:
     ```csv
     host_name,name,type
     server01,os,myos_distro
     ```
-    *(Note: For an OS application, `name` (formerly `app_name`) is typically "os". The `type` (formerly `app_type`, now "myos_distro" here) is what your custom `os_myos.py` class will look for via `__mi_ident__` to specialize this OS application).*
+    *(Note: For an OS application, `name` is typically "os". The `type` ("myos_distro" here) is what your custom `os_myos.py` class will look for via `__mi_ident__` to specialize this OS application).*
 
 **Step 2: Create Custom OS Class**
 
@@ -125,75 +128,41 @@ my_simple_coshsh_project/
 
 *   `my_simple_coshsh_project/cookbook/example.cfg`:
     ```ini
-    [datasource_example_csv]
-    type = csv
-    # Define which CSV files this datasource should read.
-    # The part before '_hosts.csv' or '_applications.csv' should match the datasource name
-    # or be explicitly mapped if filenames differ. Here, we'll assume the default
-    # datasource_csvfile.py will look for files based on the 'dir' and its own name.
-    # For more explicit control, you can use:
-    # csv_hosts_file = ../data/inventory_hosts.csv
-    # csv_applications_file = ../data/inventory_apps.csv
-    dir = ../data
-    # This tells the csv datasource to look for inventory_hosts.csv, inventory_apps.csv, etc.
-    # if we name the datasource [datasource_inventory]
-    # For simplicity here, we'll assume the default CSV handler might pick up any CSVs
-    # or one might need to be more specific in a real setup (e.g., by naming files
-    # example_csv_hosts.csv or using explicit file parameters in the datasource section).
-    # Let's assume for this example, we'll rename our CSV files to:
-    # example_csv_hosts.csv and example_csv_applications.csv in the ../data directory.
-
-    # Corrected for clarity and explicit file naming for the CSV datasource:
-    # Ensure your files in ../data are named example_csv_hosts.csv and example_csv_applications.csv
-    csv_hosts_file = ../data/inventory_hosts.csv
-    csv_applications_file = ../data/inventory_apps.csv
-    # If your actual CSV files are named inventory_hosts.csv etc., and you want to use
-    # [datasource_inventory] then set:
-    # name_for_files = inventory
-
-    [recipe_simple_example]
-    datasources = example_csv
-    classes_dir = ../example_classes
-    templates_dir = ../example_templates
-    objects_dir = ../output_configs
-    # By default, Coshsh uses classes from recipes/default/classes.
-    # The paths here are relative to the cookbook file's location.
-    # For a real setup, you might also include default paths:
-    # classes_dir = ../example_classes,%(OMD_ROOT)/share/coshsh/recipes/default/classes
-    # templates_dir = ../example_templates,%(OMD_ROOT)/share/coshsh/recipes/default/templates
-    ```
-    *Self-correction for the example.cfg: The default CSV datasource handler (`datasource_csvfile.py`) typically expects files named `<datasourcename>_hosts.csv`, etc. or specific parameters like `csv_hosts_file`. The example will be clearer if we specify `csv_hosts_file` and `csv_applications_file`.*
-
-    Let's refine `my_simple_coshsh_project/cookbook/example.cfg` assuming our CSV files are `inventory_hosts.csv` and `inventory_apps.csv`:
-    ```ini
-    [datasource_inventory_data]
+    [datasource_myinventory]
     type = csv
     dir = ../data
-    # Explicitly point to the CSV files
+    # Tells the csv datasource to look for files like:
+    # myinventory_hosts.csv, myinventory_applications.csv, etc.
+    # For this example, ensure your CSV files in ../data are named:
+    # inventory_hosts.csv --> rename to myinventory_hosts.csv
+    # inventory_apps.csv  --> rename to myinventory_applications.csv
+    # OR explicitly define the filenames:
+    # csv_hosts_file = inventory_hosts.csv
+    # csv_applications_file = inventory_apps.csv
+
+    # For this example, we will use explicit filenames:
     csv_hosts_file = inventory_hosts.csv
     csv_applications_file = inventory_apps.csv
-    # Optional: if your detail files follow a pattern like inventory_applicationdetails.csv
-    csv_applicationdetails_file = inventory_applicationdetails.csv # Add if you have this file
 
-    [recipe_simple_example]
-    datasources = inventory_data
+    [recipe_simple_server_config]
+    datasources = myinventory
     classes_dir = ../example_classes
     templates_dir = ../example_templates
     objects_dir = ../output_configs
-    # To include Coshsh default classes and templates (recommended):
-    # classes_dir = ../example_classes,recipes/default/classes
-    # templates_dir = ../example_templates,recipes/default/templates
-    # (Adjust paths to defaults based on your Coshsh installation if not using OMD)
+    # Optional: To include Coshsh default classes and templates (recommended for real use):
+    # Ensure correct relative or absolute paths if your project is not in the Coshsh root.
+    # classes_dir = ../example_classes,../../recipes/default/classes
+    # templates_dir = ../example_templates,../../recipes/default/templates
     ```
 
 **Step 5: Run Coshsh-Cook**
 
-Navigate to the `my_simple_coshsh_project/cookbook/` directory (or ensure your paths in `example.cfg` are correct relative to where you run the command):
+Navigate to the `my_simple_coshsh_project/cookbook/` directory (or ensure paths in `example.cfg` are correct, especially if using relative paths for default classes/templates):
 
 ```bash
-coshsh-cook --cookbook example.cfg --recipe simple_example
+coshsh-cook --cookbook example.cfg --recipe simple_server_config
 ```
-*(If you're not in an OMD environment, you might need to ensure `coshsh-cook` is in your PATH and Coshsh library is in PYTHONPATH, or adjust relative paths in the cookbook to absolute paths for `classes_dir` and `templates_dir` to point to `recipes/default` if you want to use them).*
+*(If you're not in an OMD environment, you might need to ensure `coshsh-cook` is in your PATH and Coshsh library is in PYTHONPATH. For simplicity, this example assumes `example_classes` and `example_templates` are sufficient. In a real setup, you'd often want to include Coshsh's default paths too, e.g., `classes_dir = ../example_classes,path/to/coshsh/recipes/default/classes`)*.
 
 **Step 6: Inspect Generated Output**
 
