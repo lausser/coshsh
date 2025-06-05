@@ -150,7 +150,6 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
         #  10      0      -100
         #  10      8      -20
         if self.max_delta[0] < 0 and self.delta_hosts < self.max_delta[0]:
-            print("neg and shrink")
             return True
         if self.max_delta[1] < 0 and self.delta_services < self.max_delta[1]:
             return True
