@@ -195,7 +195,9 @@ class Generator(object):
                 recipe_configs[recipe] = [('name', recipe) if kv[0] == 'name' else kv for kv in recipe_configs[recipe]]
             if matching_recipes:
                 recipe_configs[recipe].append(('force', force))
-                recipe_configs[recipe].append(('safe_output', safe_output))
+                if not [v for k, v in recipe_configs[recipe] if k == "safe_output"] or not [v for k, v in recipe_configs[recipe] if k == "safe_output"][0]:
+                    # commandline --safe-output has priority
+                    recipe_configs[recipe].append(('safe_output', safe_output))
                 if not [c for c in recipe_configs[recipe] if c[0] == 'pid_dir']:
                     recipe_configs[recipe].append(('pid_dir', pid_dir))
                 recipe_configs[recipe].append(('coshsh_config_mappings', coshsh_config_mappings))
