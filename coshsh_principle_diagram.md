@@ -35,15 +35,15 @@ graph TD
     DS_Classes -- Feeds raw data items --> Engine
 
     Engine -- Executes --> Recipe
-    Engine -- "1. Instantiates & Specializes items using" --> AppOS_Classes
+    Engine -- "Instantiates & Specializes items using" --> AppOS_Classes
     AppOS_Classes -- "Contain" --> TRules
     AppOS_Classes -- "Yield" --> ProcessedItems
 
-    Engine -- "2. Processes" --> ProcessedItems
+    Engine -- "Processes" --> ProcessedItems
     ProcessedItems -- "Have associated" --> TRules
-    Engine -- "3. Consults" --> TRules
-    Engine -- "4. Selects & Uses based on rules" --> Templates
+    Engine -- "Consults" --> TRules
+    Engine -- "Selects & Uses based on rules" --> Templates
 
-    Templates -- "5. Render item's data into config string" --> Engine
-    Engine -- "6. Writes generated files" --> Output
+    Templates -- "Render item's data into config string" --> Engine
+    Engine -- "Writes generated files" --> Output
 ```
