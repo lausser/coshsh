@@ -5,7 +5,7 @@ graph TD
         User["User / Operator"]
     end
 
-    subgraph Coshsh Configuration
+    subgraph CoshshConfiguration["Coshsh Configuration"]
         Cookbook["Cookbook (.cfg)"]
         DS_Classes["Datasource Classes (Python in classes_dir)"]
         AppOS_Classes["Application/OS Classes (Python in classes_dir)"]
@@ -13,11 +13,16 @@ graph TD
         Templates["Templates (Jinja2 .tpl in templates_dir)"]
     end
 
-    subgraph Coshsh Execution
+    subgraph CoshshExecution["Coshsh Execution"]
         Engine["Coshsh Engine (coshsh-cook)"]
         Recipe["Recipe (section in Cookbook)"]
         ProcessedItems["Processed/Specialized Data Items (App/OS Class Instances)"]
+    end
+
+    subgraph MonitoringSystem["Target Monitoring System"]
+        direction LR
         Output["Output Directory (objects_dir)"]
+        MonitoringCore["Monitoring Core (Nagios, Icinga, Prometheus, etc.)"]
     end
 
     User -- Invokes & Edits --> Cookbook
@@ -46,4 +51,5 @@ graph TD
 
     Templates -- "Render item's data into config string" --> Engine
     Engine -- "Writes generated files" --> Output
+    Output -- "Consumed by" --> MonitoringCore
 ```
