@@ -1,6 +1,6 @@
 ```mermaid
 graph TD
-    subgraph External World
+    subgraph ExternalWorld["External World"]
         ExtData["External Data Sources (CMDB, CSV, API)"]
         User["User / Operator"]
     end
@@ -28,26 +28,26 @@ graph TD
     User -- Invokes & Edits --> Cookbook
     Cookbook -- Defines --> Recipe
     Cookbook -- Configures --> DS_Classes
-    Cookbook -- Specifies paths for --> AppOS_Classes
-    Cookbook -- Specifies paths for --> Templates
+    Cookbook -- "Specifies classes_dir for" --> AppOS_Classes
+    Cookbook -- "Specifies templates_dir for" --> Templates
 
     Recipe -- Uses --> DS_Classes
-    Recipe -- References paths for --> AppOS_Classes
-    Recipe -- References paths for --> Templates
+    Recipe -- "References classes_dir for" --> AppOS_Classes
+    Recipe -- "References templates_dir for" --> Templates
     Recipe -- Specifies --> Output
 
     ExtData -- Pulled by --> DS_Classes
-    DS_Classes -- Feeds raw data items --> Engine
+    DS_Classes -- "Feed raw data items" --> Engine
 
     Engine -- Executes --> Recipe
     Engine -- "Instantiates & Specializes items using" --> AppOS_Classes
     AppOS_Classes -- "Contain" --> TRules
     AppOS_Classes -- "Yield" --> ProcessedItems
 
+    TRules -- "Reference/Point to" --> Templates
+
     Engine -- "Processes" --> ProcessedItems
-    ProcessedItems -- "Have associated" --> TRules
-    Engine -- "Consults" --> TRules
-    Engine -- "Selects & Uses based on rules" --> Templates
+    ProcessedItems -- "Dictate use of specific (via class's Template Rules)" --> Templates
 
     Templates -- "Render item's data into config string" --> Engine
     Engine -- "Writes generated files" --> Output
