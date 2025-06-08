@@ -52,4 +52,12 @@ graph TD
     Templates -- "Render item's data into config string" --> Engine
     Engine -- "Writes generated files" --> Output
     Output -- "Consumed by" --> MonitoringCore
+
+    User ~~~ Cookbook
+    Cookbook ~~~ Engine
+    Engine ~~~ Output
+
+    linkStyle 21 stroke-width:0px;
+    linkStyle 22 stroke-width:0px;
+    linkStyle 23 stroke-width:0px;
 ```
