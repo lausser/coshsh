@@ -16,7 +16,47 @@ try:
 except Exception:
     import imp
     imp.reload(sys)
+
+# OpenTelemetry Imports
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.resources import Resource
+
 from optparse import OptionParser
+
+# OpenTelemetry Initialization
+def init_opentelemetry():
+    """Initializes OpenTelemetry tracing."""
+    # Configure a resource. This is optional.
+    # You can include service.name, service.version, etc.
+    resource = Resource(attributes={
+        "service.name": "coshsh-cook"
+    })
+
+    # Get OTLP endpoint from environment variable
+    otlp_endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT")
+
+    if not otlp_endpoint:
+        print("Warning: OTEL_EXPORTER_OTLP_ENDPOINT not set. Tracing will be disabled.", file=sys.stderr)
+        return None # Or raise an error, or configure a no-op tracer
+
+    # Configure the OTLP exporter
+    otlp_exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True) # Assuming insecure for local dev; adjust as needed
+
+    # Configure the tracer provider with the OTLP exporter and a batch span processor
+    tracer_provider = TracerProvider(resource=resource)
+    tracer_provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
+
+    # Set the global tracer provider
+    trace.set_tracer_provider(tracer_provider)
+
+    # Return a tracer instance
+    return trace.get_tracer(__name__)
+
+# Initialize OpenTelemetry
+tracer = init_opentelemetry()
 
 try:
     import coshsh

@@ -16,8 +16,10 @@ import logging
 import errno
 from jinja2 import FileSystemLoader, Environment, TemplateSyntaxError, TemplateNotFound
 import coshsh
+from opentelemetry import trace
 
 logger = logging.getLogger('coshsh')
+tracer = trace.get_tracer(__name__)
 
 class EmptyObject(object):
     pass
@@ -215,9 +217,10 @@ class Recipe(object):
             sys.path.pop(0)
 
     def collect(self):
-        data_valid = True
-        for ds in self.datasources:
-            filter = self.datasource_filters.get(ds.name)
+        with tracer.start_as_current_span("Recipe.collect") as span:
+            data_valid = True
+            for ds in self.datasources:
+                filter = self.datasource_filters.get(ds.name)
             try:
                 ds.open()
                 pre_count = dict([(key, len(self.objects[key].keys())) for key in self.objects.keys()])
@@ -246,12 +249,13 @@ class Recipe(object):
             if not data_valid:
                 logger.info("aborting collection phase") 
                 return False
-        return data_valid
+            return data_valid
 
     def assemble(self):
-        generic_details = []
-        for detail in self.objects['details'].values():
-            fingerprint = detail.application_fingerprint()
+        with tracer.start_as_current_span("Recipe.assemble") as span:
+            generic_details = []
+            for detail in self.objects['details'].values():
+                fingerprint = detail.application_fingerprint()
             if fingerprint in self.objects['applications']:
                 self.objects['applications'][fingerprint].monitoring_details.append(detail)
             elif fingerprint in self.objects['hosts']:
@@ -318,9 +322,10 @@ class Recipe(object):
         return True
  
     def render(self):
-        template_cache = {}
-        for host in self.objects['hosts'].values():
-            self.render_errors += host.render(template_cache, self.jinja2, self)
+        with tracer.start_as_current_span("Recipe.render") as span:
+            template_cache = {}
+            for host in self.objects['hosts'].values():
+                self.render_errors += host.render(template_cache, self.jinja2, self)
         for app in self.objects['applications'].values():
             # because of this __new__ construct the Item.searchpath is
             # not inherited. Needs to be done explicitely
@@ -360,9 +365,10 @@ class Recipe(object):
             datarecipient.prepare_target_dir()
 
     def output(self):
-        cleaned_dirs = []
-        for datarecipient in self.datarecipients:
-            datarecipient.count_before_objects()
+        with tracer.start_as_current_span("Recipe.output") as span:
+            cleaned_dirs = []
+            for datarecipient in self.datarecipients:
+                datarecipient.count_before_objects()
             datarecipient.load(None, self.objects)
             if hasattr(datarecipient, 'dynamic_dir') and datarecipient.dynamic_dir not in cleaned_dirs:
                 # do not clean a target dir where another datarecipient already wrote it's files

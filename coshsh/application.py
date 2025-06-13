@@ -10,8 +10,10 @@ import sys
 import os
 import logging
 import coshsh
+from opentelemetry import trace
 
 logger = logging.getLogger('coshsh')
+tracer = trace.get_tracer(__name__)
 
 
 class Application(coshsh.item.Item):
@@ -50,7 +52,11 @@ class Application(coshsh.item.Item):
 
     @classmethod
     def fingerprint(self, params={}):
-        return "%s+%s+%s" % (params["host_name"], params["name"], params["type"])
+        with tracer.start_as_current_span("Application.fingerprint") as span:
+            for key, value in params.items():
+                if value is not None:
+                    span.set_attribute(key, str(value))
+            return "%s+%s+%s" % (params["host_name"], params["name"], params["type"])
 
     def create_servicegroups(self):
         pass
@@ -74,10 +80,11 @@ class GenericApplication(Application):
         super(GenericApplication, self).__init__(params)
 
     def render(self, template_cache, jinja2, recipe):
-        # Maybe we find some processes, ports, filesystems in the
-        # monitoring_details so we can output generic services
-        if (hasattr(self, "processes") and self.processes) or (hasattr(self, "filesystems") and self.filesystems) or (hasattr(self, "cfgfiles") and self.cfgfiles) or (hasattr(self, "files") and self.files) or (hasattr(self, "ports") and self.ports) or (hasattr(self, "urls") and self.urls) or (hasattr(self, "services") and self.services):
-            return super(GenericApplication, self).render(template_cache, jinja2, recipe)
-        else:
-            return 0
+        with tracer.start_as_current_span("Application.render") as span:
+            # Maybe we find some processes, ports, filesystems in the
+            # monitoring_details so we can output generic services
+            if (hasattr(self, "processes") and self.processes) or (hasattr(self, "filesystems") and self.filesystems) or (hasattr(self, "cfgfiles") and self.cfgfiles) or (hasattr(self, "files") and self.files) or (hasattr(self, "ports") and self.ports) or (hasattr(self, "urls") and self.urls) or (hasattr(self, "services") and self.services):
+                return super(GenericApplication, self).render(template_cache, jinja2, recipe)
+            else:
+                return 0
 

@@ -115,3 +115,55 @@ define servicedependency {
 Only a nagios admin will ever see these template files and will have to edit them.
 
 [![Coverage Status](https://coveralls.io/repos/github/lausser/coshsh/badge.svg?branch=master)](https://coveralls.io/github/lausser/coshsh?branch=master)
+
+## OpenTelemetry Integration
+
+This section describes the OpenTelemetry integration within `coshsh-cook` for tracing its execution. This allows for detailed performance analysis and debugging.
+
+### Configuration
+
+The OpenTelemetry exporter is configured via an environment variable:
+
+-   `OTEL_EXPORTER_OTLP_ENDPOINT`: Specifies the OTLP gRPC endpoint for the trace exporter.
+    -   Example: `localhost:4317` (for a local OpenTelemetry collector).
+    -   By default, the exporter attempts to connect to this endpoint using an insecure (plaintext) connection. Ensure your collector is configured to receive gRPC on this port without TLS if using this default, or configure TLS appropriately on both sides if needed (current script default is insecure).
+
+If `OTEL_EXPORTER_OTLP_ENDPOINT` is not set, a warning will be printed to standard error, and tracing will be disabled.
+
+### Generated Spans
+
+The application generates several key spans that provide insight into different stages of its operation. These spans are hierarchical and will appear nested in your tracing backend (e.g., Jaeger, Zipkin).
+
+-   **`Generator.read_cookbook`**: Wraps the entire cookbook reading and initial processing phase.
+    -   **Events**: This span includes events that mark significant sub-stages:
+        -   `Read cookbook files`: After all cookbook files are read.
+        -   `Processed mappings`: After configuration mappings are processed.
+        -   `Processed datarecipient_configs`: After datarecipient configurations are processed.
+        -   `Processed datasource_configs`: After datasource configurations are processed.
+        -   `Processed recipe_configs`: After recipe configurations are processed.
+        -   `Configured recipe: <recipe_name>`: For each recipe that is successfully configured from the cookbook.
+
+-   **`Generator.run`**: Wraps the execution of all recipes defined and selected for the run. This is a parent span for all `Recipe.run` spans.
+
+-   **`Recipe.run`**: Wraps the execution of a single recipe.
+    -   **Attribute**: `recipe.name` (e.g., "my_webserver_recipe").
+    -   This span is a parent for method-specific spans within that recipe's lifecycle (`Recipe.collect`, `Recipe.assemble`, etc.).
+
+-   **`Recipe.collect`**: Wraps the data collection phase for a recipe, where datasources are read.
+
+-   **`Recipe.assemble`**: Wraps the data assembly phase, where collected data is structured and relationships between objects are resolved.
+
+-   **`Recipe.render`**: Wraps the template rendering phase, where configuration files are generated from templates and data. This is a parent span for `Application.render` calls.
+
+-   **`Recipe.output`**: Wraps the output generation phase, where rendered configurations are written to their destinations.
+
+-   **`Application.render`**: Wraps the rendering logic for a specific application definition within a recipe. This typically involves processing Jinja2 templates for an application.
+
+-   **`Application.fingerprint`**: Wraps the generation of a unique fingerprint for an application instance.
+    -   **Attributes**: Includes attributes from the application's parameters that contribute to the fingerprint, such as:
+        -   `host_name`
+        -   `name` (application name)
+        -   `type` (application type)
+        -   Other parameters as defined in the application's configuration.
+
+Understanding these spans and their relationships can help pinpoint bottlenecks or errors during the configuration generation process.

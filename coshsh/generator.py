@@ -49,9 +49,10 @@ class Generator(object):
         self.pg_password = kwargs.get("password", None)
 
     def run(self):
-        try:
-            from prometheus_client import CollectorRegistry, Gauge, push_to_gateway, pushadd_to_gateway
-            from prometheus_client.exposition import basic_auth_handler, default_handler
+        with tracer.start_as_current_span("Generator.run") as parent_span:
+            try:
+                from prometheus_client import CollectorRegistry, Gauge, push_to_gateway, pushadd_to_gateway
+                from prometheus_client.exposition import basic_auth_handler, default_handler
             from urllib.parse import quote_plus
             from socket import gethostname
             has_prometheus = True
@@ -65,16 +66,18 @@ class Generator(object):
             else:
                 pg_auth_handler = default_handler
         except Exception as e:
-            if hasattr(self, "pg_job"):
-                logger.critical("problem with prometheus modules: %s" % e, exc_info=1)
-            has_prometheus = False
-        if has_prometheus and not hasattr(self, "pg_address"):
-            has_prometheus = False
-        for recipe in self.recipes.values():
-            recipe_completed = False
-            try:
-                recipe.update_item_class_factories()
-                coshsh.util.switch_logging(logfile=recipe.log_file)
+                if hasattr(self, "pg_job"):
+                    logger.critical("problem with prometheus modules: %s" % e, exc_info=1)
+                has_prometheus = False
+            if has_prometheus and not hasattr(self, "pg_address"):
+                has_prometheus = False
+            for recipe in self.recipes.values():
+                with tracer.start_as_current_span("Recipe.run", context=trace.set_span_in_context(parent_span)) as recipe_span:
+                    recipe_span.set_attribute("recipe.name", recipe.name)
+                    recipe_completed = False
+                    try:
+                        recipe.update_item_class_factories()
+                        coshsh.util.switch_logging(logfile=recipe.log_file)
                 if recipe.pid_protect():
                     if has_prometheus:
                         registry = CollectorRegistry()
@@ -131,8 +134,6 @@ class Generator(object):
             if self.default_log_level == "debug":
                 CoshshDatainterface.dump_classes_usage()
             coshsh.util.restore_logging()
-
-    def read_cookbook(self, cookbook_files, default_recipe, force, safe_output):
         self.cookbook_files = '___'.join(map(lambda cf: os.path.basename(os.path.abspath(cf)), cookbook_files))
         recipe_configs = {}
         datasource_configs = {}
