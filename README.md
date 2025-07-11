@@ -1,4 +1,3 @@
-[![16. Workshop der deutschsprachigen Open-Source-Monitoring-Community](https://github.com/user-attachments/assets/d9841be8-c0e7-4ffc-9b1a-506471866399)](https://eveeno.com/osmw2025)
 # coshsh Config-Generator for Shinken / Nagios /Icinga
 
 ## What is coshsh?
