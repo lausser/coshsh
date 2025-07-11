@@ -51,6 +51,11 @@ class Item(coshsh.datainterface.CoshshDatainterface):
         else:
             setattr(self, "monitoring_details", list(self.__class__.monitoring_details))
         self.config_files = {}
+        self.object_chronicle = []
+
+    def record_in_chronicle(self, message=""):
+        if message:
+            self.object_chronicle.append(message)
 
     def write_config(self, target_dir, want_tool=None):
         my_target_dir = os.path.join(target_dir, "hosts", self.host_name)

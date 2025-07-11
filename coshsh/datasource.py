@@ -93,6 +93,7 @@ class Datasource(coshsh.datainterface.CoshshDatainterface):
         if objtype == 'applications':
             if self.find('hosts', obj.host_name):
                 setattr(obj, 'host', self.get('hosts', obj.host_name))
+        obj.record_in_chronicle(f"added to {objtype} in datasource {self.name}")
 
     def get(self, objtype, fingerprint):
         try:

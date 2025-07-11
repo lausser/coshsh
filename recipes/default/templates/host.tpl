@@ -27,3 +27,6 @@
     icon_image                      {{ host.icon_image }}
 {% endif %}
 }
+{% for log in host.object_chronicle %}
+# {{ log }}
+{% endfor %}
