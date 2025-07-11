@@ -100,7 +100,8 @@ class DatarecipientCoshshDefault(coshsh.datarecipient.Datarecipient):
             process = Popen(["git", "clean", "-f", "-d"], stdout=PIPE, stderr=STDOUT, universal_newlines=True)
             output, unused_err = process.communicate()
             retcode = process.poll()
-            logger.info(output)
+            if output:
+                logger.info(output)
             os.chdir(save_dir)
             self.analyze_output(output)
             logger.error("the last commit was revoked")
