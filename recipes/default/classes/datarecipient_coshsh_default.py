@@ -154,12 +154,46 @@ class DatarecipientCoshshDefault(coshsh.datarecipient.Datarecipient):
             output, unused_err = process.communicate()
             retcode = process.poll()
             print(output)
-            with open(".git/config") as gitcfg:
-                if '[remote' in gitcfg.read():
-                    process = Popen(["git", "push", "-u", "origin", "master"], stdout=PIPE, stderr=STDOUT, universal_newlines=True)
-                    poutput, unused_err = process.communicate()
-                    retcode = process.poll()
-                    print(poutput)
+            # Get current branch
+            process = Popen(["git", "rev-parse", "--abbrev-ref", "HEAD"], stdout=PIPE, stderr=STDOUT, universal_newlines=True)
+            branch_output, _ = process.communicate()
+            current_branch = branch_output.strip()
+            if current_branch:
+                print(f"Detected current branch: {current_branch}")
+                # Get remotes
+                process = Popen(["git", "remote"], stdout=PIPE, stderr=STDOUT, universal_newlines=True)
+                remotes_output, _ = process.communicate()
+                remotes = [r.strip() for r in remotes_output.splitlines() if r.strip()]
+                if remotes:
+                    # Try to get configured remote for branch
+                    process = Popen(["git", "config", "--get", f"branch.{current_branch}.remote"], stdout=PIPE, stderr=STDOUT, universal_newlines=True)
+                    remote_output, _ = process.communicate()
+                    remote = remote_output.strip()
+                    if not remote and "origin" in remotes:
+                        remote = "origin"
+                    elif not remote:
+                        remote = remotes[0]
+                    if remote:
+                        # Get merge branch if set
+                        process = Popen(["git", "config", "--get", f"branch.{current_branch}.merge"], stdout=PIPE, stderr=STDOUT, universal_newlines=True)
+                        merge_output, _ = process.communicate()
+                        merge = merge_output.strip()
+                        if merge.startswith("refs/heads/"):
+                            merge = merge[len("refs/heads/"):]
+                        if not merge:
+                            merge = current_branch  # assume same name
+                        # Now push
+                        print(f"Pushing to {remote}/{merge}")
+                        process = Popen(["git", "push", "-u", remote, f"{current_branch}:{merge}"], stdout=PIPE, stderr=STDOUT, universal_newlines=True)
+                        poutput, _ = process.communicate()
+                        retcode = process.poll()
+                        print(poutput)
+                    else:
+                        print("No suitable remote found, skipping push.")
+                else:
+                    print("No remotes found, skipping push.")
+            else:
+                print("Error: Could not detect current branch.")
             os.chdir(save_dir)
             self.analyze_output(output)
         elif not os.path.exists(self.dynamic_dir + '/.git') and self.recipe_git_init and [p for p in os.environ["PATH"].split(os.pathsep) if os.path.isfile(os.path.join(p, "git"))]:
