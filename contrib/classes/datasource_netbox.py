@@ -8,6 +8,7 @@ import logging
 import coshsh
 from coshsh.datasource import Datasource, DatasourceCorrupt, DatasourceNotAvailable
 from coshsh.host import Host
+from coshsh.application import Application
 from coshsh.monitoringdetail import MonitoringDetail
 from pynetbox import api
 from collections import defaultdict
@@ -170,6 +171,8 @@ class NetboxLabsNetbox(Datasource):
                     interface_map[iface.device.id].append({
                         "name": iface.name,
                         "type": iface.type.label if iface.type else "Unknown",
+                        "enabled": iface.enabled if iface.enabled else False,
+                        "lag": iface.lag if iface.lag else None,
                         "id": iface.id
                     })
 
@@ -185,7 +188,6 @@ class NetboxLabsNetbox(Datasource):
 
             # Step 5: Build device objects
             for device in devices:
-                print(device.__dict__)
                 device_id = device.id
                 devices_data[device_id]["name"] = device.name or device.display
                 devices_data[device_id]["management_ip"] = (
@@ -257,8 +259,7 @@ class NetboxLabsNetbox(Datasource):
                 host_data = {
                     "host_name": device["name"],
                     "address": address,
-                    "type": "network_device",
-                    "os": device["manufacturer"]+" "+device["model"],
+                    "model": device["manufacturer"]+" "+device["model"],
                 }
                 host = Host(host_data)
                 self.add("hosts", host)
@@ -269,20 +270,65 @@ class NetboxLabsNetbox(Datasource):
                 host.hostgroups.append("platform_"+device["platform"].replace(" ", "_"))
                 host.hostgroups.append("model_"+device["manufacturer"].replace(" ", "_")+"_"+device["model"].replace(" ", "_"))
 
+                application_data = {
+                    "host_name": device["name"],
+                    "name": "os",
+                    "type": "_".join([device["manufacturer"], device["model"], device["platform"]]),
+                }
+                application = Application(application_data)
+                self.add("applications", application)
+
                 # List of {"name": ..., "type": ...}
                 interfaces = device.get("interfaces", [])
                 # List of {"address": ..., "interface": ...}
                 ip_addrs = device.get("configured_ips", [])
+                # Build LAG relationships
+                link_aggregations = {}
                 for interface in interfaces:
-                    configured_addresses = []
-                    for ip_addr in ip_addrs:
-                        if ip_addr["interface"] == interface["name"]:
-                            configured_addresses.append(ip_addr["address"])
-                    if configured_addresses:
-                        self.add("details", MonitoringDetail({"host_name": host.host_name, "monitoring_type": "RICHINTERFACE", "monitoring_0": interface["name"], "monitoring_1": interface["type"], "monitoring_2": configured_addresses}))
+                    if not interface["enabled"]:
+                        continue
+                    if "Link Aggregation Group" in interface["type"]:
+                        # these will be used in the next step
+                        pass
                     else:
-                        #self.add("details", MonitoringDetail({"host_name": host.host_name, "monitoring_type": "RICHINTERFACE", "monitoring_0": interface["name"], "monitoring_1": interface["type"], "monitoring_2": configured_addresses}))
-                        self.add("details", MonitoringDetail({"host_name": host.host_name, "monitoring_type": "INTERFACE", "monitoring_0": interface["name"]}))
+                        configured_addresses = []
+                        for ip_addr in ip_addrs:
+                            if ip_addr["interface"] == interface["name"]:
+                                configured_addresses.append(ip_addr["address"])
+                        if configured_addresses:
+                            self.add("details", MonitoringDetail({
+                                "host_name": application.host_name,
+                                "name": application.name,
+                                "type": application.type,
+                                "monitoring_type": "RICHINTERFACE",
+                                "monitoring_0": interface["name"],
+                                "monitoring_1": interface["type"],
+                                "monitoring_2": configured_addresses
+                            }))
+                        else:
+                            self.add("details", MonitoringDetail({
+                                "host_name": host.host_name,
+                                "name": application.name,
+                                "type": application.type,
+                                "monitoring_type": "INTERFACE",
+                                "monitoring_0": interface["name"]
+                            }))
+                        if interface["lag"]:
+                            try:
+                                link_aggregations[interface["lag"]].append(interface["name"])
+                            except Exception as e:
+                                link_aggregations[interface["lag"]] = [interface["name"]]
+                for lag in sorted(link_aggregations.keys(), key=str):
+                    lag_detail = {
+                        "host_name": host.host_name,
+                        "name": application.name,
+                        "type": application.type,
+                        "monitoring_type": "LINKAGGREGATION",
+                        "monitoring_0": lag
+                    }
+                    for i, interface in enumerate(sorted(link_aggregations[lag]), 1):
+                        lag_detail[f"monitoring_{i}"] = interface
+                    self.add("details", MonitoringDetail(lag_detail))
 
             logger.info(f"Added {len(devices_data)} devices to coshsh.")
 
