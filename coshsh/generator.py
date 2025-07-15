@@ -15,6 +15,7 @@ import getpass
 from tempfile import gettempdir
 import coshsh
 from coshsh.datainterface import CoshshDatainterface
+from coshsh.vault import Vault
 from logging import INFO, DEBUG, getLogger
 
 logger = logging.getLogger('coshsh')
@@ -138,6 +139,7 @@ class Generator(object):
         datasource_configs = {}
         datarecipient_configs = {}
         coshsh_config_mappings = {}
+        vault_configs = {}
         recipes = []
         cookbook = coshsh.configparser.CoshshConfigParser()
         self.cookbook = cookbook
@@ -145,6 +147,8 @@ class Generator(object):
         if cookbook._sections == {}:
             print("Bad or missing cookbook files : %s " % ', '.join(cookbook_files))
             sys.exit(2)
+        for vault in [section for section in cookbook.sections() if section.startswith('vault_')]:
+            vault_configs[vault.replace("vault_", "", 1).lower()] = cookbook.items(vault) + [('name', vault.replace("vault_", "", 1).lower())]
         for mapping in [section for section in cookbook.sections() if section.startswith('mapping_')]:
             coshsh_config_mappings[mapping.replace("mapping_", "")] = dict(cookbook.items(mapping))
         for ds in [section for section in cookbook.sections() if section.startswith('datarecipient_')]:
@@ -207,6 +211,11 @@ class Generator(object):
                     # an error message here.
                     continue
                 #self.recipes[recipe].update_ds_dr_class_factories()
+                for vault in self.recipes[recipe].vault_names:
+                    if vault in vault_configs.keys():
+                        self.recipes[recipe].add_vault(**dict(vault_configs[vault]))
+                    else:
+                        logger.error("Vault %s is unknown" % vault)
                 for ds in self.recipes[recipe].datasource_names:
                     if ds in datasource_configs.keys():
                         self.recipes[recipe].add_datasource(**dict(datasource_configs[ds]))

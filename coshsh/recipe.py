@@ -143,6 +143,7 @@ class Recipe(object):
                 elif extension.startswith("global_"):
                     self.jinja2.env.globals[extension.replace("global_", "")] = imported
             
+        self.vaults = []
         self.datasources = []
         self.datarecipients = []
 
@@ -162,9 +163,14 @@ class Recipe(object):
         self.old_objects = (0, 0)
         self.new_objects = (0, 0)
 
+        self.init_vault_class_factories()
         self.init_ds_dr_class_factories()
         self.init_item_class_factories()
 
+        if kwargs.get("vaults"):
+            self.vault_names = [vault.lower().strip() for vault in kwargs.get("vaults").split(",")]
+        else:
+            self.vault_names = []
         if kwargs.get("datasources"):
             self.datasource_names = [ds.lower().strip() for ds in kwargs.get("datasources").split(",")]
         else:
@@ -387,9 +393,15 @@ class Recipe(object):
         path_text = ",".join(path)
         return self.class_factory[cls][path_text]
 
+    def init_vault_class_factories(self):
+        self.add_class_factory(coshsh.vault.Vault, self.classes_path, coshsh.vault.Vault.init_class_factory(self.classes_path))
+
     def init_ds_dr_class_factories(self):
         self.add_class_factory(coshsh.datasource.Datasource, self.classes_path, coshsh.datasource.Datasource.init_class_factory(self.classes_path))
         self.add_class_factory(coshsh.datarecipient.Datarecipient, self.classes_path, coshsh.datarecipient.Datarecipient.init_class_factory(self.classes_path))
+
+    def update_vault_class_factories(self):
+        coshsh.vault.Vault.update_class_factory(self.get_class_factory(coshsh.vault.Vault, self.classes_path))
 
     def update_ds_dr_class_factories(self):
         coshsh.datasource.Datasource.update_class_factory(self.get_class_factory(coshsh.datasource.Datasource, self.classes_path))
@@ -404,6 +416,20 @@ class Recipe(object):
         coshsh.application.Application.update_class_factory(self.get_class_factory(coshsh.application.Application, self.classes_path))
         coshsh.monitoringdetail.MonitoringDetail.update_class_factory(self.get_class_factory(coshsh.monitoringdetail.MonitoringDetail, self.classes_path))
         coshsh.contact.Contact.update_class_factory(self.get_class_factory(coshsh.contact.Contact, self.classes_path))
+
+    def add_vault(self, **kwargs):
+        for key in [k for k in kwargs.keys() if isinstance(kwargs[k], str)]:
+            kwargs[key] = re.sub('%.*?%', coshsh.util.substenv, kwargs[key])
+        newcls = coshsh.vault.Vault.get_class(kwargs)
+        if newcls:
+            for key in [attr for attr in self.attributes_for_adapters if hasattr(self, attr)]:
+                kwargs['recipe_'+key] = getattr(self, key)
+            for key, value in self.additional_recipe_fields.items():
+                kwargs['recipe_'+key] = value
+            vault = newcls(**kwargs)
+            self.vaults.append(vault)
+        else:
+            logger.warning("could not find a suitable vault")
 
     def add_datasource(self, **kwargs):
         for key in [k for k in kwargs.keys() if isinstance(kwargs[k], str)]:
