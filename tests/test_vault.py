@@ -16,8 +16,9 @@ class CoshshTest(CommonCoshshTest):
         print(r_prod.vaults[0].__dict__)
         secrets = r_prod.vaults[0].read()
         secrets = r_prod.vaults[0].__dict__
+        self.assertTrue(r_prod.vaults[0].get('$VAULT1$') == "test")
         print(secrets)
-
+        #raise
 
 
 
