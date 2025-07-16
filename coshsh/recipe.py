@@ -144,6 +144,8 @@ class Recipe(object):
                     self.jinja2.env.globals[extension.replace("global_", "")] = imported
             
         self.vaults = []
+        # the vaults' contents
+        self.vault_secrets = {}
         self.datasources = []
         self.datarecipients = []
 
@@ -428,12 +430,25 @@ class Recipe(object):
                 kwargs['recipe_'+key] = value
             vault = newcls(**kwargs)
             self.vaults.append(vault)
+            try:
+                self.vault_secrets.update(vault.read())
+            except Exception as e:
+                logger.critical(f"problem with vault {vault.name}: {e}")
+                raise e
         else:
             logger.warning("could not find a suitable vault")
+
+    def substsecret(self, match):
+        identifier = match.group(1)
+        if identifier in self.vault_secrets:
+            return self.vault_secrets[identifier]
+        else:
+            return match.group(0)
 
     def add_datasource(self, **kwargs):
         for key in [k for k in kwargs.keys() if isinstance(kwargs[k], str)]:
             kwargs[key] = re.sub('%.*?%', coshsh.util.substenv, kwargs[key])
+            kwargs[key] = re.sub(r'@{VAULT\[(.*?)\]}', self.substsecret, kwargs[key])
         newcls = coshsh.datasource.Datasource.get_class(kwargs)
         if newcls:
             for key in [attr for attr in self.attributes_for_adapters if hasattr(self, attr)]:
@@ -454,6 +469,7 @@ class Recipe(object):
     def add_datarecipient(self, **kwargs):
         for key in [k for k in kwargs.keys() if isinstance(kwargs[k], str)]:
             kwargs[key] = re.sub('%.*?%', coshsh.util.substenv, kwargs[key])
+            kwargs[key] = re.sub(r'@{VAULT\[(.*?)\]}', self.substsecret, kwargs[key])
         newcls = coshsh.datarecipient.Datarecipient.get_class(kwargs)
         if newcls:
             for key in [attr for attr in self.attributes_for_adapters if hasattr(self, attr)]:

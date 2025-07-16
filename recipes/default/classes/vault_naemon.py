@@ -1,9 +1,10 @@
 import os
+import re
 from Cryptodome.Cipher import Blowfish
 from Cryptodome.Hash import SHA256
 import struct
 import coshsh
-from coshsh.vault import Vault
+from coshsh.vault import Vault, VaultNotAvailable, VaultCorrupt
 from coshsh.util import compare_attr
 
 def __vault_ident__(params={}):
@@ -29,10 +30,16 @@ class NaemonVault(Vault):
         return hasher.digest()
 
     def decrypt_vim_blowfish2(self, file_path, password):
-        with open(file_path, 'rb') as f:
-            data = f.read()
+        if not os.path.isfile(file_path):
+            raise VaultNotAvailable(f"file does not exist or is not a regular file: {file_path}")
+    
+        try:
+            with open(file_path, 'rb') as f:
+                data = f.read()
+        except IOError as e:
+            raise VaultNotAvailable(f"could not open file {file_path}: {str(e)}") from e
         if not data.startswith(b'VimCrypt~03!'):
-            raise ValueError("Not a Vim blowfish2 encrypted file")
+            raise VaultCorrupt("not a Vim blowfish2 encrypted file")
         salt = data[12:20]
         iv = data[20:28]
         ciphertext = data[28:]
@@ -56,30 +63,31 @@ class NaemonVault(Vault):
         try:
             return plaintext.decode('utf-8')
         except UnicodeDecodeError:
-            raise ValueError("Failed to decode decrypted content. Likely incorrect password or corrupted file.")
-
-    def open(self, **kwargs):
-        pass  # No specific open action needed for file-based vault
+            raise VaultNotAvailable("failed to decode decrypted content. likely incorrect password or corrupted file.")
 
     def read(self, **kwargs):
         if not self.password:
-            raise ValueError("No password provided for vault decryption")
+            raise ValueError("no password provided for vault decryption")
         if not self.file:
-            raise ValueError("No file path provided for vault")
+            raise ValueError("no file path provided for vault")
 
         contents = self.decrypt_vim_blowfish2(self.file, self.password)
 
         # Parse into dict
-        self.data = {}
         for line in contents.splitlines():
             line = line.strip()
             if not line or line.startswith('#'):
                 continue
             if '=' in line:
                 key, value = line.split('=', 1)
-                self.data[key.strip()] = value.strip()
+                key = key.strip()
+                value = value.strip()
+                self._data[key] = value
+                if "$" in key:
+                    key = re.sub(r'^\$(.*)\$$', r'\1', key)
+                    self._data[key] = value
+                if ":" in key:
+                    self._data[key.split(":", 1)[1]] = value
 
-    def close(self):
-        pass  # No specific close action needed
+        return self._data
 
-    # get and getall are inherited from Vault, using self.data

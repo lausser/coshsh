@@ -1,0 +1,7 @@
+render_cfg_template fehler zaehlen und hochliefern
+render liefert alle fehler
+recipe hat fehlerstatus/zaehler
+auch import fehler von datasources etc
+details koennen auch exceptions werfen
+
+abschliesende meldungen recipe with 0 errors

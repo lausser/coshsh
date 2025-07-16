@@ -211,11 +211,28 @@ class Generator(object):
                     # an error message here.
                     continue
                 #self.recipes[recipe].update_ds_dr_class_factories()
+                vault_problems = False
                 for vault in self.recipes[recipe].vault_names:
                     if vault in vault_configs.keys():
-                        self.recipes[recipe].add_vault(**dict(vault_configs[vault]))
+                        try:
+                            self.recipes[recipe].add_vault(**dict(vault_configs[vault]))
+                        except Exception as e:
+                            vault_problems = True
                     else:
                         logger.error("Vault %s is unknown" % vault)
+                if vault_problems:
+                    # other than datasource and recipient, a vault is
+                    # not just instantiated and provisioned with the
+                    # attributes from the cookbook. in add_vault it is
+                    # already opened and the data are read, because we
+                    # need the secrets right now. in add_datasource and
+                    # add_datarecipients we might need to resolve
+                    # passwords which are a pointer to a vault's record.
+                    # if anything goes wrong here, we immediately abort by
+                    # removing the affected recipe. the generator then
+                    # usually calls run() without running a recipe.
+                    del self.recipes[recipe]
+                    continue
                 for ds in self.recipes[recipe].datasource_names:
                     if ds in datasource_configs.keys():
                         self.recipes[recipe].add_datasource(**dict(datasource_configs[ds]))

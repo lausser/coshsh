@@ -20,7 +20,7 @@ class VaultNotImplemented(Exception):
 
 
 class VaultNotReady(Exception):
-    # vault is currently being updated
+    # vault is currently being updated?
     pass
 
 
@@ -56,20 +56,17 @@ class Vault(coshsh.datainterface.CoshshDatainterface):
             if isinstance(params[key], str):
                 params[key] = re.sub('%.*?%', coshsh.util.substenv, params[key])
         if self.__class__ == Vault:
-            #print "generic ds", params
             newcls = self.__class__.get_class(params)
             if newcls:
-                #print "i rebless anon vault to", newcls, params
                 self.__class__ = newcls
                 self.__init__(**params)
             else:
                 logger.critical('vault for %s is not implemented' % params, exc_info=1)
-                #print "i raise VaultNotImplemented"
                 raise VaultNotImplemented
         else:
             setattr(self, 'name', params["name"])
             # the key-value store
-            self.data = {}
+            self._data = {}
             pass
         # i am a generic vault
         # i find a suitable class
@@ -87,13 +84,13 @@ class Vault(coshsh.datainterface.CoshshDatainterface):
 
     def get(self, key):
         try:
-            return self.data[key]
+            return self._data[key]
         except Exception:
             return None
 
     def getall(self):
         try:
-            return list(self.data.values())
+            return list(self._data.values())
         except Exception:
             return []
 
