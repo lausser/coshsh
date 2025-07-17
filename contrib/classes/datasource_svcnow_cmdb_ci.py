@@ -23,10 +23,16 @@ class ServiceNowDatasource(Datasource):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.instance_url = kwargs["instance_url"]
+        self.cmdb_url = kwargs["cmdb_url"]
+        self.incident_url = kwargs["incident_url"]
         self.username = kwargs["username"]
         self.password = kwargs["password"]
         insecure_skip_verify = kwargs.get("insecure_skip_verify", "no")
         self.verify = False if insecure_skip_verify == "yes" else True
+        if not self.cmdb_url and self.instance_url:
+            self.cmdb_url = self.instance_url
+        if not self.incident_url and self.instance_url:
+            self.incident_url = self.instance_url
         self.page_size = 100
         self.servicenow_tables = {}
 
@@ -45,7 +51,7 @@ class ServiceNowDatasource(Datasource):
         self.servicenow_tables[table] = []
         offset = 0
         while True:
-            url = f"{self.instance_url}/api/now/table/{table}"
+            url = f"{self.cmdb_url}/api/now/table/{table}"
             params = {
                 "sysparm_limit": self.page_size,
                 "sysparm_offset": offset,
@@ -89,7 +95,7 @@ class ServiceNowDatasource(Datasource):
         servicenow.custom_macros = {
             "_SERVICENOW_USERNAME": self.username,
             "_SERVICENOW_PASSWORD": self.password,
-            "_SERVICENOW_INCIDENT_URL": self.instance_url+"/api/now/table/incident",
+            "_SERVICENOW_INCIDENT_URL": self.incident_url+"/api/now/table/incident",
         }
         self.add("contacts", servicenow)
         self.add("contactgroups", ContactGroup({"contactgroup_name": "servicenow"}))
