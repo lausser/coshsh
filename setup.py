@@ -54,7 +54,7 @@ class install_data(_install_data):
 
 
 setup(name='coshsh',
-      version='10.2.3',
+      version='11.0',
       setup_requires=['wheel'],
       description='Coshsh - config generator for monitoring systems',
       long_description=open('README.md').read(),

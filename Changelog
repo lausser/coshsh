@@ -1,3 +1,6 @@
+* 2025-07-17 11.0
+  secret values in the config can be hidden in a Naemon vault.
+  (https://github.com/naemon/naemon-vimcrypt-vault-broker)
 * 2024-10-25 10.2.3
   sanitize filenames in the datarecipient (remove "/" etc. from the name)
 * 2024-09-30 10.2.2.1
