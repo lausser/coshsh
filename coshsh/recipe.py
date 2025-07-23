@@ -449,6 +449,17 @@ class Recipe(object):
         for key in [k for k in kwargs.keys() if isinstance(kwargs[k], str)]:
             kwargs[key] = re.sub('%.*?%', coshsh.util.substenv, kwargs[key])
             kwargs[key] = re.sub(r'@{VAULT\[(.*?)\]}', self.substsecret, kwargs[key])
+        if hasattr(self, 'coshsh_config_mappings'):
+            for key in kwargs.keys():
+                if isinstance(kwargs[key], str):
+                    for mapping in self.coshsh_config_mappings:
+                        mapping_keyword_pat = "(@MAPPING_"+mapping.upper()+r"\[(.*?)\])"
+                        for match in re.findall(mapping_keyword_pat, kwargs[key]):
+                            if match[1] in self.coshsh_config_mappings[mapping]:
+                                oldstr = "@MAPPING_"+mapping.upper()+"["+match[1]+"]"
+                                newstr = self.coshsh_config_mappings[mapping][match[1]]
+                                kwargs[key] = kwargs[key].replace(oldstr, newstr)
+
         newcls = coshsh.datasource.Datasource.get_class(kwargs)
         if newcls:
             for key in [attr for attr in self.attributes_for_adapters if hasattr(self, attr)]:
