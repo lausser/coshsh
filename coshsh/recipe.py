@@ -448,7 +448,14 @@ class Recipe(object):
     def add_datasource(self, **kwargs):
         for key in [k for k in kwargs.keys() if isinstance(kwargs[k], str)]:
             kwargs[key] = re.sub('%.*?%', coshsh.util.substenv, kwargs[key])
-            kwargs[key] = re.sub(r'@{VAULT\[(.*?)\]}', self.substsecret, kwargs[key])
+            kwargs[key] = re.sub(r'@VAULT\[(.*?)\]', self.substsecret, kwargs[key])
+            for mapping in kwargs.get("coshsh_config_mappings", {}):
+                mapping_keyword_pat = "(@MAPPING_"+mapping.upper()+r"\[(.*?)\])"
+                for match in re.findall(mapping_keyword_pat, kwargs[key]):
+                    if match[1] in kwargs["coshsh_config_mappings"][mapping]:
+                        oldstr = "@MAPPING_"+mapping.upper()+"["+match[1]+"]"
+                        newstr = kwargs["coshsh_config_mappings"][mapping][match[1]]
+                        kwargs[key] = kwargs[key].replace(oldstr, newstr)
         newcls = coshsh.datasource.Datasource.get_class(kwargs)
         if newcls:
             for key in [attr for attr in self.attributes_for_adapters if hasattr(self, attr)]:
@@ -469,7 +476,14 @@ class Recipe(object):
     def add_datarecipient(self, **kwargs):
         for key in [k for k in kwargs.keys() if isinstance(kwargs[k], str)]:
             kwargs[key] = re.sub('%.*?%', coshsh.util.substenv, kwargs[key])
-            kwargs[key] = re.sub(r'@{VAULT\[(.*?)\]}', self.substsecret, kwargs[key])
+            kwargs[key] = re.sub(r'@VAULT\[(.*?)\]', self.substsecret, kwargs[key])
+            for mapping in kwargs.get("coshsh_config_mappings", {}):
+                mapping_keyword_pat = "(@MAPPING_"+mapping.upper()+r"\[(.*?)\])"
+                for match in re.findall(mapping_keyword_pat, kwargs[key]):
+                    if match[1] in kwargs["coshsh_config_mappings"][mapping]:
+                        oldstr = "@MAPPING_"+mapping.upper()+"["+match[1]+"]"
+                        newstr = kwargs["coshsh_config_mappings"][mapping][match[1]]
+                        kwargs[key] = kwargs[key].replace(oldstr, newstr)
         newcls = coshsh.datarecipient.Datarecipient.get_class(kwargs)
         if newcls:
             for key in [attr for attr in self.attributes_for_adapters if hasattr(self, attr)]:

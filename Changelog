@@ -1,3 +1,5 @@
+* 2025-07-23 11.0.0.1
+  @VAULT[...] is now written without curly braces
 * 2025-07-17 11.0
   secret values in the config can be hidden in a Naemon vault.
   (https://github.com/naemon/naemon-vimcrypt-vault-broker)

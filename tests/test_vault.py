@@ -21,10 +21,11 @@ class CoshshTest(CommonCoshshTest):
         self.assertTrue(os.path.abspath(r_prod.templates_path[0]) == os.path.abspath('recipes/vault/templates'))
         self.assertTrue(os.path.abspath(r_prod.jinja2.loader.searchpath[0]) == os.path.abspath('recipes/vault/templates'))
         print(r_prod.vaults[0].__dict__)
-        secrets = r_prod.vaults[0].read()
+        print(r_prod.vaults[0].__dict__)
+        #secrets = r_prod.vaults[0].read()
         secrets = r_prod.vaults[0].__dict__
-        self.assertTrue(r_prod.vaults[0].get('$VAULT1$') == "test")
         print(secrets)
+        self.assertTrue(r_prod.vaults[0].get('$VAULT1$') == "test")
         #raise
 
     def test_open_vault_nonprod(self):
@@ -39,6 +40,7 @@ class CoshshTest(CommonCoshshTest):
         r_prod = self.generator.get_recipe("prod")
         print(r_prod.datasources[0].__dict__)
         self.assertTrue(r_prod.datasources[0].dir == "/tmp/.h1dd3n")
+        self.assertTrue(r_prod.datasources[0].username == "monitoring")
 
     def test_open_vault_fails_bad_password(self):
         os.environ["NAEMON_VIM_MASTER_PASSWORD"] = "naemonvault"

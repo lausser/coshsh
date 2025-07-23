@@ -235,6 +235,7 @@ class Generator(object):
                     continue
                 for ds in self.recipes[recipe].datasource_names:
                     if ds in datasource_configs.keys():
+                        datasource_configs[ds].append(('coshsh_config_mappings', coshsh_config_mappings))
                         self.recipes[recipe].add_datasource(**dict(datasource_configs[ds]))
                     else:
                         logger.error("Datasource %s is unknown" % ds)
@@ -243,6 +244,7 @@ class Generator(object):
                         # implicitely added by recipe.__init__
                         pass
                     elif dr in datarecipient_configs.keys():
+                        datarecipient_configs[dr].append(('coshsh_config_mappings', coshsh_config_mappings))
                         self.recipes[recipe].add_datarecipient(**dict(datarecipient_configs[dr]))
                     else:
                         logger.error("Datarecipient %s is unknown" % dr)

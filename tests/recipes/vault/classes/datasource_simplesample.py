@@ -31,6 +31,7 @@ class SimpleSample(coshsh.datasource.Datasource):
     def __init__(self, **kwargs):
         self.name = kwargs["name"]
         self.dir = kwargs["dir"]
+        self.username = kwargs["username"]
         self.only_the_test_simplesample = True
 
     def read(self, filter=None, objects={}, **kwargs):
