@@ -118,9 +118,18 @@ class Datasource(coshsh.datainterface.CoshshDatainterface):
 
     def transform_hostname(self, hostname):
         original = hostname
+
+        def is_ip(s):
+            try:
+                socket.inet_aton(s)
+                return True
+            except socket.error:
+                return False
+
         for op in self.hostname_transform_ops:
             if op == "strip_domain":
-                hostname = hostname.split('.')[0]
+                if not is_ip(hostname):
+                    hostname = hostname.split('.')[0]
             elif op == "to_lower":
                 hostname = hostname.lower()
             elif op == "to_upper":
@@ -132,7 +141,7 @@ class Datasource(coshsh.datainterface.CoshshDatainterface):
                 except Exception as e:
                     logger.warning(f"append_domain failed for {hostname}: {e}")
             elif op == "resolve_ip":
-                if re.match(r'^\d{1,3}(\.\d{1,3}){3}$', hostname):  # crude IPv4 check
+                if is_ip(hostname):
                     try:
                         hostname = socket.gethostbyaddr(hostname)[0]
                     except Exception as e:
@@ -144,5 +153,6 @@ class Datasource(coshsh.datainterface.CoshshDatainterface):
                     logger.warning(f"resolve_dns failed for {hostname}: {e}")
             else:
                 logger.warning(f"Unknown hostname transform operation: {op}")
+
         logger.debug(f"Transformed hostname: {original} -> {hostname}")
         return hostname
