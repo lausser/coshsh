@@ -1,3 +1,5 @@
+* 2025-07-29 11.1
+  add datasource.transform_hostname()
 * 2025-07-23 11.0.0.1
   @VAULT[...] is now written without curly braces
 * 2025-07-17 11.0

@@ -10,6 +10,7 @@ import sys
 import os
 import re
 import logging
+import socket
 import coshsh
 
 logger = logging.getLogger('coshsh')
@@ -68,6 +69,9 @@ class Datasource(coshsh.datainterface.CoshshDatainterface):
                 raise DatasourceNotImplemented
         else:
             setattr(self, 'name', params["name"])
+            self.hostname_transform_ops = []
+            if "hostname_transform" in params and params["hostname_transform"]:
+                self.hostname_transform_ops = [op.strip() for op in params["hostname_transform"].split(",")]
             self.objects = {}
             pass
         # i am a generic datasource
@@ -111,3 +115,34 @@ class Datasource(coshsh.datainterface.CoshshDatainterface):
 
     def find(self, objtype, fingerprint):
         return objtype in self.objects and fingerprint in self.objects[objtype]
+
+    def transform_hostname(self, hostname):
+        original = hostname
+        for op in self.hostname_transform_ops:
+            if op == "strip_domain":
+                hostname = hostname.split('.')[0]
+            elif op == "to_lower":
+                hostname = hostname.lower()
+            elif op == "to_upper":
+                hostname = hostname.upper()
+            elif op == "append_domain":
+                try:
+                    fqdn = socket.getfqdn(hostname)
+                    hostname = fqdn
+                except Exception as e:
+                    logger.warning(f"append_domain failed for {hostname}: {e}")
+            elif op == "resolve_ip":
+                if re.match(r'^\d{1,3}(\.\d{1,3}){3}$', hostname):  # crude IPv4 check
+                    try:
+                        hostname = socket.gethostbyaddr(hostname)[0]
+                    except Exception as e:
+                        logger.warning(f"resolve_ip failed for {hostname}: {e}")
+            elif op == "resolve_dns":
+                try:
+                    hostname = socket.getfqdn(hostname)
+                except Exception as e:
+                    logger.warning(f"resolve_dns failed for {hostname}: {e}")
+            else:
+                logger.warning(f"Unknown hostname transform operation: {op}")
+        logger.debug(f"Transformed hostname: {original} -> {hostname}")
+        return hostname
