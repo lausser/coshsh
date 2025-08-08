@@ -94,6 +94,8 @@ class CsvFile(coshsh.datasource.Datasource):
                     row[attr] = row[attr].lower()
                 except Exception:
                     pass
+            if "hostgroups" in row:
+                row["hostgroups"] = [hg.strip() for hg in row["hostgroups"].split(";")]
             h = coshsh.host.Host(row)
             self.add('hosts', h)
 
