@@ -7,7 +7,6 @@
 
 import logging
 import coshsh
-from coshsh.datarecipient import Datarecipient
 from coshsh.util import compare_attr
 
 

@@ -10,9 +10,6 @@ import re
 import shutil
 import logging
 import coshsh
-from coshsh.datarecipient import Datarecipient
-from coshsh.host import Host
-from coshsh.util import compare_attr
 
 logger = logging.getLogger('coshsh')
 
@@ -89,7 +86,6 @@ class DrSnmpExporter(coshsh.datarecipient.Datarecipient):
             #print e
             # if there are no objects in the dyndir yet, this results in a
             # division by zero
-            pass
 
         logger.info("number of files before: %d hosts, %d applications" % self.old_objects)
         logger.info("number of files after:  %d hosts, %d applications" % self.new_objects)

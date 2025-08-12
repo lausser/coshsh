@@ -7,8 +7,6 @@
 
 import logging
 import coshsh
-from coshsh.datasource import Datasource
-from coshsh.util import compare_attr
 
 
 logger = logging.getLogger('coshsh')

@@ -3,7 +3,6 @@ import requests
 import socket
 import os
 import json
-import coshsh
 from coshsh.datasource import Datasource
 from coshsh.host import Host
 from coshsh.contact import Contact

@@ -7,12 +7,10 @@
 
 import os
 import io
-import re
 import logging
 import shutil
 import tempfile
 import zlib
-from copy import copy
 import subprocess
 import coshsh
 

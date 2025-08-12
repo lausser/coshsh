@@ -12,13 +12,7 @@ import re
 import logging
 from copy import copy
 import coshsh
-from coshsh.datasource import Datasource, DatasourceNotAvailable
-from coshsh.host import Host
-from coshsh.application import Application
-from coshsh.contactgroup import ContactGroup
-from coshsh.contact import Contact
-from coshsh.monitoringdetail import MonitoringDetail
-from coshsh.util import compare_attr, substenv
+from coshsh.util import substenv
 
 logger = logging.getLogger('coshsh')
 

@@ -12,8 +12,6 @@ import logging
 import time
 from subprocess import Popen, PIPE, STDOUT
 import coshsh
-from coshsh.datarecipient import Datarecipient
-from coshsh.util import compare_attr
 
 logger = logging.getLogger('coshsh')
 

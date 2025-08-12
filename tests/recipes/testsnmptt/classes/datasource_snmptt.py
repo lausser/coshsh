@@ -5,25 +5,18 @@
 # This software is licensed under the
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
-import csv
 import os
 import re
 import logging
-from copy import copy
 from os import listdir
-from os.path import isfile, join, commonprefix
+from os.path import isfile, join
 import pprint
 import textwrap
 import coshsh
-from coshsh.datasource import Datasource, DatasourceNotAvailable
 from coshsh.host import Host
 from coshsh.application import Application
-from coshsh.item import Item
-from coshsh.contactgroup import ContactGroup
-from coshsh.contact import Contact
 from coshsh.monitoringdetail import MonitoringDetail
 from coshsh.templaterule import TemplateRule
-from coshsh.util import compare_attr
 
 logger = logging.getLogger('coshsh')
 
