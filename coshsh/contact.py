@@ -7,6 +7,7 @@
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
 import logging
+from typing import Dict, Any
 import coshsh
 
 logger = logging.getLogger('coshsh')
@@ -29,7 +30,7 @@ class Contact(coshsh.item.Item):
         )
     ]
 
-    def __init__(self, params):
+    def __init__(self, params: Dict[str, Any]) -> None:
         #print "Contact init", self.__class__, self.__class__.__name__, len(self.__class__.class_factory)
         if self.__class__.__name__ == "Contact":
             for c in self.__class__.lower_columns:
@@ -53,14 +54,14 @@ class Contact(coshsh.item.Item):
             newcls = self.__class__.get_class(params)
             if newcls:
                 self.__class__ = newcls
-                super(Contact, self).__init__(params)
+                super().__init__(params)
                 self.__init__(params)
                 self.fingerprint = lambda s=self:s.__class__.fingerprint(params)
             else:
-                logger.debug('this will be Generic %s' % params)
+                logger.debug(f'this will be Generic {params}')
                 self.__class__ = GenericContact
                 self.contactgroups = []
-                super(Contact, self).__init__(params)
+                super().__init__(params)
                 self.__init__(params)
                 self.fingerprint = lambda s=self:s.__class__.fingerprint(params)
             if not hasattr(self, 'host_notification_period') or not self.host_notification_period:
@@ -72,17 +73,17 @@ class Contact(coshsh.item.Item):
         else:
             pass
 
-    def clean_name(self):
+    def clean_name(self) -> None:
         self.name = coshsh.util.clean_umlauts(self.name)
 
     @classmethod
-    def fingerprint(self, params):
+    def fingerprint(cls, params: Dict[str, Any]) -> str:
         return "+".join([str(params.get(a, "")) for a in ["name", "type", "address", "userid"]])
 
-    def __str__(self):
+    def __str__(self) -> str:
         fipri = " ".join([str(getattr(self, a, "")) for a in ["name", "type", "address", "userid"]])
         grps = ",".join(self.contactgroups)
-        return str("contact %s groups (%s)" % (fipri, grps))
+        return f"contact {fipri} groups ({grps})"
 
 
 class GenericContact(Contact):

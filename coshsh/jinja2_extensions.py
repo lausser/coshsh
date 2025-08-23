@@ -152,7 +152,8 @@ def filter_custom_macros(obj):
     return snippet
 
 def filter_rfc3986(text):
-    return 'rfc3986://' + urllib.request.pathname2url(text.encode('utf-8'))
+    # Fix for Python 3.13 compatibility - pathname2url doesn't accept encoding param for bytes
+    return 'rfc3986://' + urllib.request.pathname2url(text)
 
 def filter_neighbor_applications(application):
     return [app for app in application.host.applications]

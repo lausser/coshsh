@@ -10,6 +10,7 @@ import sys
 import os
 import re
 import logging
+from typing import Dict, Any
 import coshsh
 
 logger = logging.getLogger('coshsh')
@@ -45,7 +46,7 @@ class Vault(coshsh.datainterface.CoshshDatainterface):
     class_file_ident_function = "__vault_ident__"
     class_factory = []
 
-    def __init__(self, **params):
+    def __init__(self, **params: Any) -> None:
         #print("vaultinit with", self.__class__)
         for key in [k for k in params if k.startswith("recipe_")]:
             setattr(self, key, params[key])

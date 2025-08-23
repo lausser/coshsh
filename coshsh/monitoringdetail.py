@@ -9,6 +9,7 @@
 import sys
 import os
 import logging
+from typing import Dict, Any, Optional
 from urllib.parse import urlparse
 import coshsh
 
@@ -27,7 +28,7 @@ class MonitoringDetail(coshsh.item.Item):
     my_type = "detail"
     lower_columns = ['name', 'type', 'application_name', 'application_type']
 
-    def __init__(self, params):
+    def __init__(self, params: Dict[str, Any]) -> None:
         if self.__class__.__name__ == "MonitoringDetail":
             for c in self.__class__.lower_columns:
                 try:
@@ -46,24 +47,24 @@ class MonitoringDetail(coshsh.item.Item):
             newcls = self.__class__.get_class(params)
             if newcls:
                 self.__class__ = newcls
-                super(MonitoringDetail, self).__init__(params)
+                super().__init__(params)
                 self.__init__(params)
             else:
-                logger.info("monitoring detail of type %s for host %s / appl %s had a problem" % (params["monitoring_type"], params.get("host_name", "unkn. host"), params.get("application_name", "unkn. application")))
+                logger.info(f"monitoring detail of type {params['monitoring_type']} for host {params.get('host_name', 'unkn. host')} / appl {params.get('application_name', 'unkn. application')} had a problem")
                 raise MonitoringDetailNotImplemented
         else:
             pass
 
-    def fingerprint(self):
+    def fingerprint(self) -> int:
         # it does not make sense to construct an id from the random attributes
         # id is used in self.add('details')
         return id(self)
 
-    def application_fingerprint(self):
+    def application_fingerprint(self) -> str:
         if hasattr(self, 'application_name') and self.application_name and hasattr(self, 'application_type') and self.application_type:
-            return "%s+%s+%s" % (self.host_name, self.application_name, self.application_type)
+            return f"{self.host_name}+{self.application_name}+{self.application_type}"
         elif self.host_name:
-            return "%s" % (self.host_name, )
+            return f"{self.host_name}"
         raise "impossible fingerprint"
 
     def __eq__(self, other):
@@ -84,6 +85,6 @@ class MonitoringDetail(coshsh.item.Item):
     def __ge__(self, other):
         return ((self.monitoring_type, str(self.monitoring_0)) >= (other.monitoring_type, str(other.monitoring_0)))
 
-    def __repr__(self):
-        return "%s %s" % (self.monitoring_type, str(self.monitoring_0))
+    def __repr__(self) -> str:
+        return f"{self.monitoring_type} {str(self.monitoring_0)}"
 

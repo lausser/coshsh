@@ -11,6 +11,7 @@ import os
 import re
 import logging
 import socket
+from typing import Dict, Any, List, Optional
 import coshsh
 
 logger = logging.getLogger('coshsh')
@@ -46,7 +47,7 @@ class Datasource(coshsh.datainterface.CoshshDatainterface):
     class_file_ident_function = "__ds_ident__"
     class_factory = []
 
-    def __init__(self, **params):
+    def __init__(self, **params: Any) -> None:
         #print "datasourceinit with", self.__class__
         for key in [k for k in params if k.startswith("recipe_")]:
             setattr(self, key, params[key])
@@ -79,16 +80,16 @@ class Datasource(coshsh.datainterface.CoshshDatainterface):
         # i rebless
         # i call __init__
 
-    def open(self, **kwargs):
+    def open(self, **kwargs: Any) -> None:
         pass
 
-    def read(self, **kwargs):
+    def read(self, **kwargs: Any) -> None:
         pass
 
-    def close(self):
+    def close(self) -> None:
         pass
 
-    def add(self, objtype, obj):
+    def add(self, objtype: str, obj: Any) -> None:
         try:
             self.objects[objtype][obj.fingerprint()] = obj
         except Exception:
@@ -99,7 +100,7 @@ class Datasource(coshsh.datainterface.CoshshDatainterface):
                 setattr(obj, 'host', self.get('hosts', obj.host_name))
         obj.record_in_chronicle(f"added to {objtype} in datasource {self.name}")
 
-    def get(self, objtype, fingerprint):
+    def get(self, objtype: str, fingerprint: str) -> Optional[Any]:
         try:
             return self.objects[objtype][fingerprint]
         except Exception:
@@ -107,16 +108,16 @@ class Datasource(coshsh.datainterface.CoshshDatainterface):
             return None
             return 'i do not exist. no. no!'
 
-    def getall(self, objtype):
+    def getall(self, objtype: str) -> List[Any]:
         try:
             return list(self.objects[objtype].values())
         except Exception:
             return []
 
-    def find(self, objtype, fingerprint):
+    def find(self, objtype: str, fingerprint: str) -> bool:
         return objtype in self.objects and fingerprint in self.objects[objtype]
 
-    def transform_hostname(self, hostname):
+    def transform_hostname(self, hostname: str) -> str:
         original = hostname
 
         def is_ip(s):

@@ -1,0 +1,3 @@
+[console_scripts]
+coshsh-cook = bin.coshsh_cook:main
+coshsh-create-template-tree = bin.coshsh_create_template_tree:main

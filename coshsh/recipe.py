@@ -15,6 +15,8 @@ import time
 import logging
 import errno
 from jinja2 import FileSystemLoader, Environment, TemplateSyntaxError, TemplateNotFound
+from collections import defaultdict
+from typing import Dict, Any, List
 import coshsh
 
 logger = logging.getLogger('coshsh')
@@ -256,7 +258,15 @@ class Recipe(object):
                 return False
         return data_valid
 
-    def assemble(self):
+    def assemble(self) -> bool:
+        # Pre-compute application patterns for O(1) generic detail matching
+        app_patterns = defaultdict(list)
+        for app_fingerprint, app in self.objects['applications'].items():
+            if '+' in app_fingerprint:
+                pattern = app_fingerprint[app_fingerprint.index('+'):]
+                app_patterns[pattern].append(app)
+
+        # Process details - regular ones are already O(1) 
         generic_details = []
         for detail in self.objects['details'].values():
             fingerprint = detail.application_fingerprint()
@@ -267,63 +277,90 @@ class Recipe(object):
             elif fingerprint.startswith('*'):
                 generic_details.append(detail)
             else:
-                logger.info("found a %s detail %s for an unknown application %s" % (detail.__class__.__name__, detail, fingerprint))
+                logger.info(f"found a {detail.__class__.__name__} detail {detail} for unknown application {fingerprint}")
+
+        # Process generic details efficiently - O(n) instead of O(n²)
         for detail in generic_details:
             dfingerprint = detail.application_fingerprint()
             if dfingerprint == '*':
                 for host in self.objects['hosts'].values():
                     host.monitoring_details.insert(0, detail)
             else:
-                for app in self.objects['applications'].values():
-                    afingerprint = app.fingerprint()
-                    if dfingerprint[1:] == afingerprint[afingerprint.index('+'):]:
-                        app.monitoring_details.insert(0, detail)
+                pattern = dfingerprint[1:]  # "*+mysql+*" -> "+mysql+*"
+                for app in app_patterns[pattern]:
+                    app.monitoring_details.insert(0, detail)
 
-
+        # Process hosts with optimized attribute sorting
         for host in self.objects['hosts'].values():
             host.resolve_monitoring_details()
-            for key in [k for k in host.__dict__.keys() if not k.startswith("__") and isinstance(getattr(host, k), (list, tuple)) and k not in ["templates"]]:
-                getattr(host, key).sort()
+            self._sort_host_attributes_optimized(host)
             host.create_templates()
             host.create_hostgroups()
             host.create_contacts()
             setattr(host, "applications", [])
 
+        # Process applications with optimized attribute sorting
         orphaned_applications = []
         for app in self.objects['applications'].values():
             try:
                 setattr(app, 'host', self.objects['hosts'][app.host_name])
                 app.host.applications.append(app)
                 app.resolve_monitoring_details()
-                for key in [k for k in app.__dict__.keys() if not k.startswith("__") and isinstance(getattr(app, k), (list, tuple))]:
-                    # sort monitoring_type/monitoring_0 to bring some order into services,filesystems etc.
-                    getattr(app, key).sort()
+                self._sort_app_attributes_optimized(app)
                 app.create_templates()
                 app.create_servicegroups()
                 app.create_contacts()
             except KeyError:
-                logger.info("application %s %s refers to non-existing host %s" % (app.name, app.type, app.host_name))
+                logger.info(f"application {app.name} {app.type} refers to non-existing host {app.host_name}")
                 orphaned_applications.append(app.fingerprint())
+        
         for oa in orphaned_applications:
             del self.objects['applications'][oa]
 
-        # load the hostgroups-objects after application procession because
-        # this allows modification of self.host.hostgroups
-        # in application.wemustrepeat()
+        # Build hostgroups without exception handling - use defaultdict
+        hostgroups_temp = defaultdict(list)
         for host in self.objects['hosts'].values():
             for hostgroup in host.hostgroups:
-                try:
-                    self.objects['hostgroups'][hostgroup].append(host.host_name)
-                except Exception:
-                    self.objects['hostgroups'][hostgroup] = []
-                    self.objects['hostgroups'][hostgroup].append(host.host_name)
-        for (hostgroup_name, members) in self.objects['hostgroups'].items():
-            logger.debug("creating hostgroup %s" % hostgroup_name)
-            self.objects['hostgroups'][hostgroup_name] = coshsh.hostgroup.HostGroup({ "hostgroup_name" : hostgroup_name, "members" : members})
-            self.objects['hostgroups'][hostgroup_name].create_templates()
-            self.objects['hostgroups'][hostgroup_name].create_contacts()
-
+                hostgroups_temp[hostgroup].append(host.host_name)
+        
+        # Convert to HostGroup objects
+        hostgroups_dict = {}
+        for hostgroup_name, members in hostgroups_temp.items():
+            logger.debug(f"creating hostgroup {hostgroup_name}")
+            hg = coshsh.hostgroup.HostGroup({
+                "hostgroup_name": hostgroup_name, 
+                "members": members
+            })
+            hg.create_templates()
+            hg.create_contacts()
+            hostgroups_dict[hostgroup_name] = hg
+        
+        self.objects['hostgroups'] = hostgroups_dict
         return True
+
+    def _sort_app_attributes_optimized(self, app) -> None:
+        """Optimized attribute sorting with cached getattr calls"""
+        sortable_attrs = []
+        for key in app.__dict__.keys():
+            if not key.startswith("__"):
+                attr_value = getattr(app, key)
+                if isinstance(attr_value, (list, tuple)):
+                    sortable_attrs.append(attr_value)
+        
+        for attr_value in sortable_attrs:
+            attr_value.sort()
+
+    def _sort_host_attributes_optimized(self, host) -> None:
+        """Optimized host attribute sorting excluding templates"""
+        sortable_attrs = []
+        for key in host.__dict__.keys():
+            if not key.startswith("__") and key != "templates":
+                attr_value = getattr(host, key)
+                if isinstance(attr_value, (list, tuple)):
+                    sortable_attrs.append(attr_value)
+        
+        for attr_value in sortable_attrs:
+            attr_value.sort()
  
     def render(self):
         template_cache = {}

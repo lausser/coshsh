@@ -14,6 +14,7 @@ import logging
 from subprocess import Popen, PIPE, STDOUT
 import string
 import random
+from typing import Dict, Any, Optional
 import coshsh
 
 logger = logging.getLogger('coshsh')
@@ -49,7 +50,7 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
     class_file_ident_function = "__dr_ident__"
     class_factory = []
 
-    def __init__(self, **params):
+    def __init__(self, **params: Any) -> None:
         for key in [k for k in params if k.startswith("recipe_")]:
             setattr(self, key, params[key])
             short = key.replace("recipe_", "")
@@ -70,8 +71,8 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
             setattr(self, 'name', params["name"])
             self.objects = {}
 
-    def load(self, filter=None, objects={}):
-        logger.info('load items to %s' % (self.name, ))
+    def load(self, filter: Optional[str] = None, objects: Optional[Dict[str, Any]] = None) -> None:
+        logger.info(f'load items to {self.name}')
         self.objects = objects
 
     def get(self, objtype, fingerprint):

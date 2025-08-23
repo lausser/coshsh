@@ -5,7 +5,7 @@
 import sys
 try:
     python_version = sys.version_info
-except:
+except AttributeError:
     python_version = (1, 5)
     sys.exit("coshsh requires python 3.x")
 if python_version < (3,):

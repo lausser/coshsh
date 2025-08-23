@@ -28,14 +28,23 @@ jobs:
         git config --global user.email "lausser@yahoo.com"
         git config --global user.name "Gerhard Lausser"
         python -m pip install --upgrade pip
-        pip install flake8 pytest 
+        pip install -e ".[dev]"
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-#    - name: Lint with flake8
-#      run: |
-#        # stop the build if there are Python syntax errors or undefined names
-#        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-#        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-#        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Check code formatting with black
+      run: |
+        black --check --diff coshsh/
+    - name: Check import sorting with isort
+      run: |
+        isort --check-only --diff coshsh/
+    - name: Lint with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 coshsh/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 88 chars wide (black default)
+        flake8 coshsh/ --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+    - name: Type check with mypy
+      run: |
+        mypy coshsh/ --ignore-missing-imports
     - name: Test with pytest
       run: |
         pytest
