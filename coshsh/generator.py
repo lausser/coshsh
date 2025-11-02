@@ -1,10 +1,18 @@
 #!/usr/bin/env python
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # This file belongs to coshsh.
 # Copyright Gerhard Lausser.
 # This software is licensed under the
 # GNU Affero General Public License version 3 (see the file LICENSE).
+
+"""Generator class - orchestrates recipe execution from cookbook configuration.
+
+This module defines the Generator class which reads cookbook configuration
+files and executes recipes to generate monitoring configurations.
+"""
+
+from __future__ import annotations
 
 import os
 import re
@@ -13,244 +21,594 @@ import time
 import sys
 import getpass
 from tempfile import gettempdir
+from typing import Dict, List, Any, Optional, Callable
+from logging import INFO, DEBUG, getLogger
+
 import coshsh
 from coshsh.datainterface import CoshshDatainterface
 from coshsh.vault import Vault
-from logging import INFO, DEBUG, getLogger
 
 logger = logging.getLogger('coshsh')
 
 
-class Generator(object):
+class Generator:
+    """Orchestrates recipe execution from cookbook configuration.
 
-    base_dir = os.path.dirname(os.path.dirname(__file__))
-    messages = []
+    The Generator class provides the high-level interface for coshsh:
+    1. Reads cookbook configuration files
+    2. Creates recipe instances
+    3. Configures datasources, datarecipients, vaults
+    4. Executes recipes (collect, assemble, render, output)
+    5. Optionally reports metrics to Prometheus pushgateway
 
-    def __init__(self):
-        self.recipes = coshsh.util.odict()
-        self.default_log_level = "info"
+    Attributes:
+        recipes: Dict of Recipe instances by name
+        cookbook: Parsed cookbook configuration
+        cookbook_files: Concatenated base names of cookbook files
+        default_log_level: Default logging level (info/debug)
+        log_dir: Directory for log files
+        pg_job: Prometheus pushgateway job name (if configured)
+        pg_address: Prometheus pushgateway address (if configured)
+        pg_username: Prometheus pushgateway username (if configured)
+        pg_password: Prometheus pushgateway password (if configured)
 
-    def set_default_log_level(self, default_log_level):
+    Cookbook Configuration:
+        Cookbook files use INI format with sections:
+        - [defaults]: Global settings (log_dir, log_level, recipes)
+        - [recipe_NAME]: Recipe configuration
+        - [datasource_NAME]: Datasource configuration
+        - [datarecipient_NAME]: Datarecipient configuration
+        - [vault_NAME]: Vault configuration for secrets
+        - [mapping_NAME]: Configuration value mappings
+        - [prometheus_pushgateway]: Optional metrics reporting
+
+    Recipe Selection:
+        Recipes can be specified:
+        1. Via command line (default_recipe parameter)
+        2. Via cookbook [defaults] recipes setting
+        3. All recipes not starting with _ (auto-discovery)
+
+    Recipe Matching:
+        Recipe names support regex matching. If "recipe_lebensmitteldiscounter_.*_.*"
+        exists, it will match "lebensmitteldiscounter_at_hq".
+
+    Error Handling:
+        - Vault errors: Recipe is removed and skipped
+        - Recipe errors: Logged but don't stop other recipes
+        - Datasource/datarecipient errors: Logged as warnings
+
+    Prometheus Integration:
+        If configured, pushes metrics after each recipe:
+        - coshsh_recipe_last_generated: Timestamp
+        - coshsh_recipe_number_of_objects: Object counts by type
+        - coshsh_recipe_last_duration: Recipe duration in seconds
+        - coshsh_recipe_render_errors: Render error count
+        - coshsh_recipe_last_success: Last successful run timestamp
+
+    Example Usage:
+        generator = Generator()
+        generator.set_default_log_level("debug")
+        generator.read_cookbook(
+            ["cookbook.cfg"],
+            default_recipe="production",
+            force=False,
+            safe_output=True
+        )
+        generator.run()
+    """
+
+    # Class-level attributes
+    base_dir: str = os.path.dirname(os.path.dirname(__file__))
+    messages: List[str] = []
+
+    def __init__(self) -> None:
+        """Initialize a Generator.
+
+        Creates an empty ordered dictionary of recipes and sets
+        default log level to info.
+        """
+        self.recipes: Dict[str, Any] = coshsh.util.odict()
+        self.default_log_level: str = "info"
+
+    def set_default_log_level(self, default_log_level: str) -> None:
+        """Set the default logging level.
+
+        Args:
+            default_log_level: Log level ("info" or "debug")
+        """
         self.default_log_level = default_log_level
 
-    def add_recipe(self, *args, **kwargs):
+    def add_recipe(self, *args: Any, **kwargs: Any) -> None:
+        """Create and add a recipe to the generator.
+
+        Args:
+            **kwargs: Recipe configuration parameters passed to Recipe()
+
+        Note:
+            If recipe creation fails, logs error but continues.
+            This allows other recipes to still run.
+        """
         try:
             recipe = coshsh.recipe.Recipe(**kwargs)
             self.recipes[kwargs["name"]] = recipe
         except Exception as e:
-            logger.error("exception creating a recipe: %s" % e)
+            logger.error(f"exception creating a recipe: {e}")
 
-    def get_recipe(self, name):
+    def get_recipe(self, name: str) -> Optional[Any]:
+        """Get a recipe by name.
+
+        Args:
+            name: Recipe name
+
+        Returns:
+            Recipe instance or None if not found
+        """
         return self.recipes.get(name, None)
 
-    def add_pushgateway(self, *args, **kwargs):
-        self.pg_job = kwargs.get("job", "coshsh")
-        self.pg_address = kwargs.get("address", "127.0.0.1:9091")
-        self.pg_username = kwargs.get("username", None)
-        self.pg_password = kwargs.get("password", None)
+    def add_pushgateway(self, *args: Any, **kwargs: Any) -> None:
+        """Configure Prometheus pushgateway for metrics reporting.
 
-    def run(self):
+        Args:
+            **kwargs: Pushgateway configuration:
+                - job: Job name (default: "coshsh")
+                - address: Pushgateway address (default: "127.0.0.1:9091")
+                - username: Optional HTTP basic auth username
+                - password: Optional HTTP basic auth password
+
+        Note:
+            Metrics are only pushed if prometheus_client module is available.
+        """
+        self.pg_job: str = kwargs.get("job", "coshsh")
+        self.pg_address: str = kwargs.get("address", "127.0.0.1:9091")
+        self.pg_username: Optional[str] = kwargs.get("username", None)
+        self.pg_password: Optional[str] = kwargs.get("password", None)
+
+    def run(self) -> None:
+        """Execute all configured recipes.
+
+        For each recipe:
+        1. Update class factories
+        2. Create PID file
+        3. Collect data from datasources
+        4. Assemble object hierarchies
+        5. Render templates
+        6. Write output via datarecipients
+        7. Push metrics to Prometheus (if configured)
+        8. Remove PID file
+
+        Error Handling:
+            - RecipePidAlreadyRunning: Skip recipe (already running)
+            - RecipePidNotWritable: Skip recipe (can't write PID file)
+            - RecipePidGarbage: Skip recipe (corrupt PID file)
+            - Other exceptions: Log and skip recipe
+
+        Metrics:
+            If Prometheus pushgateway is configured and prometheus_client
+            module is available, pushes metrics after each recipe run.
+
+        Debug Mode:
+            If default_log_level is "debug", dumps class usage statistics.
+        """
+        # Try to import Prometheus client
+        has_prometheus = False
+        pg_auth_handler: Optional[Callable] = None
+        coshshuser = None
+        hostname = None
+
         try:
-            from prometheus_client import CollectorRegistry, Gauge, push_to_gateway, pushadd_to_gateway
+            from prometheus_client import (
+                CollectorRegistry, Gauge, push_to_gateway, pushadd_to_gateway
+            )
             from prometheus_client.exposition import basic_auth_handler, default_handler
             from urllib.parse import quote_plus
             from socket import gethostname
+
             has_prometheus = True
+
+            # Get user and hostname for metrics
             try:
                 coshshuser = getpass.getuser()
             except Exception:
                 coshshuser = os.getenv("username")
             hostname = gethostname()
-            if hasattr(self, "pg_username"):
-                pg_auth_handler = lambda url, method, timeout, headers, data: basic_auth_handler(url, method, timeout, headers, data, self.pg_username, self.pg_password)
+
+            # Set up authentication handler
+            if hasattr(self, "pg_username") and self.pg_username:
+                pg_auth_handler = lambda url, method, timeout, headers, data: basic_auth_handler(
+                    url, method, timeout, headers, data,
+                    self.pg_username, self.pg_password
+                )
             else:
                 pg_auth_handler = default_handler
+
         except Exception as e:
             if hasattr(self, "pg_job"):
-                logger.critical("problem with prometheus modules: %s" % e, exc_info=1)
+                logger.critical(f"problem with prometheus modules: {e}", exc_info=1)
             has_prometheus = False
+
+        # Disable Prometheus if not configured
         if has_prometheus and not hasattr(self, "pg_address"):
             has_prometheus = False
+
+        # Execute each recipe
         for recipe in self.recipes.values():
             recipe_completed = False
+
             try:
+                # Update class factories for this recipe
                 recipe.update_item_class_factories()
+
+                # Switch to recipe-specific logging
                 coshsh.util.switch_logging(logfile=recipe.log_file)
+
+                # Protect against concurrent execution
                 if recipe.pid_protect():
+                    registry = None
                     if has_prometheus:
                         registry = CollectorRegistry()
+
                     tic = time.time()
+
+                    # Execute recipe pipeline
                     if recipe.collect():
                         recipe.assemble()
                         recipe.render()
                         recipe.output()
                         recipe_completed = True
-                        if has_prometheus:
-                            g = Gauge("coshsh_recipe_last_generated",
+
+                        # Record metrics
+                        if has_prometheus and registry:
+                            # Timestamp of generation
+                            g = Gauge(
+                                "coshsh_recipe_last_generated",
                                 "The timestamp when a configuration was generated",
-                                registry=registry)
+                                registry=registry
+                            )
                             g.set_to_current_time()
-                            g = Gauge("coshsh_recipe_number_of_objects",
-                                "The number of objects of a certain type", ['type'],
-                                registry=registry)
+
+                            # Object counts by type
+                            g = Gauge(
+                                "coshsh_recipe_number_of_objects",
+                                "The number of objects of a certain type",
+                                ['type'],
+                                registry=registry
+                            )
                             for objtype in recipe.objects.keys():
                                 g.labels(type=objtype).set(len(recipe.objects[objtype]))
-                            g = Gauge("coshsh_recipe_last_duration",
+
+                            # Recipe duration
+                            g = Gauge(
+                                "coshsh_recipe_last_duration",
                                 "The duration of a recipe",
-                                registry=registry)
+                                registry=registry
+                            )
                             g.set(time.time() - tic)
-                            g = Gauge("coshsh_recipe_render_errors",
+
+                            # Render errors
+                            g = Gauge(
+                                "coshsh_recipe_render_errors",
                                 "The number of render errors",
-                                registry=registry)
+                                registry=registry
+                            )
                             g.set(recipe.render_errors)
-                    if has_prometheus:
-                        g = Gauge("coshsh_recipe_last_success",
+
+                    # Record success timestamp
+                    if has_prometheus and registry:
+                        g = Gauge(
+                            "coshsh_recipe_last_success",
                             "The timestamp when the recipe successfully ran last time",
-                            registry=registry)
+                            registry=registry
+                        )
                         g.set_to_current_time()
+
+                        # Push metrics to gateway
                         try:
-                            pushadd_to_gateway(self.pg_address, grouping_key={
-                                'hostname': hostname,
-                                'username': coshshuser,
-                                'cookbook': self.cookbook_files,
-                                'recipe': recipe.name
-                            }, job=self.pg_job, registry=registry, handler=pg_auth_handler)
+                            pushadd_to_gateway(
+                                self.pg_address,
+                                grouping_key={
+                                    'hostname': hostname,
+                                    'username': coshshuser,
+                                    'cookbook': self.cookbook_files,
+                                    'recipe': recipe.name
+                                },
+                                job=self.pg_job,
+                                registry=registry,
+                                handler=pg_auth_handler
+                            )
                         except Exception as e:
-                            logger.warning("could not write to pushgateway "+self.pg_address+": "+str(e))
+                            logger.warning(
+                                f"could not write to pushgateway {self.pg_address}: {e}"
+                            )
+
                     recipe.pid_remove()
+
             except coshsh.recipe.RecipePidAlreadyRunning:
-                logger.info("skipping recipe %s. already running" % (recipe.name))
-            except coshsh.recipe.RecipePidNotWritable as e:
-                logger.error("skipping recipe %s. cannot write pid file to %s" % (recipe.name, recipe.pid_dir))
+                logger.info(f"skipping recipe {recipe.name}. already running")
+            except coshsh.recipe.RecipePidNotWritable:
+                logger.error(
+                    f"skipping recipe {recipe.name}. cannot write pid file to {recipe.pid_dir}"
+                )
             except coshsh.recipe.RecipePidGarbage:
-                logger.error("skipping recipe %s. pid file %s contains garbage" % (recipe.name, recipe.pid_file))
+                logger.error(
+                    f"skipping recipe {recipe.name}. pid file {recipe.pid_file} contains garbage"
+                )
             except Exception as exp:
-                logger.error("skipping recipe %s (%s)" % (recipe.name, exp))
+                logger.error(f"skipping recipe {recipe.name} ({exp})")
             else:
                 if recipe_completed:
-                    logger.info("recipe {} completed with {} problems".format(recipe.name, recipe.render_errors))
+                    logger.info(
+                        f"recipe {recipe.name} completed with {recipe.render_errors} problems"
+                    )
+
+            # Dump class usage in debug mode
             if self.default_log_level == "debug":
                 CoshshDatainterface.dump_classes_usage()
+
+            # Restore original logging
             coshsh.util.restore_logging()
 
-    def read_cookbook(self, cookbook_files, default_recipe, force, safe_output):
-        self.cookbook_files = '___'.join(map(lambda cf: os.path.basename(os.path.abspath(cf)), cookbook_files))
-        recipe_configs = {}
-        datasource_configs = {}
-        datarecipient_configs = {}
-        coshsh_config_mappings = {}
-        vault_configs = {}
-        recipes = []
+    def read_cookbook(
+        self,
+        cookbook_files: List[str],
+        default_recipe: Optional[str],
+        force: bool,
+        safe_output: bool
+    ) -> None:
+        """Read cookbook configuration files and create recipes.
+
+        Args:
+            cookbook_files: List of cookbook file paths to read
+            default_recipe: Comma-separated list of recipe names to run
+                           (None = use cookbook defaults or all)
+            force: Force regeneration even if not needed
+            safe_output: Use safe output mode
+
+        Process:
+            1. Parse cookbook files
+            2. Extract vault, datasource, datarecipient, recipe configs
+            3. Extract configuration mappings
+            4. Determine which recipes to create
+            5. Set up logging
+            6. Create recipes with their dependencies
+
+        Recipe Selection:
+            - If default_recipe specified: Use those recipes
+            - Else if [defaults] recipes exists: Use those
+            - Else: Use all recipes not starting with _
+
+        Recipe Matching:
+            Supports regex matching. If "recipe_pattern_.*" exists,
+            it matches "pattern_specific_instance".
+
+        Configuration Inheritance:
+            - Command-line force/safe_output override cookbook settings
+            - Global defaults apply to all recipes
+            - Recipe-specific settings override defaults
+
+        Error Handling:
+            - Missing cookbook files: Exit with error
+            - Unknown vaults/datasources/datarecipients: Log error
+            - Vault errors: Remove recipe and skip
+            - Recipe creation errors: Log and continue
+
+        Exits:
+            Calls sys.exit(2) if cookbook files are bad or missing
+        """
+        # Create cookbook filename identifier for metrics
+        self.cookbook_files = '___'.join(
+            map(lambda cf: os.path.basename(os.path.abspath(cf)), cookbook_files)
+        )
+
+        # Configuration storage
+        recipe_configs: Dict[str, List[tuple]] = {}
+        datasource_configs: Dict[str, List[tuple]] = {}
+        datarecipient_configs: Dict[str, List[tuple]] = {}
+        coshsh_config_mappings: Dict[str, Dict[str, str]] = {}
+        vault_configs: Dict[str, List[tuple]] = {}
+        recipes: List[str] = []
+
+        # Parse cookbook files
         cookbook = coshsh.configparser.CoshshConfigParser()
         self.cookbook = cookbook
         cookbook.read(cookbook_files)
-        if cookbook._sections == {}:
-            print("Bad or missing cookbook files : %s " % ', '.join(cookbook_files))
-            sys.exit(2)
-        for vault in [section for section in cookbook.sections() if section.startswith('vault_')]:
-            vault_configs[vault.replace("vault_", "", 1).lower()] = cookbook.items(vault) + [('name', vault.replace("vault_", "", 1).lower())]
-        for mapping in [section for section in cookbook.sections() if section.startswith('mapping_')]:
-            coshsh_config_mappings[mapping.replace("mapping_", "")] = dict(cookbook.items(mapping))
-        for ds in [section for section in cookbook.sections() if section.startswith('datarecipient_')]:
-            datarecipient_configs[ds.replace("datarecipient_", "", 1).lower()] = cookbook.items(ds) + [('name', ds.replace("datarecipient_", "", 1).lower())]
-        for ds in [section for section in cookbook.sections() if section.startswith('datasource_')]:
-            datasource_configs[ds.replace("datasource_", "", 1).lower()] = cookbook.items(ds) + [('name', ds.replace("datasource_", "", 1).lower())]
-        for recipe in [section for section in cookbook.sections() if section.startswith('recipe_')]:
-            recipe_configs[recipe.replace("recipe_", "", 1).lower()] = cookbook.items(recipe) + [('name', recipe.replace("recipe_", "", 1).lower())]
 
+        if cookbook._sections == {}:
+            print(f"Bad or missing cookbook files : {', '.join(cookbook_files)}")
+            sys.exit(2)
+
+        # Extract vault configurations
+        for vault in [s for s in cookbook.sections() if s.startswith('vault_')]:
+            vault_name = vault.replace("vault_", "", 1).lower()
+            vault_configs[vault_name] = cookbook.items(vault) + [('name', vault_name)]
+
+        # Extract configuration mappings
+        for mapping in [s for s in cookbook.sections() if s.startswith('mapping_')]:
+            mapping_name = mapping.replace("mapping_", "")
+            coshsh_config_mappings[mapping_name] = dict(cookbook.items(mapping))
+
+        # Extract datarecipient configurations
+        for dr in [s for s in cookbook.sections() if s.startswith('datarecipient_')]:
+            dr_name = dr.replace("datarecipient_", "", 1).lower()
+            datarecipient_configs[dr_name] = cookbook.items(dr) + [('name', dr_name)]
+
+        # Extract datasource configurations
+        for ds in [s for s in cookbook.sections() if s.startswith('datasource_')]:
+            ds_name = ds.replace("datasource_", "", 1).lower()
+            datasource_configs[ds_name] = cookbook.items(ds) + [('name', ds_name)]
+
+        # Extract recipe configurations
+        for recipe in [s for s in cookbook.sections() if s.startswith('recipe_')]:
+            recipe_name = recipe.replace("recipe_", "", 1).lower()
+            recipe_configs[recipe_name] = cookbook.items(recipe) + [('name', recipe_name)]
+
+        # Determine which recipes to create
         if default_recipe:
+            # Command-line specified recipes
             recipes = [r.lower() for r in default_recipe.split(",")]
         else:
-            if "defaults" in cookbook.sections() and "recipes" in [c[0] for c in cookbook.items("defaults")]:
-                recipes = [recipe.lower() for recipe in dict(cookbook.items("defaults"))["recipes"].split(",")]
+            # Check cookbook defaults
+            if "defaults" in cookbook.sections():
+                defaults = dict(cookbook.items("defaults"))
+                if "recipes" in defaults:
+                    recipes = [r.lower() for r in defaults["recipes"].split(",")]
+                else:
+                    # Auto-discover all non-underscore recipes
+                    recipes = list(filter(lambda r: not r.startswith("_"), recipe_configs.keys()))
             else:
-                recipes = filter( lambda r: not r.startswith("_"), recipe_configs.keys())
-        if "defaults" in cookbook.sections() and "log_dir" in [c[0] for c in cookbook.items("defaults")]:
-            log_dir = dict(cookbook.items("defaults"))["log_dir"]
-            log_dir = re.sub('%.*?%', coshsh.util.substenv, log_dir)
-        elif 'OMD_ROOT' in os.environ:
-            log_dir = os.path.join(os.environ['OMD_ROOT'], "var", "coshsh")
+                # Auto-discover all non-underscore recipes
+                recipes = list(filter(lambda r: not r.startswith("_"), recipe_configs.keys()))
+
+        # Set up logging directories
+        if "defaults" in cookbook.sections():
+            defaults = dict(cookbook.items("defaults"))
+
+            # Log directory
+            if "log_dir" in defaults:
+                log_dir = re.sub('%.*?%', coshsh.util.substenv, defaults["log_dir"])
+            elif 'OMD_ROOT' in os.environ:
+                log_dir = os.path.join(os.environ['OMD_ROOT'], "var", "coshsh")
+            else:
+                log_dir = gettempdir()
+
+            # PID directory
+            if "pid_dir" in defaults:
+                pid_dir = re.sub('%.*?%', coshsh.util.substenv, defaults["pid_dir"])
+            else:
+                pid_dir = gettempdir()
+
+            # Backup count
+            if "backup_count" in defaults:
+                backup_count = int(defaults["backup_count"])
+            else:
+                backup_count = 2
+
+            # Log level
+            debug_mode = (
+                (self.default_log_level and self.default_log_level.lower() == "debug") or
+                ("log_level" in defaults and defaults["log_level"].lower() == "debug")
+            )
         else:
-            log_dir = gettempdir()
-        if "defaults" in cookbook.sections() and "pid_dir" in [c[0] for c in cookbook.items("defaults")]:
-            pid_dir = dict(cookbook.items("defaults"))["pid_dir"]
-            pid_dir = re.sub('%.*?%', coshsh.util.substenv, pid_dir)
-        else:
+            # No defaults section - use fallbacks
+            if 'OMD_ROOT' in os.environ:
+                log_dir = os.path.join(os.environ['OMD_ROOT'], "var", "coshsh")
+            else:
+                log_dir = gettempdir()
             pid_dir = gettempdir()
-        if "defaults" in cookbook.sections() and "backup_count" in [c[0] for c in cookbook.items("defaults")]:
-            backup_count = int(dict(cookbook.items("defaults"))["backup_count"])
-        else:
             backup_count = 2
-        if self.default_log_level and self.default_log_level.lower() == "debug" or "defaults" in cookbook.sections() and "log_level" in [c[0] for c in cookbook.items("defaults")] and cookbook.items("defaults")["log_level"].lower() == "debug":
-            coshsh.util.setup_logging(logdir=log_dir, scrnloglevel=DEBUG, backup_count=backup_count)
+            debug_mode = (
+                self.default_log_level and self.default_log_level.lower() == "debug"
+            )
+
+        # Set up logging
+        if debug_mode:
+            coshsh.util.setup_logging(
+                logdir=log_dir,
+                scrnloglevel=DEBUG,
+                backup_count=backup_count
+            )
         else:
-            coshsh.util.setup_logging(logdir=log_dir, scrnloglevel=INFO, backup_count=backup_count)
+            coshsh.util.setup_logging(
+                logdir=log_dir,
+                scrnloglevel=INFO,
+                backup_count=backup_count
+            )
+
         self.log_dir = log_dir
         logger = getLogger('coshsh')
 
+        # Create recipes
         for recipe in recipes:
-            matching_recipes = [r for r in sorted(recipe_configs.keys(), key=lambda x: len(x), reverse=True) if re.match(r, recipe)]
+            # Try regex matching if exact match not found
+            matching_recipes = [
+                r for r in sorted(recipe_configs.keys(), key=lambda x: len(x), reverse=True)
+                if re.match(r, recipe)
+            ]
+
             if recipe in recipe_configs.keys():
+                # Exact match
                 matching_recipes = [recipe]
             elif matching_recipes:
-                # [recipe_lebensmitteldiscounter_.*_.*] <- lebensmitteldiscounter_at_hq
-                logger.info("no direct hit, but matching recipes found: {}".format(", ".join(matching_recipes)))
+                # Regex match - use first (longest) match
+                logger.info(
+                    f"no direct hit, but matching recipes found: {', '.join(matching_recipes)}"
+                )
                 recipe_configs[recipe] = recipe_configs[matching_recipes[0]]
-                recipe_configs[recipe] = [('name', recipe) if kv[0] == 'name' else kv for kv in recipe_configs[recipe]]
-            if matching_recipes:
-                recipe_configs[recipe].append(('force', force))
-                if not [v for k, v in recipe_configs[recipe] if k == "safe_output"] or not [v for k, v in recipe_configs[recipe] if k == "safe_output"][0]:
-                    # commandline --safe-output has priority
-                    recipe_configs[recipe].append(('safe_output', safe_output))
-                if not [c for c in recipe_configs[recipe] if c[0] == 'pid_dir']:
-                    recipe_configs[recipe].append(('pid_dir', pid_dir))
-                recipe_configs[recipe].append(('coshsh_config_mappings', coshsh_config_mappings))
-                self.add_recipe(**dict(recipe_configs[recipe]))
-                if recipe not in self.recipes:
-                    # something went wrong in add_recipe. we should already see
-                    # an error message here.
-                    continue
-                #self.recipes[recipe].update_ds_dr_class_factories()
-                vault_problems = False
-                for vault in self.recipes[recipe].vault_names:
-                    if vault in vault_configs.keys():
-                        try:
-                            self.recipes[recipe].add_vault(**dict(vault_configs[vault]))
-                        except Exception as e:
-                            vault_problems = True
-                    else:
-                        logger.error("Vault %s is unknown" % vault)
-                if vault_problems:
-                    # other than datasource and recipient, a vault is
-                    # not just instantiated and provisioned with the
-                    # attributes from the cookbook. in add_vault it is
-                    # already opened and the data are read, because we
-                    # need the secrets right now. in add_datasource and
-                    # add_datarecipients we might need to resolve
-                    # passwords which are a pointer to a vault's record.
-                    # if anything goes wrong here, we immediately abort by
-                    # removing the affected recipe. the generator then
-                    # usually calls run() without running a recipe.
-                    del self.recipes[recipe]
-                    continue
-                for ds in self.recipes[recipe].datasource_names:
-                    if ds in datasource_configs.keys():
-                        datasource_configs[ds].append(('coshsh_config_mappings', coshsh_config_mappings))
-                        self.recipes[recipe].add_datasource(**dict(datasource_configs[ds]))
-                    else:
-                        logger.error("Datasource %s is unknown" % ds)
-                for dr in self.recipes[recipe].datarecipient_names:
-                    if dr == "datarecipient_coshsh_default":
-                        # implicitely added by recipe.__init__
-                        pass
-                    elif dr in datarecipient_configs.keys():
-                        datarecipient_configs[dr].append(('coshsh_config_mappings', coshsh_config_mappings))
-                        self.recipes[recipe].add_datarecipient(**dict(datarecipient_configs[dr]))
-                    else:
-                        logger.error("Datarecipient %s is unknown" % dr)
-            else:
-                logger.error("Recipe %s is unknown" % recipe)
+                # Update name to actual recipe name
+                recipe_configs[recipe] = [
+                    ('name', recipe) if kv[0] == 'name' else kv
+                    for kv in recipe_configs[recipe]
+                ]
 
-        if "prometheus_pushgateway" in cookbook.sections() and "address" in [c[0] for c in cookbook.items("prometheus_pushgateway")]:
-            self.add_pushgateway(**dict(cookbook.items("prometheus_pushgateway")))
+            if not matching_recipes:
+                logger.error(f"Recipe {recipe} is unknown")
+                continue
 
+            # Add command-line parameters
+            recipe_configs[recipe].append(('force', force))
+
+            # Add safe_output if not already set
+            existing_safe_output = [v for k, v in recipe_configs[recipe] if k == "safe_output"]
+            if not existing_safe_output or not existing_safe_output[0]:
+                recipe_configs[recipe].append(('safe_output', safe_output))
+
+            # Add default PID directory if not set
+            if not [c for c in recipe_configs[recipe] if c[0] == 'pid_dir']:
+                recipe_configs[recipe].append(('pid_dir', pid_dir))
+
+            # Add configuration mappings
+            recipe_configs[recipe].append(('coshsh_config_mappings', coshsh_config_mappings))
+
+            # Create recipe
+            self.add_recipe(**dict(recipe_configs[recipe]))
+
+            if recipe not in self.recipes:
+                # Recipe creation failed - error already logged
+                continue
+
+            # Add vaults
+            vault_problems = False
+            for vault in self.recipes[recipe].vault_names:
+                if vault in vault_configs.keys():
+                    try:
+                        self.recipes[recipe].add_vault(**dict(vault_configs[vault]))
+                    except Exception as e:
+                        vault_problems = True
+                        logger.error(f"Problem with vault {vault}: {e}")
+                else:
+                    logger.error(f"Vault {vault} is unknown")
+                    vault_problems = True
+
+            if vault_problems:
+                # Vault errors are fatal - remove recipe
+                # (we need secrets now for datasource passwords)
+                del self.recipes[recipe]
+                continue
+
+            # Add datasources
+            for ds in self.recipes[recipe].datasource_names:
+                if ds in datasource_configs.keys():
+                    datasource_configs[ds].append(
+                        ('coshsh_config_mappings', coshsh_config_mappings)
+                    )
+                    self.recipes[recipe].add_datasource(**dict(datasource_configs[ds]))
+                else:
+                    logger.error(f"Datasource {ds} is unknown")
+
+            # Add datarecipients
+            for dr in self.recipes[recipe].datarecipient_names:
+                if dr == "datarecipient_coshsh_default":
+                    # Implicitly added by recipe.__init__
+                    pass
+                elif dr in datarecipient_configs.keys():
+                    datarecipient_configs[dr].append(
+                        ('coshsh_config_mappings', coshsh_config_mappings)
+                    )
+                    self.recipes[recipe].add_datarecipient(**dict(datarecipient_configs[dr]))
+                else:
+                    logger.error(f"Datarecipient {dr} is unknown")
+
+        # Configure Prometheus pushgateway if specified
+        if "prometheus_pushgateway" in cookbook.sections():
+            pg_items = dict(cookbook.items("prometheus_pushgateway"))
+            if "address" in pg_items:
+                self.add_pushgateway(**pg_items)
