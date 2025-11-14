@@ -1,2 +1,4 @@
 public
 *.pyc
+tests/var/
+tests/recipes/test*/
