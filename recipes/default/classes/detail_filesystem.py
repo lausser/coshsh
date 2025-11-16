@@ -1,4 +1,4 @@
-"""Filesystem Monitoring Detail Plugin
+r"""Filesystem Monitoring Detail Plugin
 
 This plugin handles filesystem/disk space monitoring configuration.
 
@@ -137,7 +137,7 @@ def __detail_ident__(params: Optional[Dict[str, Any]] = None) -> Optional[type]:
 
 
 class MonitoringDetailFilesystem(coshsh.monitoringdetail.MonitoringDetail):
-    """Filesystem monitoring detail.
+    r"""Filesystem monitoring detail.
 
     Represents a filesystem to be monitored, with thresholds and options.
 

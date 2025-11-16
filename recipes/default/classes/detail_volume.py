@@ -1,4 +1,4 @@
-"""Storage Volume Monitoring Detail Plugin
+r"""Storage Volume Monitoring Detail Plugin
 
 This plugin handles storage volume monitoring configuration.
 
