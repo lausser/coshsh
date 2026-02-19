@@ -1,2 +1,11 @@
 public
 *.pyc
+__pycache__/
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+.DS_Store
+*.swp
+*.tmp

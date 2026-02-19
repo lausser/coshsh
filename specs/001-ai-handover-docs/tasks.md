@@ -22,11 +22,11 @@ each file is independent.
 **Purpose**: Create the skeleton document and directory so all story phases can work
 in parallel.
 
-- [ ] T001 Create `docs/` directory at repository root
-- [ ] T002 Create `docs/ai_handover.md` with complete table of contents and all
+- [x] T001 Create `docs/` directory at repository root
+- [x] T002 Create `docs/ai_handover.md` with complete table of contents and all
   section/subsection headings (skeleton only — no body content yet); headings MUST match
   the 17 sections + 3 appendices agreed in `specs/001-ai-handover-docs/contracts/doc-structure.md`
-- [ ] T003 [P] Run `pytest tests/ -q` to confirm the February 2026 baseline test suite
+- [x] T003 [P] Run `pytest tests/ -q` to confirm the February 2026 baseline test suite
   passes with zero failures before any file changes are made; record result in a comment
   in `specs/001-ai-handover-docs/research.md`
 
@@ -40,10 +40,10 @@ work begins.
 **⚠️ CRITICAL**: All story-phase inline comment work (US3) depends on T004 establishing
 the agreed pattern.
 
-- [ ] T004 Add module-level docstring to `coshsh/__init__.py` following the template in
+- [x] T004 Add module-level docstring to `coshsh/__init__.py` following the template in
   `specs/001-ai-handover-docs/contracts/comment-style.md` — this establishes the pattern
   for all subsequent comment tasks
-- [ ] T005 [P] Verify `docs/ai_handover.md` skeleton: confirm all 17 section headings and
+- [x] T005 [P] Verify `docs/ai_handover.md` skeleton: confirm all 17 section headings and
   3 appendix headings are present and the ToC anchor links resolve correctly
 
 **Checkpoint**: Skeleton ready — all user story documentation phases can now begin.

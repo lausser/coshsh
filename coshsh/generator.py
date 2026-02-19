@@ -6,6 +6,36 @@
 # This software is licensed under the
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
+"""
+Generator: top-level entry point that reads cookbook config files and drives recipe execution.
+
+Sole responsibility:
+    - Parse one or more INI-style "cookbook" files to discover recipe, datasource,
+      datarecipient, vault, and mapping definitions.
+    - Instantiate Recipe objects wired to their declared components.
+    - Iterate over recipes and delegate the collect -> assemble -> render -> output
+      pipeline to each Recipe.
+
+Does NOT:
+    - Implement any pipeline logic itself (that lives in coshsh.recipe.Recipe).
+    - Know about specific datasource, datarecipient, or vault plugins.
+    - Write monitoring config files to disk (datarecipients do that).
+
+Key classes:
+    Generator -- the single class in this module; typically instantiated once
+                 by the ``coshsh-cook`` CLI entry point.
+
+AI agent note:
+    The normal call sequence from ``bin/coshsh-cook`` is:
+        1. generator = Generator()
+        2. generator.set_default_log_level(...)
+        3. generator.read_cookbook(cookbook_files, ...)   # parses config, creates recipes
+        4. generator.run()                              # executes every recipe's pipeline
+    read_cookbook() is where cookbook INI sections are classified by prefix
+    (``recipe_``, ``datasource_``, ``datarecipient_``, ``vault_``, ``mapping_``)
+    and wired into Recipe objects.  run() then simply iterates and delegates.
+"""
+
 import os
 import re
 import logging
@@ -22,18 +52,40 @@ logger = logging.getLogger('coshsh')
 
 
 class Generator(object):
+    """Top-level controller that reads cookbook configs and runs recipes.
+
+    A Generator owns an ordered collection of Recipe objects.  It is the only
+    class that touches the cookbook INI files; once recipes are built, it hands
+    control to each Recipe for the actual data pipeline.
+    """
 
     base_dir = os.path.dirname(os.path.dirname(__file__))
     messages = []
 
     def __init__(self):
+        # WHY: recipes is an odict (ordered dict) rather than a plain dict so
+        # that recipes execute in the order they appear in the cookbook file.
+        # The cookbook author controls execution order by section ordering, and
+        # some deployments depend on earlier recipes populating shared state
+        # (e.g. class factories or filesystem artifacts) before later ones run.
         self.recipes = coshsh.util.odict()
         self.default_log_level = "info"
 
     def set_default_log_level(self, default_log_level):
+        """Set the log level that will be used when logging is initialized during read_cookbook().
+
+        This must be called *before* read_cookbook() because the cookbook reader
+        configures the logging subsystem based on this value.
+        """
         self.default_log_level = default_log_level
 
     def add_recipe(self, *args, **kwargs):
+        """Create a Recipe from keyword arguments and register it by name.
+
+        kwargs are the key-value pairs extracted from one ``[recipe_*]``
+        section of the cookbook.  On any exception the recipe is silently
+        skipped (an error is logged).
+        """
         try:
             recipe = coshsh.recipe.Recipe(**kwargs)
             self.recipes[kwargs["name"]] = recipe
@@ -41,15 +93,40 @@ class Generator(object):
             logger.error("exception creating a recipe: %s" % e)
 
     def get_recipe(self, name):
+        """Return the Recipe registered under *name*, or None if it does not exist."""
         return self.recipes.get(name, None)
 
     def add_pushgateway(self, *args, **kwargs):
+        """Store Prometheus Pushgateway connection details for run()-time metrics export."""
         self.pg_job = kwargs.get("job", "coshsh")
         self.pg_address = kwargs.get("address", "127.0.0.1:9091")
         self.pg_username = kwargs.get("username", None)
         self.pg_password = kwargs.get("password", None)
 
     def run(self):
+        """Execute every registered recipe's data pipeline.
+
+        For each recipe the sequence is:
+            update_item_class_factories -> pid_protect -> collect -> assemble ->
+            render -> output -> pid_remove
+
+        If a Prometheus Pushgateway was configured (via ``[prometheus_pushgateway]``
+        in the cookbook), timing and object-count metrics are pushed after each
+        recipe completes.
+        """
+        # WHY: Generator delegates to Recipe rather than running the pipeline
+        # itself.  Each Recipe encapsulates its own datasources, datarecipients,
+        # vaults, Jinja2 environment, class factories, and PID-file lock.
+        # Keeping all pipeline logic inside Recipe means Generator stays a thin
+        # orchestrator that only knows *which* recipes to run and in what
+        # order -- it never touches raw host/application data.  This separation
+        # makes it possible to test and reuse Recipe independently (e.g. in
+        # unit tests that call recipe.collect() directly) and keeps Generator
+        # focused on config parsing and recipe lifecycle management.
+        #
+        # NOTE: The prometheus_client import is inside a try/except because
+        # the library is an optional dependency.  If it is not installed,
+        # has_prometheus is set to False and all metrics-related code is skipped.
         try:
             from prometheus_client import CollectorRegistry, Gauge, push_to_gateway, pushadd_to_gateway
             from prometheus_client.exposition import basic_auth_handler, default_handler
@@ -134,6 +211,34 @@ class Generator(object):
             coshsh.util.restore_logging()
 
     def read_cookbook(self, cookbook_files, default_recipe, force, safe_output):
+        """Parse cookbook INI files and build fully wired Recipe objects.
+
+        Parameters:
+            cookbook_files  -- list of filesystem paths to INI cookbook files.
+            default_recipe -- comma-separated recipe names from --recipe flag,
+                              or None to use the cookbook's [defaults] section.
+            force          -- if True, datasources re-read even if cache is fresh.
+            safe_output    -- if True, datarecipients guard against accidental
+                             mass-deletion of monitoring configs.
+        """
+        # WHY: Cookbook parsing -- the cookbook is one or more INI files whose
+        # section names carry semantic prefixes (``recipe_``, ``datasource_``,
+        # ``datarecipient_``, ``vault_``, ``mapping_``).  This method classifies
+        # sections by prefix and collects their key-value pairs into dicts so
+        # they can later be passed as **kwargs to the appropriate add_*()
+        # methods.  The prefix-based convention keeps the cookbook format flat
+        # and human-editable while still encoding the type of each component.
+        #
+        # After collecting all section configs, the method resolves which
+        # recipes to run (explicit --recipe flag, ``[defaults].recipes``, or
+        # all non-underscore-prefixed recipes).  For each selected recipe it:
+        #   1. Instantiates the Recipe (add_recipe)
+        #   2. Attaches vaults        (add_vault -- must run first so secrets
+        #      are available for datasource/datarecipient password resolution)
+        #   3. Attaches datasources   (add_datasource)
+        #   4. Attaches datarecipients (add_datarecipient)
+        # This ordering is critical; see the ``# WHY: Vault resolution order``
+        # comment in recipe.py for details.
         self.cookbook_files = '___'.join(map(lambda cf: os.path.basename(os.path.abspath(cf)), cookbook_files))
         recipe_configs = {}
         datasource_configs = {}
@@ -189,6 +294,10 @@ class Generator(object):
         logger = getLogger('coshsh')
 
         for recipe in recipes:
+            # WHY: Recipe names in the cookbook can be regex patterns (e.g.
+            # ``[recipe_lebensmitteldiscounter_.*_.*]``).  We sort by
+            # descending length so that more specific patterns are tried first,
+            # giving an exact match priority over a broad wildcard.
             matching_recipes = [r for r in sorted(recipe_configs.keys(), key=lambda x: len(x), reverse=True) if re.match(r, recipe)]
             if recipe in recipe_configs.keys():
                 matching_recipes = [recipe]
