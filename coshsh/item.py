@@ -6,6 +6,17 @@
 # This software is licensed under the
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
+"""Base class for all coshsh configuration objects (Host, Application,
+Contact, HostGroup, ContactGroup).
+
+Sole responsibility: provide template rendering and monitoring detail
+resolution so that every configuration object can turn itself into one or
+more output files for any monitoring tool.
+
+This module does NOT handle plugin/class discovery -- that logic lives in
+datainterface.py (CoshshDatainterface).
+"""
+
 import os
 import re
 import locale
@@ -32,6 +43,19 @@ class Item(coshsh.datainterface.CoshshDatainterface):
         cls.env.trim_blocks = True
 
     def __init__(self, params={}):
+        """Initialise an Item from a dict of datasource parameters.
+
+        Each key/value pair in *params* becomes an instance attribute.
+        String values are stripped of surrounding whitespace unless the
+        subclass opts out via ``dont_strip_attributes`` (bool or list).
+
+        Sets up three core bookkeeping structures:
+        - ``monitoring_details``: list of detail objects waiting to be
+          resolved onto this item (see ``resolve_monitoring_details``).
+        - ``config_files``: rendered output, ready to be written to disk.
+        - ``object_chronicle``: audit trail of notable events for this
+          object.
+        """
         for key in params:
             if hasattr(self, "dont_strip_attributes") and isinstance(params[key], str):
                 if isinstance(self.dont_strip_attributes, bool) and self.dont_strip_attributes == True:
@@ -50,6 +74,11 @@ class Item(coshsh.datainterface.CoshshDatainterface):
             self.monitoring_details = []
         else:
             setattr(self, "monitoring_details", list(self.__class__.monitoring_details))
+        # WHY: config_files is a dict keyed by tool name (e.g. 'nagios',
+        # 'prometheus') because different datarecipients route output to
+        # different monitoring tools.  Each tool key maps to another dict of
+        # {filename: rendered_content}, allowing a single Item to produce
+        # output for multiple backends in a single render pass.
         self.config_files = {}
         self.object_chronicle = []
 
@@ -58,6 +87,14 @@ class Item(coshsh.datainterface.CoshshDatainterface):
             self.object_chronicle.append(message)
 
     def write_config(self, target_dir, want_tool=None):
+        """Write all rendered config files for this item to disk.
+
+        Creates a per-host subdirectory under *target_dir*/hosts/ and
+        writes every file previously stored in ``self.config_files``.
+        If *want_tool* is given, only files for that specific monitoring
+        tool are written (e.g. ``want_tool='nagios'``); otherwise all
+        tools are written.
+        """
         my_target_dir = os.path.join(target_dir, "hosts", self.host_name)
         if not os.path.exists(my_target_dir):
             os.makedirs(my_target_dir)
@@ -69,6 +106,22 @@ class Item(coshsh.datainterface.CoshshDatainterface):
                         f.write(content)
 
     def resolve_monitoring_details(self):
+        """Flatten monitoring detail objects into attributes on this item.
+
+        Each monitoring detail carries data from the datasource (e.g. a
+        filesystem to monitor, a TCP port, login credentials).  Resolution
+        walks the detail list and sets, appends, or merges each detail's
+        payload onto the parent object.  After resolution the item has
+        concrete attributes such as ``filesystems``, ``login``, ``ports``,
+        ``urls``, ``services``, etc. that templates can reference directly.
+
+        Details are consumed (removed from ``self.monitoring_details``) so
+        that calling this method again is safe and idempotent.
+        """
+        # WHY: monitoring detail resolution sets/appends/merges attributes
+        # onto the parent object.  After this loop the object gains
+        # attributes like ``filesystems``, ``login``, ``ports`` etc. that
+        # Jinja2 templates can iterate over when rendering config files.
         details = [d for d in self.monitoring_details]
         for detail in details:
             property = detail.__class__.property
@@ -99,6 +152,12 @@ class Item(coshsh.datainterface.CoshshDatainterface):
                     if not hasattr(self, property):
                         setattr(self, property, [])
                     if hasattr(detail.__class__, "unique_attribute"):
+                        # WHY: unique_attribute enforces replacement-instead-of-append
+                        # semantics.  If a detail class declares unique_attribute="path",
+                        # then two FILESYSTEM details with the same path value won't both
+                        # appear in the list — the newer one replaces the older one.
+                        # This prevents duplicate monitoring entries when the same detail
+                        # is supplied from multiple datasources or repeated in the data.
                         # from the details remove an existing detail
                         # - which is of this class
                         # - which has the same unique_attr
@@ -145,9 +204,24 @@ class Item(coshsh.datainterface.CoshshDatainterface):
         The name is a tribute to my favorite band.
         https://www.youtube.com/watch?v=hRguZr0xCOc&feature=youtu.be&t=212
         """
+        # WHY: this is a post-detail-resolution hook.  It runs after ALL
+        # monitoring_details have been promoted to attributes on the object
+        # but before create_templates/create_hostgroups/create_contacts.
+        # Subclasses override it to perform cross-detail reconciliation
+        # (e.g. merging LOGIN credentials into URL details, setting host
+        # macros from application details, or adding hostgroups based on
+        # detail values).  The base implementation is intentionally a no-op.
         pass
 
     def pythonize(self):
+        # WHY: datasources deliver list-type attributes as comma-separated
+        # strings (Nagios format).  pythonize converts them to Python lists
+        # so code can use append/extend/set operations.  depythonize is the
+        # inverse, called before rendering to restore Nagios-compatible CSV.
+        # The render_cfg_template cycle is: depythonize → render → pythonize,
+        # so list form is the "resting state" between renders.  Note that
+        # depythonize deduplicates and sorts all attributes EXCEPT templates
+        # (template ordering matters for Nagios config inheritance).
         if hasattr(self, "templates"):
             self.templates = self.templates.split(',')
         if hasattr(self, "contactgroups"):
@@ -192,6 +266,37 @@ class Item(coshsh.datainterface.CoshshDatainterface):
             self.service_notification_commands = ",".join(sorted(list(set(self.service_notification_commands))))
 
     def render_cfg_template(self, jinja2, template_cache, name, output_name, suffix, for_tool, **kwargs):
+        """Load a single Jinja2 template and render it into ``config_files``.
+
+        Parameters
+        ----------
+        jinja2 : object
+            Object whose ``env`` attribute is a Jinja2 Environment.
+        template_cache : dict
+            Shared cache mapping template names to compiled Template objects.
+        name : str
+            Logical template name (without ``.tpl`` extension).
+        output_name : str
+            Base filename for the rendered output.
+        suffix : str
+            File extension appended to *output_name* (e.g. ``'cfg'``).
+            When empty the file is written without an extension.
+        for_tool : str
+            Monitoring tool key (e.g. ``'nagios'``, ``'prometheus'``)
+            under which the output is stored in ``self.config_files``.
+        **kwargs
+            Extra variables passed into the Jinja2 render context
+            (typically ``self`` and the active recipe).
+
+        Returns
+        -------
+        int
+            Number of rendering errors encountered (0 on success).
+        """
+        # WHY: render_errors is a counter that accumulates Jinja2 rendering
+        # failures without aborting the whole run.  The caller aggregates
+        # the total so that coshsh can report how many templates failed
+        # while still producing output for everything that succeeded.
         render_errors = 0
         try:
             if not name in template_cache:
@@ -228,6 +333,15 @@ class Item(coshsh.datainterface.CoshshDatainterface):
         return render_errors
 
     def render(self, template_cache, jinja2, recipe):
+        """Render all applicable template rules for this item.
+
+        Iterates over ``self.template_rules`` and evaluates each rule's
+        conditions (``needsattr`` / ``isattr``) against the current
+        object state.  When a rule matches it delegates to
+        ``render_cfg_template`` to produce the output.
+
+        Returns the total number of render errors across all rules.
+        """
         render_errors = 0
         if not hasattr(self, 'template_rules'):
             return render_errors
@@ -260,6 +374,11 @@ class Item(coshsh.datainterface.CoshshDatainterface):
                 render_errors += 1
 
             if render_this:
+                # WHY: unique_config generates per-instance filenames
+                # (e.g. one file per filesystem, one per URL) by
+                # interpolating unique_attr values into a format string.
+                # Default (else branch) generates one file per template
+                # rule, using the template name as the output filename.
                 if rule.unique_config and isinstance(rule.unique_attr, str) and hasattr(self, rule.unique_attr):
                     render_errors += self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % getattr(self, rule.unique_attr), rule.suffix, rule.for_tool, **dict([(rule.self_name, self), ("recipe", recipe)]))
                 elif rule.unique_config and isinstance(rule.unique_attr, list) and functools.reduce(lambda x, y: x and y, [hasattr(self, ua) for ua in rule.unique_attr]):
