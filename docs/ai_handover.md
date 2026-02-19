@@ -146,6 +146,9 @@ version designed, written, and maintained by human contributors.
   - [16.2 OMD-specific path conventions](#162-omd-specific-path-conventions)
   - [16.3 Default recipe directory layout](#163-default-recipe-directory-layout)
   - [16.4 Running coshsh-cook inside OMD](#164-running-coshsh-cook-inside-omd)
+  - [16.5 Production deployment architecture](#165-production-deployment-architecture-check_git_updates)
+  - [16.6 Bootstrapping a new landscape](#166-bootstrapping-a-new-landscape-coshsh-prepare-landscape)
+  - [16.7 OMD package build](#167-omd-package-build-makefile)
 - [17. SNMP Trap Configuration via check_logfiles](#17-snmp-trap-configuration-via-check_logfiles)
   - [17.1 Use case and context](#171-use-case-and-context)
   - [17.2 Relevant datarecipient and template pattern](#172-relevant-datarecipient-and-template-pattern)
@@ -711,6 +714,11 @@ class MyDatasource(Datasource):
         pass  # release resources
 ```
 
+**Production datasource variants** (in `contrib/coshsh_in_omd/`):
+
+- **`DsDiscard`** (type `discard`): A null datasource whose `read()` empties all object collections (`self.objects[k] = {}` for each k). Placed at the end of a datasource list, it discards all previously collected data. Used for testing datarecipients in isolation or for recipes that should produce no Nagios config.
+- **`SnmpExporterGenerator`** (type `snmp_exporter_generator`): Reads SNMP exporter YAML module definitions from a directory and creates a custom `SNMPYaml` item type (an `Item` subclass with `id = 100981`) stored under `self.objects['snmpyamls']`. This demonstrates that the `objects` dict is extensible beyond the standard `hosts`/`applications`/`contacts` types — any string key can be used, and custom `Item` subclasses can provide their own `fingerprint()`, `config_files`, and rendering logic.
+
 See also: [3.5 datainterface.py](#35-datainterfacepy), [3.2 recipe.py](#32-recipepy), [4. Plugin / Extension System](#4-plugin--extension-system), [11. Hostname Transformations](#11-hostname-transformations), [12.1 Creating a datasource plugin](#121-creating-a-datasource-plugin)
 
 ---
@@ -797,6 +805,13 @@ datarecipient.output()
 ```
 
 The built-in `DatarecipientCoshshDefault` (in `recipes/default/classes/datarecipient_coshsh_default.py`) writes hosts, applications, hostgroups, contactgroups, and contacts to the `dynamic_dir`, performs git commit/push when a `.git` directory exists, and executes delta-safety checks (including `git reset --hard` when `safe_output` is enabled and delta exceeds `max_delta`).
+
+**Production datarecipient variants** (in `contrib/coshsh_in_omd/`, installed into `recipes/default/classes/` at OMD build time):
+
+- **`AtomicRecipient`** (type `atomic`): Writes files in-place using write-to-temp-then-rename (`os.rename`) for atomicity, avoiding any window where the monitoring core could read a half-written file. Supports `delta_watch` (uses `zlib.adler32` checksums to skip unchanged files), `delta_action` (runs a shell command like `omd reload nagios` after changes), and `items` (restricts output to specific object types like `mibconfigs`). `RemoteAtomicRecipient` (type `remote_atomic`) extends this for remote sites via `rsync`.
+- **`DatarecipientPrometheusSDFiles`** (type `prometheus_sd_files`): Writes Prometheus `file_sd` target files instead of Nagios config. Uses `want_tool = "prometheus"` to route only Prometheus-rendered config_files. Supports `objects_prefix` for multi-recipient directory sharing, file-level `hash()` delta, `fcntl.lockf` file locking, and git integration with `safe_output` rollback.
+- **`DatarecipientSNMPExporterGenerator`** (type `snmp_exporter_generator`): Generates Prometheus SNMP exporter `snmp.yml` from a custom `SNMPYaml` item type. Its `load()` method performs cross-object interaction — merging application `snmp_exporter_modules` into the YAML combiner before output. Calls the external `generator` binary as a subprocess and applies `.patch` YAML files post-generation.
+- **`DrDiscard`** (type `discard`): A null datarecipient whose `output()` is a no-op. Used to suppress the default recipient when only non-default recipients should run.
 
 See also: [3.5 datainterface.py](#35-datainterfacepy), [3.2 recipe.py](#32-recipepy), [9. Delta / Cache Safety Mechanism](#9-delta--cache-safety-mechanism), [4. Plugin / Extension System](#4-plugin--extension-system)
 
@@ -1871,7 +1886,14 @@ Each `[vault_NAME]` section defines a secrets backend.
 | `type` | string | (required) | Identifies which vault plugin to load via `__vault_ident__`. |
 | `name` | string | section name suffix | Logical name for the vault. |
 
-Additional keys are plugin-specific (e.g. `vault_pass` accepts `password_file`; `vault_naemon` accepts `vault_dir`). Vault sections are processed BEFORE datasource/datarecipient sections so that `@VAULT[key]` tokens in those sections can be resolved.
+Additional keys are plugin-specific. The naemon vault (`type = naemon_vault`) accepts:
+
+| Key | Type | Effect |
+|-----|------|--------|
+| `file` | file path | Path to the Vim-encrypted vault file (blowfish2). Supports `%ENV_VAR%` substitution. |
+| `key` | string | Decryption password. Use `%ENV_VAR%` (e.g. `%NAEMON_VIM_MASTER_PASSWORD%`) to avoid plaintext secrets in the config. |
+
+Vault sections are processed BEFORE datasource/datarecipient sections so that `@VAULT[key]` tokens in those sections can be resolved. See [§10.5 Built-in vault types](#105-built-in-vault-types) for vault file format and multi-environment patterns.
 
 ### 6.6 mapping_NAME section
 
@@ -2208,16 +2230,75 @@ hostname = @mapping_servers[db]
 
 ### 10.5 Built-in vault types
 
-The built-in vault plugins are located in `recipes/default/classes/`. Check for `vault*.py` files. Common types include:
+The built-in vault plugins are located in `recipes/default/classes/`. Check for `vault*.py` files.
 
-- **vault_pass**: Reads secrets from a password-store-compatible file. Config key: `password_file`.
-- **vault_naemon**: Reads secrets from Naemon/Nagios-format vault files. Config key: `vault_dir`.
+#### vault_naemon (type = `naemon_vault`)
+
+The primary production vault. Uses **Vim blowfish2 encryption** to store secrets at rest.
+
+**Configuration:**
+
+```ini
+[vault_naemon]
+type = naemon_vault
+file = ./etc/naemon/vault.cfg
+key = %NAEMON_VIM_MASTER_PASSWORD%
+```
+
+| Key | Effect |
+|-----|--------|
+| `file` | Path to the Vim-encrypted vault file (supports `%ENV_VAR%` substitution). |
+| `key` | Decryption password (typically supplied via `%ENV_VAR%` so it never appears in plaintext config). |
+
+**Creating/editing the vault file:**
+
+```bash
+vim -x -c "set cm=blowfish2" etc/naemon/vault.cfg
+```
+
+Vim encrypts the file with the `VimCrypt~03!` header (blowfish2 in CFB mode). The `NaemonVault.decrypt_vim_blowfish2()` method reimplements Vim's blowfish2 decryption using `pycryptodomex` (SHA-256 key derivation with 1000 iterations, little-endian Blowfish ECB for the keystream).
+
+**Vault file format** — plain `key = value` lines inside the encrypted file:
+
+```
+$VAULT:svcnow_pw_prod$ = v3rys3cr3t
+$VAULT:svcnow_pw_nonprod$ = n0ts0s3cr3t
+$VAULT:db_password$ = p@ssw0rd
+```
+
+**Key parsing** — `NaemonVault.read()` registers each secret under **three key variants** so lookups work regardless of how the key was written:
+
+1. Original: `$VAULT:svcnow_pw_prod$`
+2. Dollar-stripped: `VAULT:svcnow_pw_prod`
+3. Prefix-stripped: `svcnow_pw_prod`
+
+This means `@VAULT[svcnow_pw_prod]` in the INI config resolves correctly whether the vault file uses `$VAULT:svcnow_pw_prod$`, `VAULT:svcnow_pw_prod`, or just `svcnow_pw_prod` as the key.
+
+**Multi-environment secrets with `%RECIPE_NAME%`:**
+
+The most powerful pattern combines vault keys with the `%RECIPE_NAME%` variable (resolved before `@VAULT` substitution):
+
+```ini
+[datasource_servicenow]
+type = svcnow_cmdb_ci
+username = @MAPPING_SVCNOW[svcnow_user_%RECIPE_NAME%]
+password = @VAULT[svcnow_pw_%RECIPE_NAME%]
+```
+
+When cooking the `prod` recipe, `%RECIPE_NAME%` resolves to `prod`, so the token becomes `@VAULT[svcnow_pw_prod]`. This allows a **single datasource definition shared across recipes** with environment-specific credentials, eliminating config duplication.
 
 Custom vault plugins can be placed in the recipe's `classes_dir` to add support for HashiCorp Vault, AWS Secrets Manager, or any other backend.
 
 ### 10.6 Recipe-level secret resolution
 
 `recipe.substsecret(value)` performs the `@VAULT[key]` replacement. It is called automatically during `add_datasource()` and `add_datarecipient()` for every string parameter value. The method iterates `self.vault_secrets` (a flat dict populated by all vaults in the recipe) and replaces matching tokens.
+
+**Substitution order** (all happen during `read_cookbook()` / `add_datasource()` / `add_datarecipient()`):
+1. `%ENV_VAR%` substitution (environment variables, including `%RECIPE_NAME%`)
+2. `@MAPPING_NAME[key]` substitution (mapping section lookups)
+3. `@VAULT[key]` substitution (vault secret lookups)
+
+This ordering is critical: `%RECIPE_NAME%` inside a vault key (e.g. `@VAULT[pw_%RECIPE_NAME%]`) is resolved to the recipe name *before* the `@VAULT` token is matched, allowing per-recipe credential selection from a single vault.
 
 **Critical timing constraint:** Vaults MUST be loaded (via `add_vault()`) BEFORE datasources and datarecipients. This is enforced by `generator.read_cookbook()` which processes vault sections first. If vault loading fails, unresolved `@VAULT[key]` tokens will be passed as literal strings to plugin constructors, likely causing authentication failures.
 
@@ -2507,24 +2588,29 @@ my_jinja2_extensions = filter_truncate, is_valid_ip, global_site_name
 
 ### 12.6 Full recipe with vault integration
 
+This example demonstrates the naemon vault with the `%RECIPE_NAME%` multi-environment pattern. A single cookbook defines both `prod` and `nonprod` recipes sharing the same datasource definition, with per-recipe credentials resolved automatically.
+
 ```ini
 [defaults]
 log_dir = /var/log/coshsh
 pid_dir = /var/run/coshsh
 
-[vault_secrets]
-type = my_vault
-vault_path = /etc/coshsh/secrets.conf
+[vault_credentials]
+type = naemon_vault
+file = %OMD_ROOT%/etc/naemon/vault.cfg
+key = %NAEMON_VIM_MASTER_PASSWORD%
 
-[mapping_environments]
-prod = production-db.example.com
-staging = staging-db.example.com
+[mapping_svcnow]
+svcnow_user_prod = monitoring
+svcnow_user_nonprod = monitoring-test
+svcnow_url_prod = https://svcnow.example.com
+svcnow_url_nonprod = https://svcnow-test.example.com
 
 [datasource_cmdb]
-type = mydatasource
-hostname = @mapping_environments[prod]
-username = coshsh_reader
-password = @VAULT[cmdb_password]
+type = svcnow_cmdb_ci
+url = @MAPPING_SVCNOW[svcnow_url_%RECIPE_NAME%]
+username = @MAPPING_SVCNOW[svcnow_user_%RECIPE_NAME%]
+password = @VAULT[svcnow_pw_%RECIPE_NAME%]
 hostname_transform = strip_domain, to_lower
 
 [datasource_details]
@@ -2533,22 +2619,36 @@ dir = %DATA_DIR%/monitoring_details
 
 [datarecipient_nagios]
 type = datarecipient_coshsh_default
-objects_dir = %OMD_ROOT%/var/coshsh/configs/production
+objects_dir = %OMD_ROOT%/var/coshsh/configs/%RECIPE_NAME%
 max_delta = -30:-30
 safe_output = true
 want_tool = nagios
 
-[recipe_production]
+[recipe_prod]
 classes_dir = /opt/coshsh/classes/production, /opt/coshsh/classes/shared
 templates_dir = /opt/coshsh/templates/production, /opt/coshsh/templates/shared
-objects_dir = %OMD_ROOT%/var/coshsh/configs/production
+objects_dir = %OMD_ROOT%/var/coshsh/configs/prod
 datasources = cmdb, details
 datarecipients = nagios
-vaults = secrets
+vaults = credentials
 my_jinja2_extensions = filter_truncate, is_valid_ip
+
+[recipe_nonprod]
+isa = recipe_prod
+objects_dir = %OMD_ROOT%/var/coshsh/configs/nonprod
 ```
 
-See also: [§4 Plugin / Extension System](#4-plugin--extension-system), [§6 INI Configuration File Reference](#6-ini-configuration-file-reference)
+**Resolution flow for `recipe_prod`:**
+1. `%RECIPE_NAME%` → `prod` (everywhere in datasource/datarecipient params)
+2. `@MAPPING_SVCNOW[svcnow_user_prod]` → `monitoring`
+3. `@VAULT[svcnow_pw_prod]` → decrypted value from vault file
+
+**Resolution flow for `recipe_nonprod`:**
+1. Inherits all settings from `recipe_prod` via `isa`
+2. `%RECIPE_NAME%` → `nonprod`
+3. `@VAULT[svcnow_pw_nonprod]` → different decrypted value
+
+See also: [§4 Plugin / Extension System](#4-plugin--extension-system), [§6 INI Configuration File Reference](#6-ini-configuration-file-reference), [§10.5 Built-in vault types](#105-built-in-vault-types)
 
 ---
 
@@ -2895,6 +2995,30 @@ OMD[mysite]:~$ coshsh-cook --cookbook %OMD_ROOT%/etc/coshsh/conf.d/production.cf
 ```
 
 The `coshsh-cook` script is the CLI entry point. It instantiates a `Generator`, calls `read_cookbook()`, then `run()`. Within OMD, `%OMD_ROOT%` is automatically available as an environment variable.
+
+### 16.5 Production deployment architecture (check_git_updates)
+
+In production, coshsh typically runs on a **central generator host** and pushes generated configs into git repositories. Remote OMD monitoring sites then pull configs via the `check_git_updates` script (`contrib/coshsh_in_omd/check_git_updates`, installed as `$OMD_ROOT/bin/check_git_updates`). The full flow:
+
+1. **Central generator** runs `coshsh-cook`, which writes configs into `$OMD_ROOT/var/coshsh/configs/<recipe>/dynamic/` and git-commits them.
+2. **Remote monitoring sites** run `check_git_updates` periodically (via cron). It pulls both `static/` and `dynamic/` git repos.
+3. **Syntax validation**: After pulling, `check_git_updates` runs `nagios -v` (or the equivalent for the active monitoring core). If the config is valid, it executes `omd reload`. If invalid, it **rolls back both repos** to their previous commit via `git reset --hard` and archives the failed config as `$OMD_ROOT/var/last_failed_generated_config.tgz`.
+4. **Landscape grouping**: `OMD_LANDSCAPE` groups multiple OMD sites. The `static/` repo is shared per-landscape (containing service templates, command definitions), while the `dynamic/` repo is per-site. This allows shared configuration templates across a fleet of monitoring sites.
+5. **Three-repo pattern per site**: Each site directory contains `static/` (pulled from central, coshsh output), `dynamic/` (pulled from central, coshsh output), and `custom/` (local git repo for hand-written configs that coexist with generated ones).
+
+### 16.6 Bootstrapping a new landscape (coshsh-prepare-landscape)
+
+The `coshsh-prepare-landscape` script (`contrib/coshsh_in_omd/coshsh-prepare-landscape`) bootstraps a new OMD deployment:
+1. Creates `static/` directory with `git init` and seed service templates (`os.cfg` and `app.cfg` with sensible defaults)
+2. Generates a starter cookbook config at `etc/coshsh/conf.d/<landscape>.cfg` with two recipes — a landscape-level recipe and a site-level recipe using `isa` inheritance
+3. Scaffolds default templates for Linux/Windows OS monitoring via `coshsh-create-template-tree`
+
+### 16.7 OMD package build (Makefile)
+
+The `contrib/coshsh_in_omd/Makefile` shows how coshsh is packaged for OMD:
+- Library installed into `$OMD_ROOT/lib/python/`, CLI tools into `$OMD_ROOT/bin/`, recipes/templates/contrib into `$OMD_ROOT/share/coshsh/`
+- **Contrib plugins are installed into `recipes/default/classes/`**, making them available as default classpath entries for all recipes. This means `datarecipient_atomic.py`, `datasource_snmptt.py`, `datarecipient_prometheus_sd_files.py`, etc. are automatically discoverable without any `classes_dir` configuration.
+- The `skel/` directory provides the OMD skeleton: `etc/coshsh/{conf.d,data,recipes}` and `var/coshsh/configs/` with `.gitignore` placeholders
 
 ---
 
