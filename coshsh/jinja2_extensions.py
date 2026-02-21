@@ -219,7 +219,7 @@ def filter_custom_macros(obj):
 # or hostname) into a URI-safe form.  This is used in templates that generate
 # URLs for web-based monitoring dashboards (e.g., Thruk action URLs).
 def filter_rfc3986(text):
-    return 'rfc3986://' + urllib.request.pathname2url(text.encode('utf-8'))
+    return 'rfc3986://' + urllib.request.pathname2url(text)
 
 def filter_neighbor_applications(application):
     return [app for app in application.host.applications]

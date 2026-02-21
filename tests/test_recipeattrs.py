@@ -85,7 +85,7 @@ class CoshshTest(CommonCoshshTest):
         ds = r.get_datasource('csv10.1')
         ds.objects = r.objects
         bash_breaker = u"*(;!&haha,friss!das!du!blöde!shell!"
-        bash_breaker_encoded = 'rfc3986://' + urllib.request.pathname2url(bash_breaker.encode('utf-8'))
+        bash_breaker_encoded = 'rfc3986://' + urllib.request.pathname2url(bash_breaker)
         setattr(ds, "sid", "ORCL1234")
         setattr(ds, "username", "zosch")
         setattr(ds, "password", bash_breaker)
