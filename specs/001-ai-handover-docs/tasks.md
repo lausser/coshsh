@@ -7,6 +7,15 @@ description: "Task list for 001-ai-handover-docs"
 **Input**: Design documents from `/specs/001-ai-handover-docs/`
 **Prerequisites**: plan.md ✅ spec.md ✅ research.md ✅ data-model.md ✅ contracts/ ✅
 
+**Status**: ✅ **COMPLETE** — All 45/45 tasks done. Final test run: 97 passed, 1 pre-existing failure.
+
+**Completion commits** (branch `001-ai-handover-docs`):
+- `1c989cf` — spec, plan, tasks skeleton
+- `6a13343` — all 17 doc sections + 3 appendices written
+- `b7c6b21` — inline WHY comments and docstrings to all 19 coshsh modules
+- `6a668dd` — vault/secrets enrichment from naemon vault and contrib insights
+- `c0d1d7f` — production patterns, owner corrections, completeness audit fixes
+
 **Tests**: No automated test tasks — this is a pure documentation feature. Acceptance
 is verified by the 8 measurable success criteria in spec.md. A baseline pytest run and
 a final accuracy audit are included as verification checkpoints.
@@ -62,42 +71,42 @@ and explain why the delta safety mechanism exists — all without consulting sou
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Write `docs/ai_handover.md` §1 (Project Purpose and Use Cases):
+- [x] T006 [US1] Write `docs/ai_handover.md` §1 (Project Purpose and Use Cases):
   §1.1 what coshsh does, §1.2 Nagios/Icinga use case, §1.3 OMD integration use case,
   §1.4 SNMP trap / check_logfiles use case, §1.5 known deployments and scale (60k+
   services); facts from `research.md` and `doc/coshsh.md`
 
-- [ ] T007 [US1] Write `docs/ai_handover.md` §2 (Architecture Overview): §2.1 text
+- [x] T007 [US1] Write `docs/ai_handover.md` §2 (Architecture Overview): §2.1 text
   component diagram, §2.2 the four-phase pipeline with method names
   (`recipe.collect()` → `recipe.assemble()` → `recipe.render()` → `recipe.output()`),
   §2.3 phase dependency chain (WHY order is non-negotiable), §2.4 the shared `recipe.objects`
   dictionary structure; add "See also: §3.2 recipe.py" cross-reference
 
-- [ ] T008 [P] [US1] Write `docs/ai_handover.md` §3 subsections for orchestration layer:
+- [x] T008 [P] [US1] Write `docs/ai_handover.md` §3 subsections for orchestration layer:
   §3.1 `generator.py` (responsibility, Generator class, `read_cookbook`, `run`),
   §3.2 `recipe.py` (responsibility, Recipe class, four pipeline methods, pid protection,
   safe_output, vault resolution); include preconditions/postconditions per method;
   add "See also: §2.2, §9, §10" cross-references
 
-- [ ] T009 [P] [US1] Write `docs/ai_handover.md` §3 subsections for data layer:
+- [x] T009 [P] [US1] Write `docs/ai_handover.md` §3 subsections for data layer:
   §3.3 `datasource.py` (Datasource base class, `__ds_ident__`, open/read/close interface,
   exception types), §3.4 `datarecipient.py` (Datarecipient base class, output method,
   delta tracking, git integration), §3.5 `datainterface.py` (CoshshDatainterface,
   class factory mechanism, reversed iteration); add "See also: §4" cross-references
 
-- [ ] T010 [P] [US1] Write `docs/ai_handover.md` §3 subsections for object layer:
+- [x] T010 [P] [US1] Write `docs/ai_handover.md` §3 subsections for object layer:
   §3.6 `item.py` (Item base class, config_files structure keyed by tool, monitoring detail
   resolution, render method), §3.7 `host.py`, §3.8 `application.py` (class factory,
   GenericApplication), §3.9 `contact.py`, §3.10 `contactgroup.py`, §3.11 `hostgroup.py`;
   include fingerprint() return values for each
 
-- [ ] T011 [P] [US1] Write `docs/ai_handover.md` §3 subsections for support layer:
+- [x] T011 [P] [US1] Write `docs/ai_handover.md` §3 subsections for support layer:
   §3.12 `monitoringdetail.py`, §3.13 `templaterule.py` (all constructor parameters),
   §3.14 `vault.py`, §3.15 `configparser.py` (isa inheritance), §3.16 `jinja2_extensions.py`,
   §3.17 `dependency.py`, §3.18 `util.py` (compare_attr, substenv, sanitize_filename,
   odict); add cross-references to §4, §5, §6, §7 as appropriate
 
-- [ ] T012 [US1] Write `docs/ai_handover.md` §4 (Plugin / Extension System):
+- [x] T012 [US1] Write `docs/ai_handover.md` §4 (Plugin / Extension System):
   §4.1 class factory mechanism (`CoshshDatainterface.init_class_factory` and `get_class`),
   §4.2 class path search order and catchall mechanism (catchall appended to END = lowest
   priority), §4.3.1–§4.3.4 all four ident function conventions with signatures and
@@ -105,7 +114,7 @@ and explain why the delta safety mechanism exists — all without consulting sou
   `vault*`), §4.5 reversed iteration order (WHY: user classes beat defaults), §4.6 catchall
   directories; add "See also: §3.5, §12" cross-references
 
-- [ ] T013 [US1] Write `docs/ai_handover.md` §14 (Edge Cases and Gotchas): all 8 edge
+- [x] T013 [US1] Write `docs/ai_handover.md` §14 (Edge Cases and Gotchas): all 8 edge
   cases from spec.md §Edge Cases — fingerprint collision, ident priority, catchall
   ordering, DatasourceNotAvailable handling, Jinja2 UndefinedError + render_errors,
   circular isa (unsupported), vault backend unreachable, max_delta with zero-baseline;
@@ -129,25 +138,25 @@ Guide) because §12 cross-references §4.
 
 ### Implementation for User Story 2
 
-- [ ] T014 [P] [US2] Write `docs/ai_handover.md` §5 (MonitoringDetail Type Reference):
+- [x] T014 [P] [US2] Write `docs/ai_handover.md` §5 (MonitoringDetail Type Reference):
   all 19 types — for each: `monitoring_type` string value, `monitoring_0`…`monitoring_N`
   parameter mapping, resulting object attribute name and type (str/list/dict), and one
   example of how it is used in a Jinja2 template; source of truth is
   `recipes/default/classes/detail_*.py`
 
-- [ ] T015 [P] [US2] Write `docs/ai_handover.md` §6 (INI Configuration File Reference):
+- [x] T015 [P] [US2] Write `docs/ai_handover.md` §6 (INI Configuration File Reference):
   all 7 section types as Markdown tables with columns: Key | Type | Default | Effect;
   §6.8 three substitution patterns (%ENV_VAR%, @VAULT[key], @MAPPING_NAME[key]) with
   examples; §6.9 isa recipe inheritance with example; add "See also: §10" cross-reference
 
-- [ ] T016 [P] [US2] Write `docs/ai_handover.md` §7 (Jinja2 Template System):
+- [x] T016 [P] [US2] Write `docs/ai_handover.md` §7 (Jinja2 Template System):
   §7.1 template discovery (FileSystemLoader + templates_path search order), §7.2 template
   caching mechanism, §7.3 all 8 built-in filters with signatures and examples, §7.4 built-in
   `re_match` test, §7.5 `environ` global, §7.6 custom extensions via `my_jinja2_extensions`
   key, §7.7 how `service` filter generates Nagios service definitions with NAGIOSCONF
   integration, §7.8 `.tpl` extension convention; add "See also: §5, §12.2" cross-references
 
-- [ ] T017 [US2] Write `docs/ai_handover.md` §12 (Plugin Authoring Guide):
+- [x] T017 [US2] Write `docs/ai_handover.md` §12 (Plugin Authoring Guide):
   **§12.1 Complete datasource example** — ident function, class with `open`/`read`/`close`,
   Host and Application creation, `self.add()`, corresponding recipe INI snippet;
   **§12.2 Complete application class example** — ident function with regex match, class
@@ -180,77 +189,77 @@ answers: (a) module responsibility, (b) why at least two non-obvious decisions w
 
 ### Implementation for User Story 3
 
-- [ ] T018 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/recipe.py`:
+- [x] T018 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/recipe.py`:
   must explain pid_protect purpose, safe_output guard, why assemble is separate from
   collect, vault resolution order, and the recipe.objects dict structure
 
-- [ ] T019 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/generator.py`:
+- [x] T019 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/generator.py`:
   must explain cookbook parsing, recipe ordering (odict), and why Generator delegates
   to Recipe rather than running the pipeline itself
 
-- [ ] T020 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/datainterface.py`:
+- [x] T020 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/datainterface.py`:
   MUST explain reversed class_factory iteration (WHY: user classes override defaults),
   dynamic importlib loading (WHY: plugin files are discovered at runtime), and what
   happens when two ident functions both match
 
-- [ ] T021 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/datasource.py`:
+- [x] T021 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/datasource.py`:
   must explain DatasourceNotAvailable vs DatasourceNotCurrent vs DatasourceNotReady
   exception semantics, the hostname_transform_ops chain, and the objects dict structure
 
-- [ ] T022 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/datarecipient.py`:
+- [x] T022 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/datarecipient.py`:
   must explain count_before/count_after delta tracking, positive vs negative max_delta
   semantics, safe_output git reset behaviour, and the for_tool routing mechanism
 
-- [ ] T023 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/item.py`:
+- [x] T023 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/item.py`:
   must explain why config_files is keyed by tool name, what monitoring detail resolution
   does to object attributes, when unique_config naming applies, and the render_errors
   counter
 
-- [ ] T024 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/application.py`:
+- [x] T024 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/application.py`:
   must explain the class factory redirect in __init__, GenericApplication fallback logic,
   and the fingerprint() composition (host_name + name + type)
 
-- [ ] T025 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/host.py`:
+- [x] T025 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/host.py`:
   must explain attribute normalisation (lowercasing type/os/hardware etc.), the ports
   list default of [22], and the is_correct() validation
 
-- [ ] T026 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/contact.py`:
+- [x] T026 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/contact.py`:
   must explain the clean_name() umlaut stripping and the fingerprint composition
   (name + type + address + userid)
 
-- [ ] T027 [P] [US3] Add module docstring + `# WHY:` comments to
+- [x] T027 [P] [US3] Add module docstring + `# WHY:` comments to
   `coshsh/contactgroup.py`: must explain its relationship to Contact and when it
   is created during assemble
 
-- [ ] T028 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/hostgroup.py`:
+- [x] T028 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/hostgroup.py`:
   must explain its relationship to Host and when it is created during assemble
 
-- [ ] T029 [P] [US3] Add module docstring + `# WHY:` comments to
+- [x] T029 [P] [US3] Add module docstring + `# WHY:` comments to
   `coshsh/monitoringdetail.py`: must explain the class factory pattern for detail types,
   property_type semantics (str/list/dict), property_attr flattening, unique_attribute
   deduplication, and WHY monitoring_0…N are used instead of named params
 
-- [ ] T030 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/templaterule.py`:
+- [x] T030 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/templaterule.py`:
   must explain every constructor parameter (needsattr, isattr, template, unique_attr,
   unique_config, suffix, self_name, for_tool) and the matching logic precedence
 
-- [ ] T031 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/vault.py`:
+- [x] T031 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/vault.py`:
   must explain vault plugin discovery, the @VAULT[key] substitution contract, and why
   vault resolution happens before datasource instantiation
 
-- [ ] T032 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/configparser.py`:
+- [x] T032 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/configparser.py`:
   must explain the isa inheritance mechanism (one-level deep, no cycle detection), how
   %ENV_VAR% and @VAULT[key] tokens are handled at parse time vs resolve time
 
-- [ ] T033 [P] [US3] Add module docstring + `# WHY:` comments to
+- [x] T033 [P] [US3] Add module docstring + `# WHY:` comments to
   `coshsh/jinja2_extensions.py`: must explain the `service` filter Nagios output
   generation, the rfc3986 filter purpose, and how custom extensions are registered
   via my_jinja2_extensions
 
-- [ ] T034 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/dependency.py`:
+- [x] T034 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/dependency.py`:
   must explain what this module models and when dependency objects are created
 
-- [ ] T035 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/util.py`:
+- [x] T035 [P] [US3] Add module docstring + `# WHY:` comments to `coshsh/util.py`:
   must explain compare_attr regex semantics, substenv substitution pattern, the odict
   ordered dict and WHY it is needed (preserve recipe order), and sanitize_filename
   MD5-suffix logic
@@ -272,31 +281,31 @@ standard architecture questions without opening any source file.
 
 ### Implementation for User Story 4
 
-- [ ] T036 [P] [US4] Write `docs/ai_handover.md` §8 (Output Directory Structure):
+- [x] T036 [P] [US4] Write `docs/ai_handover.md` §8 (Output Directory Structure):
   `dynamic/` vs `static/` purpose, full directory tree with example paths
   (`dynamic/hosts/server-nr1/host.cfg`, `dynamic/hosts/server-nr1/os_windows_default.cfg`,
   `dynamic/hostgroups/hostgroup_customer_*.cfg`), file naming conventions and
   `sanitize_filename` MD5 suffix for special characters; add "See also: §9" cross-reference
 
-- [ ] T037 [P] [US4] Write `docs/ai_handover.md` §9 (Delta / Cache Safety Mechanism):
+- [x] T037 [P] [US4] Write `docs/ai_handover.md` §9 (Delta / Cache Safety Mechanism):
   count_before/count_after flow, positive vs negative max_delta semantics with examples
   (e.g., max_delta = 10:20 vs max_delta = -10:-20), max_delta_action options (warn/error),
   safe_output git reset --hard + git clean -f -d, when to use safe_output in production;
   add "See also: §6.2" cross-reference
 
-- [ ] T038 [P] [US4] Write `docs/ai_handover.md` §10 (Vault and Secrets Management)
+- [x] T038 [P] [US4] Write `docs/ai_handover.md` §10 (Vault and Secrets Management)
   and §11 (Hostname Transformations): §10 covers all four substitution mechanisms with
   examples, built-in vault types (vault_pass, vault_naemon), recipe.substsecret; §11
   covers all 5 transform operations, configuration via hostname_transform key, execution
   order (left to right); add "See also: §6" cross-references
 
-- [ ] T039 [P] [US4] Write `docs/ai_handover.md` §15 (Prometheus Pushgateway
+- [x] T039 [P] [US4] Write `docs/ai_handover.md` §15 (Prometheus Pushgateway
   Integration), §16 (OMD Integration), §17 (SNMP Trap / check_logfiles): §15 metrics
   emitted + config; §16 OMD paths (%OMD_ROOT%), default recipe layout in OMD site,
   coshsh-cook invocation; §17 use case, datarecipient_prometheus_snmp pattern reference,
   testsnmptt test recipe as runnable reference; add cross-references to §6 and §8
 
-- [ ] T040 [US4] Write `docs/ai_handover.md` Appendix A (All Config Keys quick-reference
+- [x] T040 [US4] Write `docs/ai_handover.md` Appendix A (All Config Keys quick-reference
   table), Appendix B (All MonitoringDetail Types quick-reference table with monitoring_type
   values and result attributes), Appendix C (Class Factory Decision Tree — text diagram
   showing ident function lookup flow); update ToC anchor links to appendices
@@ -320,7 +329,7 @@ for accurate cross-references.
 
 ### Implementation for User Story 5
 
-- [ ] T041 [US5] Write `docs/ai_handover.md` §13 (Test Infrastructure Guide): §13.1
+- [x] T041 [US5] Write `docs/ai_handover.md` §13 (Test Infrastructure Guide): §13.1
   CommonCoshshTest base class (what setUp/tearDown do, class factory reset between
   tests — WHY: prevents cross-test contamination), §13.2 test recipe fixture layout
   under `tests/recipes/<testNN>/` (cfg file, classes/, templates/), §13.3 setup and
@@ -339,20 +348,20 @@ testable.
 
 **Purpose**: Accuracy audit, cross-reference verification, and final consistency check.
 
-- [ ] T042 [P] Factual accuracy audit of `docs/ai_handover.md`: for every class name,
+- [x] T042 [P] Factual accuracy audit of `docs/ai_handover.md`: for every class name,
   method signature, config key, and file path mentioned in the document, verify it
   matches the Feb 2026 baseline by grepping the actual source files; document any
   discrepancies found and fix them (satisfies SC-008)
 
-- [ ] T043 [P] Documentation coverage count: for each of the 18 `coshsh/*.py` files,
+- [x] T043 [P] Documentation coverage count: for each of the 18 `coshsh/*.py` files,
   verify a module-level docstring exists (`grep -c '"""' coshsh/*.py`) and that at least
   one `# WHY:` comment is present; record count in a comment appended to
   `specs/001-ai-handover-docs/research.md` (satisfies SC-003/SC-004)
 
-- [ ] T044 Run `pytest tests/ -q` after all inline comment additions to confirm no
+- [x] T044 Run `pytest tests/ -q` after all inline comment additions to confirm no
   executable code was accidentally modified; all tests MUST pass (zero regressions)
 
-- [ ] T045 [P] Verify all Markdown anchor links in `docs/ai_handover.md` ToC resolve
+- [x] T045 [P] Verify all Markdown anchor links in `docs/ai_handover.md` ToC resolve
   correctly; verify all "See also:" cross-references point to sections that exist;
   fix any broken links
 
