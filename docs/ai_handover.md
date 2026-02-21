@@ -67,6 +67,7 @@ version designed, written, and maintained by human contributors.
   - [5.17 KEYVALUES](#517-keyvalues)
   - [5.18 NAGIOSCONF](#518-nagiosconf)
   - [5.19 CUSTOM_MACRO](#519-custom_macro)
+  - [5.20 Custom detail types in production](#520-custom-detail-types-in-production)
 - [6. INI Configuration File Reference](#6-ini-configuration-file-reference)
   - [6.1 defaults section](#61-defaults-section)
   - [6.2 recipe_NAME section](#62-recipe_name-section)
@@ -86,6 +87,7 @@ version designed, written, and maintained by human contributors.
   - [7.6 Custom Jinja2 extensions](#76-custom-jinja2-extensions)
   - [7.7 Service filter and NAGIOSCONF](#77-service-filter-and-nagiosconf)
   - [7.8 Template file naming](#78-template-file-naming)
+  - [7.9 Advanced template techniques](#79-advanced-template-techniques)
 - [8. Output Directory Structure](#8-output-directory-structure)
   - [8.1 dynamic vs static directories](#81-dynamic-vs-static-directories)
   - [8.2 Host configuration files](#82-host-configuration-files)
@@ -214,8 +216,16 @@ https://github.com/Consol-Monitoring/omd). When running inside an OMD site, cosh
 - **log_dir**: `%OMD_ROOT%/var/coshsh`.
 - **cookbook config**: typically placed under `~/etc/coshsh/conf.d/<name>.cfg`.
 
-Each OMD site can have multiple recipes, each with its own classes, templates, and output
-directory. The `coshsh-cook` command is invoked from the site user context:
+A single recipe produces one set of config files — typically the config for the site's Nagios/Naemon process. An additional datarecipient can generate a second set (e.g. Prometheus SD files) from the same recipe run.
+
+In a typical monitoring landscape with multiple OMD sites, one **central generator site** runs `coshsh-cook` to generate config file sets for all remote monitoring sites. The output is written per-site:
+
+```
+~generatorsite/var/coshsh/configs/<enterprise>/<siteA>/dynamic/
+~generatorsite/var/coshsh/configs/<enterprise>/<siteB>/dynamic/
+```
+
+Each remote site regularly pulls updates for its respective config directory (see §16.5). The `coshsh-cook` command is invoked from the site user context:
 
 ```
 OMD[mysite]:~$ coshsh-cook --cookbook etc/coshsh/conf.d/myrecipe.cfg --recipe myrecipe
@@ -342,10 +352,14 @@ method names and their responsibilities are:
 4. **`recipe.output()`** -- Writes rendered configuration to disk via datarecipients.
    For each datarecipient, calls `datarecipient.count_before_objects()` (to count
    existing files for delta checking), `datarecipient.load(None, recipe.objects)` (to
-   receive the objects), `datarecipient.cleanup_target_dir()` (to remove stale files from
-   the `dynamic` subdirectory), `datarecipient.prepare_target_dir()` (to create directory
-   structure), and `datarecipient.output()` (to write `.cfg` files). The default
-   datarecipient writes files into `<objects_dir>/dynamic/hosts/<host_name>/`.
+   receive the objects), `datarecipient.cleanup_target_dir()` (to completely remove all
+   files from the `dynamic` subdirectory), `datarecipient.prepare_target_dir()` (to
+   recreate the directory structure), and `datarecipient.output()` (to write `.cfg`
+   files). The complete deletion before rewrite serves two purposes: it enables exact
+   before/after object counting for the `max_delta` safety check, and — since the
+   `objects_dir` is typically a git repository — a subsequent `git diff` shows exactly
+   what has changed between runs. The default datarecipient writes files into
+   `<objects_dir>/dynamic/hosts/<host_name>/`.
 
 ### 2.3 Phase dependency chain
 
@@ -410,6 +424,8 @@ See also: [Section 3 (Core Module Reference)](#3-core-module-reference) for deta
 ---
 
 ## 3. Core Module Reference
+
+**`coshsh/__init__.py`** — The package init file imports all 18 core modules in dependency order. It does not define any classes or functions. The import order matters: modules are loaded in a sequence that satisfies cross-module references during class factory initialization. Changing the import order can cause `ImportError` at startup.
 
 ### 3.1 generator.py
 
@@ -719,6 +735,42 @@ class MyDatasource(Datasource):
 - **`DsDiscard`** (type `discard`): A null datasource whose `read()` empties all object collections (`self.objects[k] = {}` for each k). Placed at the end of a datasource list, it discards all previously collected data. Used for testing datarecipients in isolation or for recipes that should produce no Nagios config.
 - **`SnmpExporterGenerator`** (type `snmp_exporter_generator`): Reads SNMP exporter YAML module definitions from a directory and creates a custom `SNMPYaml` item type (an `Item` subclass with `id = 100981`) stored under `self.objects['snmpyamls']`. This demonstrates that the `objects` dict is extensible beyond the standard `hosts`/`applications`/`contacts` types — any string key can be used, and custom `Item` subclasses can provide their own `fingerprint()`, `config_files`, and rendering logic.
 
+**Advanced pattern: Collector recipe (SNMP scanner → MySQL → config recipe)**
+
+The coshsh pipeline can be repurposed for live device scanning rather than config generation. The architecture uses two cooperating recipes:
+
+1. **Collector recipe** — A datasource subclass (e.g. `SnmpDetailScanner`) inherits from both `Datasource` and a DB helper (`ExtraDBDatasource`). Its `read()` method uses `concurrent.futures.ThreadPoolExecutor` with ~256 workers to SNMP-walk live network devices in parallel. Discovered details (VRFs, BGP peers, OSPF neighbors, interface lists) are written into MySQL tables with the standard monitoring detail schema:
+
+```sql
+CREATE TABLE IF NOT EXISTS <site>_extra_<recipe>_<ds>_details (
+    host_name varchar(64),
+    name varchar(128),
+    type varchar(128),
+    monitoring_type varchar(128),
+    monitoring_0 varchar(128),
+    ...
+    monitoring_7 varchar(128),
+    meta_last_updated timestamp DEFAULT CURRENT_TIMESTAMP,
+    meta_site varchar(64)
+)
+```
+
+The collector recipe's `datarecipients = discard` — it produces no config files. The database side-effect IS the output. A `close()` method prunes stale records (`DELETE ... WHERE meta_last_updated < NOW() - INTERVAL 1 DAY`).
+
+2. **Config recipe** — A separate `ExtraDBDatasource` reads those MySQL tables back via `SELECT * FROM <table>`, creates `MonitoringDetail` objects from each row, and adds them to the shared objects dict. The config recipe's primary datasource provides hosts and applications (e.g. from a CMDB/Snowflake cache); the extra DB datasource enriches them with live-discovered details that no CMDB contains.
+
+This pattern is valuable when monitoring details must be fetched from live systems (network topology, running services, configured IP addresses) rather than a CMDB. Since OMD sites always include a local MySQL instance, the database is always available for inter-recipe communication.
+
+**Advanced pattern: JSON-cache datasource architecture**
+
+When a datasource reads from a slow or fragile database (e.g. Snowflake), having multiple datasources or recipes query it in parallel would saturate the database server. The solution is a two-layer caching architecture:
+
+1. **Cache-writer recipe** — A dedicated recipe runs on a schedule and reads the slow database once, in a single thread. It writes the results as JSON files to a local directory (typically `/tmp/<SITE>_<VIEW>` per database view). A flag file (`/tmp/<SITE>_snowcache_updating`) is created during the write to signal that a refresh is in progress.
+
+2. **Config-generation datasources** — The actual datasources used by config-generation recipes read from these local JSON files instead of the database. They check for the flag file first and raise `DatasourceNotReady` if a cache refresh is in progress, preventing reads of partially-written data. Reading local JSON files is fast, so multiple recipes/datasources can safely run in parallel without database contention.
+
+This architecture decouples the slow database query from the fast config generation pipeline. The cache-writer recipe can run at a lower frequency (e.g. every 30 minutes) while config-generation recipes run frequently (e.g. every 5 minutes) against the always-available local cache.
+
 See also: [3.5 datainterface.py](#35-datainterfacepy), [3.2 recipe.py](#32-recipepy), [4. Plugin / Extension System](#4-plugin--extension-system), [11. Hostname Transformations](#11-hostname-transformations), [12.1 Creating a datasource plugin](#121-creating-a-datasource-plugin)
 
 ---
@@ -887,7 +939,7 @@ See also: [3.3 datasource.py](#33-datasourcepy), [3.4 datarecipient.py](#34-data
 
 | Class | Description |
 |---|---|
-| `EmptyObject` | Bare `object` subclass used as a namespace when a `MonitoringDetail` sets nested attributes (e.g. `detail.dictionary["ns:key"]` creates an `EmptyObject` on `self.ns`). |
+| `EmptyObject` | Bare `object` subclass used as a namespace when a `MonitoringDetail` sets nested attributes (e.g. `detail.dictionary["ns:key"]` creates an `EmptyObject` on `self.ns`). Note: this is a separate class from the `EmptyObject` in `recipe.py` (§3.2), which serves as a Jinja2 loader/env container. Both are independent bare namespace objects. |
 | `Item(coshsh.datainterface.CoshshDatainterface)` | Base class for all monitored objects. Inherits the class-factory plugin mechanism from `CoshshDatainterface`. |
 
 **Key methods.**
@@ -1027,6 +1079,52 @@ See also: `Item` base class in [section 3.6](#36-itempy); class factory mechanis
 - `template_rules` -- One rule rendering the `"contact"` template with `self_name="contact"`, `unique_attr="contact_name"`, `unique_config="contact_%s"`.
 
 See also: `Item` base class in [section 3.6](#36-itempy); `clean_umlauts` in [section 3.18](#318-utilpy); class factory in [section 4](#4-plugin--extension-system).
+
+**Production pattern: programmatic contact creation in datasources**
+
+In production, contacts and contact groups are often not read from a CMDB but created programmatically inside datasource `read()` methods. This wires monitoring notifications to external incident systems (ServiceNow, PagerDuty, email distribution lists) without requiring a separate contacts data source. The pattern:
+
+```python
+def create_support_groups(self, support_group, mail_type="MAIL"):
+    support_group = support_group.replace(";", ",")
+    mail_addresses = []
+    new_support_groups = []
+    for element in [p.strip() for p in support_group.split(",")]:
+        if "@" in element:
+            mail_addresses.append(element)
+        else:
+            new_support_groups.append(element)
+    if mail_addresses:
+        # deterministic contactgroup name from sorted email list
+        cg_name = hashlib.md5("+".join(mail_addresses).encode("utf-8")).hexdigest()
+        cg = ContactGroup({'contactgroup_name': cg_name})
+        if not self.find('contactgroups', cg.fingerprint()):
+            self.add('contactgroups', cg)
+        for address in mail_addresses:
+            c_name = address.replace("&", "_").replace("@", "_at_")
+            if len(c_name) > 32:
+                c_name = c_name[:8] + hashlib.md5(c_name.encode("utf-8")).hexdigest()
+            muser = Contact({
+                'name': c_name, 'userid': c_name,
+                'type': mail_type, 'address': address,
+                'notification_period': '24x7',
+            })
+            if not self.find('contacts', muser.fingerprint()):
+                muser.contactgroups.append(cg_name)
+                self.add('contacts', muser)
+            else:
+                muser = self.get('contacts', muser.fingerprint())
+                if cg_name not in muser.contactgroups:
+                    muser.contactgroups.append(cg_name)
+        new_support_groups.append(cg_name)
+    return new_support_groups
+```
+
+Key design decisions:
+- **MD5 hash of email list = deterministic contactgroup name**: The same set of email addresses always produces the same contactgroup, enabling deduplication across datasources and runs.
+- **`self.find()` before `self.add()`**: Prevents duplicate contacts/contactgroups. If a contact already exists (same fingerprint), the existing object is retrieved and the new contactgroup is appended to it.
+- **Contact name truncation**: Names longer than 32 characters are shortened with a hash to stay within Nagios limits.
+- The returned list of contactgroup names is then passed to `MonitoringDetail` objects (typically as `monitoring_6`) so that NAGIOSCONF details can wire services to the correct contact groups.
 
 ---
 
@@ -1346,6 +1444,38 @@ This ordering means recipe-specific directories are checked first (highest prior
 
 The same pattern is applied to `templates_path` for Jinja2 template resolution.
 
+**The built-in classes are starter examples, not a complete solution:**
+
+The classes and templates in `recipes/default/{classes,templates}` are a base equipment — they cover basic Linux and Windows monitoring and are suitable for quickly getting started with Nagios config generation. However, they are primarily intended to serve as **examples**. Users are expected to write their own classes (which they need anyway for the variety of enterprise software applications in their environment) and to tune or replace the existing classes and templates, adding features specific to their infrastructure. This is how coshsh gets embedded into an individual enterprise IT landscape.
+
+**Production class/template layout (OMD environment):**
+
+In an OMD (Open Monitoring Distribution) installation, the built-in classes and templates ship under:
+
+```
+~omdsite/share/coshsh/recipes/default/classes/
+~omdsite/share/coshsh/recipes/default/templates/
+```
+
+This path is hardcoded inside coshsh — it is **always appended internally** and must **not** be configured by the user. Users create their own custom class/template directories:
+
+```
+~siteuser/etc/coshsh/recipes/location1/classes/
+~siteuser/etc/coshsh/recipes/location1/templates/
+```
+
+These custom paths are then listed in the recipe's `classes_dir` and `templates_dir` settings (comma-separated if multiple). When the recipe is cooked, coshsh traverses the combined `classes_path` (user paths + internally appended default path) searching for matching ident functions.
+
+Because of the reversed iteration order (see §4.5), classes found in the custom directories **override** identically-matching classes from the default path. This enables several production patterns without modifying any core files:
+
+- **Enrich a detail type**: provide a custom `detail_filesystem.py` that adds Windows path handling or extra fields not in the built-in FILESYSTEM detail
+- **Create a more complex OS class**: provide a custom `os_linux.py` that sets SSH credentials, custom macros, and conditional hostgroups via `wemustrepeat()` — replacing the minimal built-in Linux starter class with a production-grade version
+- **Add enterprise application classes**: write `app_oracle.py`, `app_sap.py`, `app_weblogic.py` etc. — the built-in defaults have no knowledge of these; users must provide them
+- **Augment a datasource**: provide a custom `datasource_csv.py` that adds preprocessing, column mapping, or extra validation before the base CSV reader runs
+- **Override a datarecipient**: provide a custom `datarecipient_coshsh_default.py` with site-specific output logic
+
+The built-in class remains registered in `class_factory` but will never be reached for params that the custom ident function already claims. Multiple custom directories can be specified — all are searched before the default path (except catchall directories, which go after; see §4.6).
+
 ### 4.3 Ident function conventions
 
 Each plugin `.py` file must define a module-level ident function with a specific name depending on the plugin type. The ident function receives a `params` dict and must return either a class (indicating a match) or `None` (no match). The four ident function naming conventions are:
@@ -1443,6 +1573,33 @@ def __mi_ident__(params={}):
 
 This pattern ensures that every application gets at least some monitoring configuration, even if no specific plugin exists for its type. Without a catchall, applications with unrecognized types would have no matching class and would produce no monitoring config output.
 
+**Production catchall anatomy:**
+
+A real-world catchall class combines `needsattr` guards with `unique_attr` to produce per-type/per-name config files:
+
+```python
+class CatchAll(Application):
+    template_rules = [
+        TemplateRule(needsattr="services",
+            template="app_generic_svc",
+            unique_attr=['type', 'name'], unique_config="app_%s_%s_svc"),
+        TemplateRule(needsattr="ports",
+            template="app_generic_ports",
+            unique_attr=['type', 'name'], unique_config="app_%s_%s_ports"),
+        TemplateRule(needsattr="processes",
+            template="app_generic_processes",
+            unique_attr=['type', 'name'], unique_config="app_%s_%s_processes"),
+        TemplateRule(needsattr="docker_containers",
+            template="app_generic_docker_containers",
+            unique_attr=['type', 'name'], unique_config="app_%s_%s_docker"),
+    ]
+```
+
+Key design decisions:
+- **Every rule has a `needsattr` guard**: No rule fires unconditionally. A template only renders if the application actually has the named detail attribute. Applications without details produce zero output.
+- **`unique_attr=['type', 'name']`**: Produces per-type/per-name output files (e.g. `app_oracle_mydb_svc.cfg`), preventing collisions between different application instances on the same host.
+- **`wemustrepeat()`** in the catchall handles deduplication: if two PROCESS details share the same name but differ in parameters, an index suffix (`_0`, `_1`) is appended to `clean_name` to ensure unique `service_description` values (which Nagios requires).
+
 Catchall directories are optional. If no directory named `catchall` appears in `classes_dir`, no catchall behavior is applied. Multiple catchall directories can be specified; all will be appended at the end of the classpath in their original comma-separated order.
 
 See also: [section 3.5 datainterface.py](#35-datainterfacepy), [section 12 Plugin Authoring Guide](#12-plugin-authoring-guide)
@@ -1478,13 +1635,64 @@ app.create_contacts()
 - Conditionally adding hostgroups based on detail values (e.g. cluster membership from a detail adds the host to a cluster hostgroup)
 
 ```python
-# Example: an os_linux application merging SSH login details
+# Example: an os_linux application sets SSH macros on BOTH app and host
 class AppOsLinux(Application):
     def wemustrepeat(self):
-        if hasattr(self, 'login'):
-            self.ssh_port = getattr(self.login, 'port', '22')
-            self.host.macros['_SSH_PORT'] = self.ssh_port
+        self.SSHPORT = getattr(self, 'SSHPORT', 22)
+        self.SSHUSER = getattr(self, 'SSHUSER', os.environ.get('OMD_CLIENT_USER_LINUX', 'mon'))
+        # Set macros on the application
+        if not hasattr(self, 'custom_macros'):
+            self.custom_macros = {}
+        self.custom_macros['_SSHPORT'] = self.SSHPORT
+        self.custom_macros['_SSHUSER'] = self.SSHUSER
+        # Also set on the host -- this lets check_by_ssh in ANY
+        # application's template use $_HOSTSSHUSER$ without needing
+        # per-app SSH config.
+        if not hasattr(self.host, 'custom_macros'):
+            self.host.custom_macros = {}
+        self.host.custom_macros['_SSHPORT'] = self.SSHPORT
+        self.host.custom_macros['_SSHUSER'] = self.SSHUSER
 ```
+
+**Additional production patterns for `wemustrepeat()`:**
+
+- **Conditional hostgroup injection**: A network device class adds its host to `bgp_router` if the `bgp` detail is set, and adds a special contact_group for downtime coordination:
+  ```python
+  if hasattr(self, 'bgp') and str(self.bgp) == '1':
+      self.host.hostgroups.append('bgp_router')
+      self.host.contact_groups.append('bgp_ospf_downtime')
+  ```
+
+- **Attribute suppression**: Devices that should NOT get BGP monitoring despite having the detail (e.g. DMVPN spoke routers) can delete the attribute:
+  ```python
+  if re.match(r'.*(dmvpn|hub-media).*', self.host_name):
+      delattr(self, 'bgp')  # prevents TemplateRule(needsattr='bgp') from firing
+  ```
+
+- **NAGIOSCONF injection for per-service overrides**: When a SELF-HEAL detail has a support group with email addresses, inject a NAGIOSCONF detail to extend the service's contact_groups:
+  ```python
+  if hasattr(self, 'selfheals'):
+      for selfheal in self.selfheals:
+          if selfheal.support_group:
+              self.monitoring_details.append(MonitoringDetail({
+                  'host_name': self.host_name,
+                  'name': self.name,
+                  'type': self.type,
+                  'monitoring_type': 'NAGIOSCONF',
+                  'monitoring_0': 'os_linux_default_check_process_' + selfheal.command,
+                  'monitoring_1': 'contact_groups ',
+                  'monitoring_2': '+' + mail_group_hash,
+              }))
+  ```
+  This dynamically creates service-level config overrides at assembly time, which the `service` Jinja2 filter picks up during rendering.
+
+- **Prometheus exporter module list**: Network devices build their SNMP exporter module list from base modules plus dynamically discovered MIB OIDs:
+  ```python
+  self.snmp_exporter_modules = ['if_mib', 'snmpv2_mib', 'rmon_mib']
+  if hasattr(self, 'implemented_miboids'):
+      self.snmp_exporter_modules.extend([m.ymlfile for m in self.implemented_miboids if m.preferred])
+  self.snmp_exporter_modules = sorted(list(dict.fromkeys(self.snmp_exporter_modules)))
+  ```
 
 **`create_hostgroups()`** -- Called on hosts after detail resolution. Override to derive hostgroup membership from resolved attributes (e.g. OS type, location, department). Defined in `host.py`.
 
@@ -1799,6 +2007,45 @@ Note: There is also a `"NAGIOS"` type (in `detail_nagios.py`) with `property = "
 
 After resolution, `application.custom_macros` is a dict. The `custom_macros` Jinja2 filter renders these as `_KEY VALUE` lines in the service/host/contact definition.
 
+### 5.20 Custom detail types in production
+
+The built-in types above cover common use cases, but production deployments define many additional custom types. These illustrate patterns that go beyond simple attribute storage:
+
+**WINSERVICE** — Windows service monitoring with event handler logic:
+- `property = "services"`, `property_type = list`, `mandatory_fields = ["monitoring_0"]`
+- Constructor computes `clean_name` (strip `$()# ` chars), `has_event_handler` (boolean, set based on application name matching a whitelist), and `repair_command` (application-name-specific auto-heal command)
+- Template iterates `application.services`, conditionally emits `event_handler` and `max_check_attempts` directives based on `svc.has_event_handler` and `svc.repair_command`
+
+**PROCESS with parameters** — Extends the built-in PROCESS type:
+- `mandatory_fields = ["monitoring_0"]` prevents creation if `monitoring_0` is empty
+- `monitoring_3` = `parameters` (optional regex for argument matching)
+- Constructor computes `clean_name` for safe service description naming
+- Template branches on `proc.parameters` to generate different `check_command` variants (with vs without `--ereg-argument-array`)
+
+**Two classes from one ident function** — A single `__detail_ident__` can return different classes based on data content:
+
+```python
+def __detail_ident__(params={}):
+    if params["monitoring_type"] == "SELF-HEAL" and params["monitoring_0"].startswith("http"):
+        return MonitoringDetailUrlSelfHeal    # property = "urlselfheals"
+    elif params["monitoring_type"] == "SELF-HEAL":
+        return MonitoringDetailSelfHeal        # property = "selfheals"
+```
+
+Each class stores to a different `property` name, so both URL-based and process-based self-heal details coexist on the same application as separate lists.
+
+**Version migration pattern** — Handle schema evolution by matching multiple monitoring_types:
+
+```python
+def __detail_ident__(params={}):
+    if params["monitoring_type"] == "BGP PEER":      # legacy format
+        return MonitoringBGPPeerOld                    # property = "bgp_peers_old"
+    if params["monitoring_type"] == "BGPPEER":         # new format with VRF
+        return MonitoringBGPPeer                       # property = "bgp_peers"
+```
+
+The old class stores only `address`; the new class adds `vrf`. Templates can check both `application.bgp_peers` and `application.bgp_peers_old` for backward compatibility during migration.
+
 ---
 
 ## 6. INI Configuration File Reference
@@ -1848,6 +2095,17 @@ A `[recipe_NAME]` section defines a single generation pipeline. The section name
 Recipe names also set automatic environment variables: `RECIPE_NAME` is the full name, and `RECIPE_NAME1`, `RECIPE_NAME2`, etc. are the underscore-split components (1-indexed). These can be referenced in config values as `%RECIPE_NAME%`, `%RECIPE_NAME1%`, etc.
 
 Any key not listed above that does not start with `recipe_` is stored in `additional_recipe_fields` and forwarded to datasource/datarecipient constructors as `recipe_<key>`.
+
+**Multi-datasource sequential composition:**
+
+When a recipe lists multiple datasources (`datasources = cmdb,extradb,filter_host,infra,contacts,snmpdetails,hostgroups`), they execute sequentially in the listed order during the collect phase. Each datasource's `read()` method receives the shared `objects` dict, so later datasources can see and enrich objects created by earlier ones. This enables a pipeline pattern:
+
+1. **Primary datasource** (e.g. `cmdb`) — reads hosts and applications from the CMDB
+2. **Enrichment datasources** (e.g. `extradb`, `infra`) — add monitoring details, additional applications, or hostgroup memberships to already-existing hosts
+3. **Debugging datasource** (`filter_host`) — narrows the host list to a small subset. This is specifically a debugging tool: when developing or troubleshooting a recipe, it reduces the object count so that log output from subsequent datasources is small and readable. In production, this datasource is either removed or configured with a permissive filter.
+4. **Late-stage datasources** (e.g. `contacts`, `hostgroups`) — create contacts/contactgroups or assign hostgroups based on the fully-enriched host/application set
+
+The order matters: a datasource that assigns hostgroups based on application type must run after the datasource that creates those applications.
 
 ### 6.3 datasource_NAME section
 
@@ -1978,6 +2236,55 @@ objects_dir = /var/coshsh/configs/production
 - No cycle detection (the single-level constraint makes cycles impossible to trigger).
 - Inheritance is evaluated once at parse time; later programmatic changes are not retroactively inherited.
 
+**Production pattern: abstract base recipe with `%RECIPE_NAME%`**
+
+In large deployments a double-underscore prefix denotes an "abstract" base recipe that is never run directly. Concrete recipes inherit all settings and override only what differs. The `%RECIPE_NAME%` variable makes the inherited settings recipe-specific automatically:
+
+```ini
+[recipe__global]
+# Double underscore = abstract, never run directly
+classes_dir = %OMD_ROOT%/etc/coshsh/recipes/global/classes,
+              %OMD_ROOT%/etc/coshsh/recipes/global/catchall
+templates_dir = %OMD_ROOT%/etc/coshsh/recipes/global/templates
+objects_dir = %OMD_ROOT%/var/coshsh/configs/%RECIPE_NAME%
+datasources = cmdb,contacts,extradb,snmptt
+filter = cmdb(%RECIPE_NAME%),extradb(%RECIPE_NAME%)
+datarecipients = >>>,checklogfiles_mibs
+vaults = credentials
+
+[recipe_americas]
+isa = recipe__global
+# Inherits everything. %RECIPE_NAME% resolves to "americas".
+# filter becomes: cmdb(americas),extradb(americas)
+# objects_dir becomes: .../configs/americas
+
+[recipe_europe]
+isa = recipe__global
+# %RECIPE_NAME% resolves to "europe"
+
+[recipe_collector]
+isa = recipe__global
+classes_dir = %OMD_ROOT%/etc/coshsh/recipes/collector/classes
+datasources = cmdb,network_scanner
+filter = cmdb(all)
+datarecipients = discard
+# Side-effect-only recipe: scans live devices, writes to MySQL, discards all objects
+```
+
+The `@MAPPING` indirection pattern adds another layer: when recipe names don't align with datasource filter values, a mapping bridges them:
+
+```ini
+[mapping_regions]
+americas = us-east
+europe = eu-central
+asia_pacific = ap-southeast
+
+[datasource_cmdb]
+type = cmdb_connector
+region = @MAPPING_REGIONS[%RECIPE_NAME%]
+# recipe_americas → @MAPPING_REGIONS[americas] → "us-east"
+```
+
 See also: [§10 Vault and Secrets Management](#10-vault-and-secrets-management)
 
 ---
@@ -2053,6 +2360,30 @@ The recipe config key `my_jinja2_extensions` accepts a comma-separated list of f
 my_jinja2_extensions = filter_shorten, is_my_check, global_lookup
 ```
 
+**Production extension examples:**
+
+Real-world `my_jinja2_extensions.py` files typically define:
+
+- **`filter_map_format(value, pattern)`** -- Printf-style formatting for lists. Useful for building check_command arguments from a list of names:
+  ```jinja2
+  {{ application.services | map(attribute='name') | map('map_format', "'service=%s'") | join(' ') }}
+  {# Produces: 'service=httpd' 'service=mysqld' 'service=sshd' #}
+  ```
+
+- **`filter_is_in_hostgroups(host, groups)`** -- Tests whether a host belongs to any of the given hostgroups. Returns the list of matching groups (truthy if any match). Enables conditional template logic:
+  ```jinja2
+  {% if host|is_in_hostgroups(["security_cameras", "premises_security"]) %}
+      notifications_enabled           0   {# suppress alerts for these groups #}
+  {% endif %}
+  ```
+
+- **`is_virtual(obj)`** -- Tests whether a host/application is virtual (checks the `virtual` attribute, handling string `"0"`, int `0`, and bool `False` correctly):
+  ```jinja2
+  {% if application is virtual %}
+      check_command                   check_dummy!0!virtual_host_always_up
+  {% endif %}
+  ```
+
 ### 7.7 Service filter and NAGIOSCONF
 
 The `service` filter (`filter_service`) implements a two-tier output pattern central to coshsh's config-override model.
@@ -2078,6 +2409,116 @@ Template files use the `.tpl` extension. The filename (without `.tpl`) is refere
 The output config file is named `{template_name}.{suffix}` by default (e.g. `os_linux_default.cfg`). When `TemplateRule.unique_config` is set, the output filename is derived from unique_config + unique_attr values instead, enabling per-instance files (e.g. one `.cfg` per filesystem).
 
 See also: [§5 MonitoringDetail Type Reference](#5-monitoringdetail-type-reference), [§12.2 Creating an application class plugin](#122-creating-an-application-class-plugin)
+
+### 7.9 Advanced template techniques
+
+**Host template conditional cascades** — The `host.tpl` template uses multi-branch `if/elif/else` chains to customize host definitions based on type, hostgroup membership, and individual attributes:
+
+```jinja2
+{{ host|host }}
+    address                         {{ host.address }}
+{% if host.is_bp %}
+    check_command                   check_business_process
+{% elif host.type == 'ec2' %}
+    check_command                   check_ssh
+    notification_options            d,r
+{% elif host|is_in_hostgroups(["bgp_router"]) %}
+    check_command                   check_host_alive
+    notification_options            d,r,s   {# special: sets related services in maintenance #}
+{% else %}
+    check_command                   check_host_alive
+    notification_options            d,r
+{% endif %}
+}
+```
+
+Key patterns: The `host|host` filter opens the `define host {` block with NAGIOSCONF overlays. Hostgroup-based conditionals use the `is_in_hostgroups` filter (returns matching group names, truthy if any match). Type-based cascades test `host.type` for OS/device types set by the datasource.
+
+**Service dependencies** — Templates can emit Nagios `servicedependency` objects alongside service definitions. This is commonly used to suppress alerts when a prerequisite service (like SSH connectivity or plugin deployment) is down:
+
+```jinja2
+{% for proc in application.processes %}
+{{ application|service("myapp_proc_check_" + proc.clean_name) }}
+  host_name                       {{ application.host_name }}
+  check_command                   check_by_ssh!60!check_procs -c{{ proc.critical }} --ereg-argument-array='{{ proc.name }}'
+}
+{% if application.host.type != 'webserver' %}
+define servicedependency {
+  host_name                        {{ application.host_name }}
+  service_description              os_.*_default_plugin_rollout
+  dependent_service_description    myapp_proc_check_{{ proc.clean_name }}
+  execution_failure_criteria       u,w,c,p
+  notification_failure_criteria    u,w,c,p
+}
+{% endif %}
+{% endfor %}
+```
+
+The dependency references `service_description` with a regex pattern (`os_.*_default_plugin_rollout`) — Nagios matches this against existing services. The `application.host.type` guard excludes hosts where plugin rollout doesn't apply.
+
+**Dollar-sign escaping in Nagios macros** — Nagios uses `$` for runtime macros (e.g. `$HOSTADDRESS$`). In Jinja2 templates, use `$$` to produce a literal `$` in the output. This is essential for NSClient++ check commands:
+
+```jinja2
+  check_command  check_nsc_web!30!check_service 'service={{ svc.name }}' \
+      'ok-syntax=$${status}: $${ok_list}' \
+      'top-syntax=$${status}: $${crit_list}'
+```
+
+The `$$` is a Jinja2/Nagios interaction: Jinja2 passes `$$` through unchanged, and Nagios interprets `$$` as a literal `$` character (not a macro expansion).
+
+**Event handler conditionals** — Templates test detail attributes set by the constructor to conditionally emit `event_handler` directives:
+
+```jinja2
+{% for svc in application.services %}
+{{ application|service("myapp_svc_check_" + svc.clean_name) }}
+  host_name                       {{ application.host_name }}
+  check_command                   check_nsc_web!30!check_service 'service={{ svc.name }}'
+{% if svc.has_event_handler %}
+{% if svc.repair_command %}
+  event_handler                   handler_service_self_heal!{{ svc.name }}!{{ svc.repair_command }}
+{% else %}
+  event_handler                   handler_service_self_heal!{{ svc.name }}
+{% endif %}
+  max_check_attempts              4
+  notifications_enabled           0
+{% endif %}
+}
+{% endfor %}
+```
+
+The `has_event_handler` and `repair_command` attributes are computed in the MonitoringDetail constructor based on the application name, keeping the template logic simple.
+
+**Three-tier process check branching** — Windows process monitoring uses three distinct check variants based on how process arguments should be matched:
+
+```jinja2
+{% if proc.regex_parameters %}
+  check_command   check_nsc_web!30!check_process 'process={{ proc.name }}' \
+      "filter=command_line regexp '{{ proc.regex_parameters }}'"
+{% elif proc.parameters %}
+  check_command   check_nsc_web!30!check_process 'process={{ proc.name }}' \
+      "filter=command_line = '{{ proc.escaped_parameters }}'"
+{% else %}
+  check_command   check_nsc_web!30!check_process 'process={{ proc.name }}'
+{% endif %}
+```
+
+The `regex_parameters` and `escaped_parameters` attributes are computed in the detail class constructor, moving complexity out of the template.
+
+**Domain-scoped conditionals** — Even though complex logic belongs in classes (which are code anyway), templates can run code-like filter combinations to direct rendering. The `re_match` test combined with string checks enables per-datacenter feature gating:
+
+```jinja2
+{% if "us.example.com" in application.host_name %}
+    _DATACENTER                     us
+{% elif application.host_name is re_match("^(eur|emea)-", "i") %}
+    _DATACENTER                     eur
+{% endif %}
+
+{% if application.host_name is re_match("^(us|eur)-omd") %}
+    check_interval                  1
+{% endif %}
+```
+
+The `re_match` test uses `re.search` (not `re.match`), so patterns match anywhere in the string unless anchored with `^`. The optional second argument is a string of regex flag characters (e.g. `"i"` for case-insensitive). This approach is simpler than creating separate application classes per datacenter, but for anything beyond a few conditionals, a class with `wemustrepeat()` is the better pattern.
 
 ---
 
@@ -2308,6 +2749,12 @@ See also: [§6.8 Variable substitution](#68-variable-substitution)
 
 ## 11. Hostname Transformations
 
+**The problem:** In real-world installations, multiple datasources often contain the same host objects but with different naming conventions — some with FQDN, some without domain, some in capital letters, some mixed case. Since the hostname is part of every object's fingerprint (hosts, applications, details), a host called `SERVER01` in one datasource and `server01.example.com` in another will produce two separate Host objects that actually refer to the same physical machine.
+
+`transform_hostname()` solves this by normalizing hostnames at read time, before objects are created. Each datasource can specify its own transform pipeline, so a CMDB that stores FQDNs and a scanner that stores short names can both produce the same normalized hostname, allowing their objects to merge correctly in the shared objects dict.
+
+When `transform_hostname()` is not sufficient (e.g. two datasources use completely unrelated naming schemes for the same host), the fallback is to write an additional datasource that runs after the others and merges duplicate Host objects. This merge datasource iterates `self.getall("hosts")` and must also merge the associated applications and details, because their fingerprints contain the hostname. At minimum, hosts sharing the same IP address can be assumed to refer to the same machine. If even the IP address differs, they are genuinely distinct hosts and should remain as separate Nagios host objects.
+
 ### 11.1 strip_domain
 
 Removes everything after the first dot. `server01.example.com` becomes `server01`. Skipped for bare IP addresses (detected via `socket.inet_aton()`).
@@ -2465,6 +2912,84 @@ class MyApp(coshsh.application.Application):
 {% endfor %}
 ```
 
+**Advanced: multi-class ident with subclass hierarchy**
+
+A single `__mi_ident__` function can return different classes based on hostname patterns, type substrings, or other conditions. This enables variant behaviour without separate plugin files:
+
+```python
+def __mi_ident__(params={}):
+    if is_attr("name", params, "os") and compare_attr("type", params, ".*linux.*"):
+        if compare_attr("host_name", params, ".*-dcos.*"):
+            return DCOS          # DC/OS nodes get extra templates
+        elif compare_attr("host_name", params, ".*-lxrasp-.*"):
+            return LxRasp        # Raspberry Pi Linux nodes
+        else:
+            return Linux         # standard Linux
+
+class Linux(Application):
+    template_rules = [
+        TemplateRule(needsattr=None, template="os_linux_default"),
+        TemplateRule(needsattr="filesystems", template="os_linux_fs"),
+        TemplateRule(needsattr="interfaces", template="os_linux_if"),
+        TemplateRule(needsattr="node_exporter",
+            template="node_exporter", suffix="yml", for_tool="prometheus",
+            unique_config="node_exporter_%s", unique_attr="host_name"),
+    ]
+    def wemustrepeat(self):
+        # SSH macros, hostgroup logic, etc.
+        ...
+
+class DCOS(Linux):
+    template_rules = Linux.template_rules + [
+        TemplateRule(needsattr=None, template="os_dcos_default"),  # extra template
+    ]
+
+class LxRasp(Linux):
+    def wemustrepeat(self):
+        # Override: different SSH user, extra hostgroups
+        ...
+```
+
+**Suppress pattern**: To explicitly suppress monitoring for certain hosts that match a broad type, return a class with empty `template_rules`:
+
+```python
+def __mi_ident__(params={}):
+    if is_attr("name", params, "os") and compare_attr("type", params, ".*switch.*arista.*"):
+        if compare_attr("host_name", params, ".*-tap01\\.transit.*"):
+            return AristaSilent   # monitoring tap — no config needed
+        return Arista
+
+class AristaSilent(Application):
+    template_rules = []   # produces zero output
+```
+
+**Template for Prometheus SD output** (`for_tool` routing):
+
+An application class can generate both Nagios configs and Prometheus service discovery YAML from the same pipeline. The `for_tool` and `suffix` on a TemplateRule route it to the appropriate datarecipient:
+
+```python
+TemplateRule(needsattr='snmp_exporter_modules', isattr='.+',
+    template="snmp_exporter", suffix="yml", for_tool="prometheus_net",
+    unique_config="snmp_exporter_%s", unique_attr="host_name"),
+```
+
+The corresponding template (`snmp_exporter.tpl`) emits Prometheus file_sd YAML:
+
+```yaml
+{% set combined = application.snmp_exporter_modules|join("__") %}
+- targets:
+    - {{ application.host.address }}
+  labels:
+    instance: {{ application.host_name }}
+    module: "{{ combined }}"
+{% if application.loginsnmpv2.community.startswith("snmpv3") %}
+    snmpVersion: 3
+    snmpUsername: "{{ credentials[5] }}"
+{% else %}
+    snmpCommunity: "{{ application.loginsnmpv2.community }}"
+{% endif %}
+```
+
 ### 12.3 Creating a MonitoringDetail plugin
 
 **Scalar type example** (`detail_mylogin.py`):
@@ -2511,7 +3036,45 @@ class MonitoringDetailMyDisk(coshsh.monitoringdetail.MonitoringDetail):
         self.critical = params.get("monitoring_2", "5")
 ```
 
-After resolution: `application.mydisks` is a list of MonitoringDetailMyDisk objects.
+After resolution: `application.mydisks` is a list of MonitoringDetailMyDisk objects. Note that even with `property_type = list`, the `unique_attribute = "mount"` enforces replacement semantics: if two details share the same `mount` value, the later one **overwrites** the earlier one in the list rather than appending a duplicate.
+
+**Advanced detail patterns:**
+
+**mandatory_fields** — Prevent detail creation when required data is missing:
+
+```python
+class MonitoringDetailProcess(coshsh.monitoringdetail.MonitoringDetail):
+    property = "processes"
+    property_type = list
+    mandatory_fields = ["monitoring_0"]   # skip if monitoring_0 is empty/None
+```
+
+If any field in `mandatory_fields` is missing or empty, `MonitoringDetail.__init__` raises an exception and the detail is silently skipped. This prevents template errors from incomplete CMDB data.
+
+**clean_name** — Sanitize detail attributes for use in Nagios service descriptions:
+
+```python
+def __init__(self, params):
+    self.name = params["monitoring_0"]
+    self.clean_name = "".join(["_" if c in "$()# " else c for c in self.name])
+```
+
+Nagios service descriptions cannot contain `$`, `(`, `)`, `#`, or spaces. The `clean_name` attribute provides a safe variant for use in `service_description` while preserving the original `name` for display and check commands.
+
+**Constructor logic driven by application context** — The `params` dict includes not just `monitoring_*` columns but also `host_name`, `application_name`, and `application_type`. This allows detail behavior to vary by context:
+
+```python
+def __init__(self, params):
+    self.name = params["monitoring_0"]
+    # Enable auto-heal event handler only for known applications
+    if params["application_name"].lower() in ["dns client", "agent service", "log forwarder"]:
+        self.has_event_handler = True
+        self.repair_command = None
+    else:
+        self.has_event_handler = False
+```
+
+**Two classes from one ident** — See [§5.20](#520-custom-detail-types-in-production) for the pattern where a single `__detail_ident__` function returns different classes based on `monitoring_0` content. Each class uses a different `property` name, so both variants coexist as separate lists on the parent application.
 
 ### 12.4 Creating a vault plugin
 
@@ -2659,10 +3222,11 @@ See also: [§4 Plugin / Extension System](#4-plugin--extension-system), [§6 INI
 All coshsh tests inherit from `CommonCoshshTest` (defined in `tests/common_coshsh_test.py`), which extends `unittest.TestCase`.
 
 Key features of `CommonCoshshTest`:
-- **`setUp()`**: Resets ALL class_factory lists to `[]` (Application, MonitoringDetail, Contact, Datasource, Datarecipient) to prevent cross-test contamination. Changes working directory to the tests directory. Creates a fresh `Generator` instance.
-- **`tearDown()`**: Removes generated objects directories (only if they are under the tests directory). Restores the original working directory.
+- **`setUp()`**: Resets ALL class_factory lists to `[]` (Application, MonitoringDetail, Contact, Datasource, Datarecipient) to prevent cross-test contamination. Changes working directory to the tests directory. Creates a fresh `Generator` instance. Then calls optional hooks in order: `mySetUp()` (general custom setup), auto-reads `_configfile` if set, auto-creates `_objectsdir` if set, `mySetUpRm()` (remove dirs/files), `mySetUpMk()` (create dirs/files).
+- **`tearDown()`**: Removes generated objects directories (only if they are under the tests directory). Cleans up `_objectsdir`. Restores the original working directory.
 - **`setUpConfig(configfile, default_recipe, ...)`**: Calls `generator.set_default_log_level()` then `generator.read_cookbook()`.
-- **`setUpObjectsDir()`**: Removes and recreates the `_objectsdir` directory.
+- **`setUpObjectsDir()`**: Removes and recreates the `_objectsdir` directory (supports a list of directories).
+- **`clean_generator()`**: Replaces `self.generator` with a new `Generator()` instance and re-initializes logging. Useful when a test needs to re-read a cookbook or start fresh mid-test without the full `setUp()` overhead.
 
 **WHY class_factory reset:** The class_factory is a mutable class-level list. Without resetting it between tests, plugins registered by one test would leak into subsequent tests, causing unpredictable ident function matches.
 
@@ -2843,7 +3407,7 @@ The test suite runs from the repository root. All paths in cookbook configs are 
 
 **Reason:** This is by design for deduplication. If the same host appears in two datasources, the second read silently replaces the first, ensuring each logical entity exists exactly once.
 
-**Gotcha for callers:** If your datasource creates objects with insufficiently unique fingerprints, data loss occurs silently. For example, two different applications on the same host with the same `name` and `type` will collide because `Application.fingerprint()` returns `host_name + "+" + name + "+" + type`. Always verify that your fingerprint components are unique within the expected scope.
+**Gotcha for callers:** The combination of `host_name + type + name` **must** be unique per application — this is the responsibility of the CMDB maintainer. If two applications of the same type run on the same host, they must have distinct names. Example: two Oracle databases → `type=oracle, name=PROD_SID` and `type=oracle, name=DEV_SID`. If the names collide, the later object silently overwrites the earlier one because `Application.fingerprint()` returns `host_name + "+" + name + "+" + type`.
 
 ### 14.2 Ident function priority
 
@@ -2865,7 +3429,7 @@ The test suite runs from the repository root. All paths in cookbook configs are 
 
 **Observed behaviour:** When a datasource raises `DatasourceNotAvailable`, `DatasourceNotCurrent`, or `DatasourceNotReady` during `collect()`, the recipe sets `data_valid = False`, logs the error, and **aborts the entire collection phase** -- no further datasources are read. `collect()` returns `False`, and the recipe's pipeline stops (no assemble, render, or output).
 
-**Reason:** Partial data is considered dangerous. If one datasource fails, the merged result is incomplete, which could cause the output phase to delete config for hosts/applications that simply weren't read. Aborting early is safer than producing partial output.
+**Reason:** Continuing after a failed datasource would mean that hosts and services disappear from the monitoring — this is unacceptable in production. Since the output phase deletes all existing config files before writing the new set (see §2.2 phase 4), a partial collect would produce a partial config that removes monitoring for all objects from the failed datasource. Aborting early prevents this silent loss of monitoring coverage. (The `max_delta` safety check provides an additional safeguard against mass deletion, but the primary defense is to never produce partial output in the first place.)
 
 **Gotcha for callers:** There is no "skip this datasource and continue" mode. If you have an optional datasource that may be unavailable, you must handle the unavailability inside the datasource plugin itself (e.g. return empty data instead of raising the exception).
 
@@ -2949,16 +3513,20 @@ coshsh fits into OMD as the configuration generator: it reads inventory data fro
 
 ### 16.2 OMD-specific path conventions
 
-Within an OMD site, paths use `%OMD_ROOT%` (resolved to `/omd/sites/<sitename>`):
+Within an OMD site, paths use `%OMD_ROOT%` (resolved to `/omd/sites/<sitename>`). There is an important distinction between read-only shipped defaults and user-writable customizations:
 
-| Path | Purpose |
-|------|---------|
-| `%OMD_ROOT%/etc/coshsh/conf.d/` | Cookbook config files |
-| `%OMD_ROOT%/var/coshsh/configs/<recipe>/` | Generated config output (`objects_dir`) |
-| `%OMD_ROOT%/share/coshsh/recipes/<recipe>/classes/` | Recipe-specific class plugins |
-| `%OMD_ROOT%/share/coshsh/recipes/<recipe>/templates/` | Recipe-specific Jinja2 templates |
-| `%OMD_ROOT%/var/log/coshsh/` | Log files |
-| `%OMD_ROOT%/tmp/coshsh/` | PID files |
+| Path | Purpose | Writable? |
+|------|---------|-----------|
+| `%OMD_ROOT%/share/coshsh/recipes/default/classes/` | Built-in starter classes (shipped with coshsh) | **No** (read-only) |
+| `%OMD_ROOT%/share/coshsh/recipes/default/templates/` | Built-in starter templates (shipped with coshsh) | **No** (read-only) |
+| `%OMD_ROOT%/etc/coshsh/conf.d/` | Cookbook config files (admin creates these) | Yes |
+| `%OMD_ROOT%/etc/coshsh/recipes/<name>/classes/` | Custom class plugins (admin creates these) | Yes |
+| `%OMD_ROOT%/etc/coshsh/recipes/<name>/templates/` | Custom Jinja2 templates (admin creates these) | Yes |
+| `%OMD_ROOT%/var/coshsh/configs/<landscape>/<site>/` | Generated config output (`objects_dir`) | Yes (by coshsh) |
+| `%OMD_ROOT%/var/log/coshsh/` | Log files | Yes (by coshsh) |
+| `%OMD_ROOT%/tmp/coshsh/` | PID files | Yes (by coshsh) |
+
+The admin creates recipes under `~/etc/coshsh/recipes/...` and points `classes_dir` and `templates_dir` to those directories. The built-in `~/share/coshsh/recipes/default/{classes,templates}` path is always appended internally (see §4.2) and must not be configured explicitly.
 
 ### 16.3 Default recipe directory layout
 
@@ -2966,22 +3534,31 @@ A typical OMD site with one recipe called `production`:
 
 ```
 /omd/sites/mysite/
-├── etc/coshsh/conf.d/
-│   └── production.cfg          # Cookbook INI file
-├── share/coshsh/recipes/production/
-│   ├── classes/                 # Plugin .py files
-│   │   ├── datasource_cmdb.py
-│   │   ├── app_oracle.py
-│   │   └── detail_custom.py
-│   └── templates/               # Jinja2 .tpl files
-│       ├── app_oracle_default.tpl
-│       └── os_linux_default.tpl
+├── etc/coshsh/
+│   ├── conf.d/
+│   │   └── production.cfg            # Cookbook INI file (admin-created)
+│   └── recipes/production/
+│       ├── classes/                   # Custom plugin .py files (admin-created)
+│       │   ├── datasource_cmdb.py
+│       │   ├── app_oracle.py
+│       │   └── detail_custom.py
+│       └── templates/                 # Custom Jinja2 .tpl files (admin-created)
+│           ├── app_oracle_default.tpl
+│           └── os_linux_default.tpl
+├── share/coshsh/recipes/default/
+│   ├── classes/                       # Built-in starter classes (read-only, shipped)
+│   │   ├── os_linux.py
+│   │   ├── detail_login.py
+│   │   └── ...
+│   └── templates/                     # Built-in starter templates (read-only, shipped)
+│       ├── os_linux_default.tpl
+│       └── ...
 └── var/coshsh/configs/production/
-    ├── dynamic/                 # Generated output
+    ├── dynamic/                       # Generated output (written by coshsh)
     │   ├── hosts/
     │   ├── hostgroups/
     │   └── contacts/
-    └── static/                  # Hand-maintained config
+    └── static/                        # Shared config (command definitions, templates)
 ```
 
 ### 16.4 Running coshsh-cook inside OMD
@@ -2998,9 +3575,9 @@ The `coshsh-cook` script is the CLI entry point. It instantiates a `Generator`, 
 
 ### 16.5 Production deployment architecture (check_git_updates)
 
-In production, coshsh typically runs on a **central generator host** and pushes generated configs into git repositories. Remote OMD monitoring sites then pull configs via the `check_git_updates` script (`contrib/coshsh_in_omd/check_git_updates`, installed as `$OMD_ROOT/bin/check_git_updates`). The full flow:
+In production, coshsh typically runs on a **central generator site** and pushes generated configs into git repositories. Remote OMD monitoring sites then pull configs via the `check_git_updates` script (installed as `$OMD_ROOT/bin/check_git_updates`). The full flow:
 
-1. **Central generator** runs `coshsh-cook`, which writes configs into `$OMD_ROOT/var/coshsh/configs/<recipe>/dynamic/` and git-commits them.
+1. **Central generator** runs `coshsh-cook`, which writes configs into `$OMD_ROOT/var/coshsh/configs/<landscape>/<site>/dynamic/` and git-commits them.
 2. **Remote monitoring sites** run `check_git_updates` periodically (via cron). It pulls both `static/` and `dynamic/` git repos.
 3. **Syntax validation**: After pulling, `check_git_updates` runs `nagios -v` (or the equivalent for the active monitoring core). If the config is valid, it executes `omd reload`. If invalid, it **rolls back both repos** to their previous commit via `git reset --hard` and archives the failed config as `$OMD_ROOT/var/last_failed_generated_config.tgz`.
 4. **Landscape grouping**: `OMD_LANDSCAPE` groups multiple OMD sites. The `static/` repo is shared per-landscape (containing service templates, command definitions), while the `dynamic/` repo is per-site. This allows shared configuration templates across a fleet of monitoring sites.
@@ -3008,9 +3585,10 @@ In production, coshsh typically runs on a **central generator host** and pushes 
 
 ### 16.6 Bootstrapping a new landscape (coshsh-prepare-landscape)
 
-The `coshsh-prepare-landscape` script (`contrib/coshsh_in_omd/coshsh-prepare-landscape`) bootstraps a new OMD deployment:
-1. Creates `static/` directory with `git init` and seed service templates (`os.cfg` and `app.cfg` with sensible defaults)
-2. Generates a starter cookbook config at `etc/coshsh/conf.d/<landscape>.cfg` with two recipes — a landscape-level recipe and a site-level recipe using `isa` inheritance
+The `coshsh-prepare-landscape` script (installed as `$OMD_ROOT/bin/coshsh-prepare-landscape`) bootstraps a new OMD deployment. The admin first sets the `OMD_LANDSCAPE` environment variable in `$OMD_ROOT/etc/environment` (e.g. `OMD_LANDSCAPE=myenterprise`). Then:
+
+1. Creates `$OMD_ROOT/var/coshsh/configs/<landscape>/static/` with `git init` and a starter set of command definitions and service templates (`os.cfg` and `app.cfg` with sensible defaults)
+2. Generates a starter cookbook config at `$OMD_ROOT/etc/coshsh/conf.d/<landscape>.cfg` with two recipes — a landscape-level recipe and a site-level recipe using `isa` inheritance
 3. Scaffolds default templates for Linux/Windows OS monitoring via `coshsh-create-template-tree`
 
 ### 16.7 OMD package build (Makefile)
@@ -3049,9 +3627,11 @@ This test recipe can be used as a reference for implementing SNMP trap monitorin
 
 | Section | Key | Type | Default |
 |---------|-----|------|---------|
+| `[defaults]` | `recipes` | comma-sep | (all non-`__` recipes) |
 | `[defaults]` | `log_dir` | path | (none) |
+| `[defaults]` | `log_level` | string | `info` |
 | `[defaults]` | `pid_dir` | path | system temp |
-| `[defaults]` | `backup_count` | int | (none) |
+| `[defaults]` | `backup_count` | int | `2` |
 | `[recipe_*]` | `classes_dir` | comma-sep paths | built-in |
 | `[recipe_*]` | `templates_dir` | comma-sep paths | built-in |
 | `[recipe_*]` | `objects_dir` | path | (required) |
@@ -3069,6 +3649,7 @@ This test recipe can be used as a reference for implementing SNMP trap monitorin
 | `[recipe_*]` | `my_jinja2_extensions` | comma-sep | (none) |
 | `[recipe_*]` | `isa` | string | (none) |
 | `[recipe_*]` | `env_*` | string | (none) |
+| `[recipe_*]` | `backup_count` | int | from defaults |
 | `[datasource_*]` | `type` | string | (required) |
 | `[datasource_*]` | `name` | string | section suffix |
 | `[datasource_*]` | `hostname_transform` | comma-sep | (none) |
@@ -3109,6 +3690,8 @@ This test recipe can be used as a reference for implementing SNMP trap monitorin
 | `SOCKET` | `socket` | str | monitoring_0=socket | `.socket.socket` |
 | `ACCESS` | `access` | str (flat) | monitoring_0=access | `.access` = string |
 | `KEYVALUES` | `generic` | dict | monitoring_0=key1, 1=val1, 2=key2, 3=val2 | `.generic[key]` = value |
+| `KEYVALUESARRAY` | `generic` | list | monitoring_0=key1, 1=val1, 2=key2, 3=val2 | `.generic[key]` = list of values (appends) |
+| `NAGIOS` | `generic` | str | monitoring_0=attribute, monitoring_1=value | `.generic` (legacy alias, similar to KEYVALUES) |
 | `NAGIOSCONF` | `nagios_config_attributes` | list | monitoring_0=svc, 1=attr, 2=val | `.nagios_config_attributes[].name`, `.attribute`, `.value` |
 | `CUSTOMMACRO` | `custom_macros` | dict | monitoring_0=key, monitoring_1=value | `.custom_macros[key]` = value |
 
