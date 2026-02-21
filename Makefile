@@ -1,5 +1,7 @@
 DOS2UNIX=$(shell which dos2unix || which fromdos)
 
+.PHONY: clean pack dist doc
+
 clean:
 	find . -name \*.pyc -exec rm {} \;
 	find . -name coshsh.log -exec rm {} \;
@@ -19,6 +21,9 @@ pack:
 		--exclude coshsh.log \
 		-zcvf coshsh.tgz .
 
+dist:
+	python3 setup.py sdist
+
 doc:
 	cp -p README.asciidoc docs/README && cd docs && asciidoc --unsafe -a toc -a toclevels=2 -a max-width=800 README
 	chmod 644 docs/README.html
@@ -28,7 +33,6 @@ doc:
 #  vi Changelog  ->3.0.1
 #  vi setup.py   ->3.0.1
 #  git commit -a -m "set pid_dir for OMD"
-#  git tag -a "3.0.1" 
+#  git tag -a "3.0.1"
 #  git push
 #  python setup.py sdist upload
-
