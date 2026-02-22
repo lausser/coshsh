@@ -128,7 +128,7 @@ def is_re_match(s, rs, flagstr=None):
 def filter_re_sub(s, rs, repl, flagstr=None, count=0):
     reflags = get_re_flags(flagstr)
     myre = re.compile(rs, reflags)
-    return re.sub(myre, repl, s, count)
+    return re.sub(myre, repl, s, count=count)
 
 def filter_re_escape(s):
     return re.escape(s)
