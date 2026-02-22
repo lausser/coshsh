@@ -1,7 +1,7 @@
 # Spec 003 — Add Missing Tests for Untested Features
 
 **Branch:** `003-add-missing-tests`
-**Date:** 2026-02-22
+**Date:** 2026-02-22 (updated 2026-02-22, second pass)
 **Baseline:** 100 tests passing (after spec 002)
 
 ---
@@ -22,6 +22,20 @@ MEDIUM items are all included.  LOW items are included where the effort is trivi
 
 ---
 
+## Latent bugs discovered during analysis
+
+Three latent bugs were found.  Tests are written to **document** them (asserting the
+broken behavior), not to fix them.  Fixes belong in a separate spec/PR.
+
+| ID | Location | Bug |
+|----|----------|-----|
+| BUG-1 | `host.py:121` | `hasattr(self.host_name)` — 1 arg instead of 2; raises `TypeError` |
+| BUG-2 | `recipe.py:565` | `sum(0, [list])` — args reversed; raises `TypeError` (cf. line 559 which is correct) |
+| BUG-3a | `item.py:397` | `raise "impossible fingerprint"` — Python 2 string raise; raises `TypeError` in Python 3 |
+| BUG-3b | `monitoringdetail.py:196` | Same as BUG-3a |
+
+---
+
 ## File map: test file → source module(s) under test
 
 | Test file (new or extended) | Source modules |
@@ -32,13 +46,18 @@ MEDIUM items are all included.  LOW items are included where the effort is trivi
 | `tests/test_dependency.py` (NEW) | `coshsh/dependency.py` |
 | `tests/test_util.py` (NEW) | `coshsh/util.py` |
 | `tests/test_datarecipient.py` (NEW) | `coshsh/datarecipient.py` |
-| `tests/test_delta.py` (EXTEND) | `coshsh/datarecipient.py` — `too_much_delta()` |
-| `tests/test_details.py` (EXTEND) | `coshsh/item.py` — `resolve_monitoring_details()` |
-| `tests/test_merge.py` (EXTEND) | `coshsh/datasource.py` — `transform_hostname()` |
 | `tests/test_jinja2_extensions.py` (NEW) | `coshsh/jinja2_extensions.py` |
-| `tests/test_recipes.py` (EXTEND) | `coshsh/recipe.py` — `@MAPPING_`, `env_*`, `substsecret()` |
-| `tests/test_vault.py` (EXTEND) | `coshsh/vault.py` — `get()` missing key, `getall()` |
-| `tests/test_contacts.py` (EXTEND) | `coshsh/contact.py` — umlaut replacement |
+| `tests/test_templaterule.py` (NEW) | `coshsh/templaterule.py` |
+| `tests/test_contactgroup.py` (NEW) | `coshsh/contactgroup.py` |
+| `tests/test_datasource.py` (NEW) | `coshsh/datasource.py` |
+| `tests/test_delta.py` (EXTEND) | `coshsh/datarecipient.py` — `too_much_delta()` |
+| `tests/test_details.py` (EXTEND) | `coshsh/item.py` / `coshsh/monitoringdetail.py` |
+| `tests/test_merge.py` (EXTEND) | `coshsh/datasource.py` — `transform_hostname()` |
+| `tests/test_recipes.py` (EXTEND) | `coshsh/recipe.py` |
+| `tests/test_vault.py` (EXTEND) | `coshsh/vault.py` |
+| `tests/test_contacts.py` (EXTEND) | `coshsh/contact.py` |
+| `tests/test_generic.py` (EXTEND) | `coshsh/application.py` — GenericApplication |
+| `tests/test_package.py` (EXTEND) | `coshsh/application.py` — lower_columns |
 
 ---
 
@@ -64,30 +83,32 @@ Assert: `host.alias == 'srv01'`.
 Arrange: create `Host({'host_name': 'srv01', 'alias': 'my-server'})`.
 Assert: `host.alias == 'my-server'`.
 
-#### 1e. `test_default_ports_is_ssh` **[BUG]**
+#### 1e. `test_default_ports_is_ssh`
 Arrange: create `Host({'host_name': 'srv01'})`.
 Assert: `host.ports == [22]`.
-*(This test should pass — confirming the SSH default is in place.)*
 
-#### 1f. `test_is_correct_raises_typeerror` **[BUG — exposes latent defect]**
+#### 1f. `test_is_correct_raises_typeerror` **[BUG-1]**
 Arrange: create `Host({'host_name': 'srv01'})`.
 Assert: calling `host.is_correct()` raises `TypeError`.
-Rationale: `hasattr(self.host_name)` passes only one argument to `hasattr()`; Python
-requires exactly two (`hasattr(obj, name)`).  This call will raise `TypeError` at
-runtime whenever `is_correct()` is invoked.  The test documents the bug so it will be
-caught immediately if `is_correct()` is ever wired up.
+Rationale: `hasattr(self.host_name)` passes only one argument to `hasattr()`.
 
 #### 1g. `test_fingerprint_returns_host_name`
-Arrange: create `Host({'host_name': 'srv01'})`.
 Assert: `Host.fingerprint({'host_name': 'srv01'}) == 'srv01'`.
+
+#### 1h. `test_default_empty_collections`
+Arrange: create `Host({'host_name': 'srv01'})`.
+Assert: `host.hostgroups == []`, `host.contacts == []`, `host.contact_groups == []`,
+`host.templates == []`.
+
+#### 1i. `test_macros_default_empty_dict`
+Arrange: create `Host({'host_name': 'srv01'})`.
+Assert: `host.macros == {}`.
 
 ---
 
 ### 2. `tests/test_item.py` (NEW) — `ItemTest`
 
-Module docstring: `"""Tests for Item base class: pythonize/depythonize, resolve_monitoring_details, and render."""`
-
-These tests use minimal MonitoringDetail stubs — no recipe or datasource needed.
+Module docstring: `"""Tests for Item base class: init, pythonize/depythonize, resolve_monitoring_details, render, and chronicle."""`
 
 #### 2a. `test_pythonize_splits_comma_separated_strings`
 Arrange: create an `Application` with `hostgroups='a,b,c'` set after construction.
@@ -95,7 +116,7 @@ Call `app.pythonize()`.
 Assert: `app.hostgroups == ['a', 'b', 'c']`.
 
 #### 2b. `test_depythonize_joins_lists_to_string`
-Arrange: create an `Application`; set `app.hostgroups = ['b', 'a', 'c']`.
+Arrange: set `app.hostgroups = ['b', 'a', 'c']`.
 Call `app.depythonize()`.
 Assert: `app.hostgroups == 'a,b,c'` (sorted, deduplicated).
 
@@ -105,51 +126,41 @@ Call `app.depythonize()`.
 Assert: `app.contacts == 'alice,bob'`.
 
 #### 2d. `test_pythonize_depythonize_roundtrip`
-Arrange: create an `Application`; set `app.hostgroups = ['web', 'linux']`.
+Arrange: set `app.hostgroups = ['web', 'linux']`.
 Call `app.depythonize()` then `app.pythonize()`.
 Assert: `set(app.hostgroups) == {'web', 'linux'}`.
 
 #### 2e. `test_templates_order_preserved_by_depythonize`
 Arrange: set `app.templates = ['base', 'override']`.
 Call `app.depythonize()`.
-Assert: `app.templates == 'base,override'` (NOT sorted — template order matters for
-Nagios inheritance).
+Assert: `app.templates == 'base,override'` (NOT sorted — template order matters).
 
 #### 2f. `test_resolve_monitoring_details_unique_attribute_deduplication`
-Arrange: define a minimal `MonitoringDetail` subclass with `property='filesystems'`,
-`property_type=list`, `unique_attribute='path'`.  Create two instances with the same
-`path` value and add both to `app.monitoring_details`.
-Call `app.resolve_monitoring_details()`.
-Assert: `len(app.filesystems) == 1` (second replaces first).
+Define a stub `MonitoringDetail` subclass with `property='filesystems'`,
+`property_type=list`, `unique_attribute='path'`.  Two instances, same `path`.
+Assert: `len(app.filesystems) == 1`.
 
 #### 2g. `test_resolve_monitoring_details_unique_attribute_different_values`
 Same setup but different `path` values.
 Assert: `len(app.filesystems) == 2`.
 
 #### 2h. `test_resolve_monitoring_details_property_attr`
-Arrange: detail subclass with `property='urls'`, `property_type=list`,
-`property_attr='url'`; detail instance has `.url = 'http://x'`.
-Call `resolve_monitoring_details()`.
-Assert: `app.urls == ['http://x']` (the scalar attribute, not the detail object).
+Detail subclass with `property_attr='url'`.
+Assert: `app.urls == ['http://x']` (scalar, not detail object).
 
 #### 2i. `test_resolve_monitoring_details_property_flat`
-Arrange: detail subclass with `property='role'`, `property_type=<not list, not dict>`,
-`property_flat=True`; detail instance has `.role = 'primary'`.
-Call `resolve_monitoring_details()`.
-Assert: `app.role == 'primary'` (scalar, not the detail object).
+Detail subclass with `property_flat=True`.
+Assert: `app.role == 'primary'` (scalar, not detail object).
 
 #### 2j. `test_resolve_monitoring_details_generic_scalar`
-Arrange: detail subclass with `property='generic'`, `property_type=str`;
-detail has `.attribute = 'custom_field'`, `.value = 'hello'`.
-Assert: after resolution `app.custom_field == 'hello'`.
+`property='generic'`, `property_type=str`.
+Assert: `app.custom_field == 'hello'`.
 
 #### 2k. `test_resolve_monitoring_details_generic_list`
-Arrange: `property='generic'`, `property_type=list`; detail's `.dictionary =
-{'tags': ['web', 'prod']}`.
-Assert: after resolution `app.tags == ['web', 'prod']`.
+`property='generic'`, `property_type=list`.
+Assert: `app.tags == ['web', 'prod']`.
 
 #### 2l. `test_record_in_chronicle_appends_entry`
-Arrange: `item = Host({'host_name': 'h1'})`.
 Call `item.record_in_chronicle('created')` twice.
 Assert: `len(item.object_chronicle) == 2`.
 
@@ -157,34 +168,39 @@ Assert: `len(item.object_chronicle) == 2`.
 Call `item.record_in_chronicle('')`.
 Assert: `item.object_chronicle == []`.
 
+#### 2n. `test_dont_strip_attributes_bool_true`
+Create a minimal Item subclass with `dont_strip_attributes = True`.
+Construct with `params={'host_name': ' srv01 '}`.
+Assert: `item.host_name == ' srv01 '` (whitespace preserved).
+
+#### 2o. `test_dont_strip_attributes_list`
+Create a minimal Item subclass with `dont_strip_attributes = ['description']`.
+Construct with `params={'host_name': ' srv01 ', 'description': ' has spaces '}`.
+Assert: `item.host_name == 'srv01'` (stripped), `item.description == ' has spaces '` (preserved).
+
+#### 2p. `test_item_fingerprint_falls_back_to_host_name`
+Create an Item with `host_name` but no `name`/`type`.
+Call `item.fingerprint()`.
+Assert: returns the host_name.
+
+#### 2q. `test_item_fingerprint_raises_on_missing_all` **[BUG-3a]**
+Create an Item with no `host_name`, `name`, or `type`.
+Assert: calling `item.fingerprint()` raises `TypeError` (because `raise "string"`
+is invalid in Python 3).
+
 ---
 
 ### 3. `tests/test_configparser.py` (NEW) — `CoshshConfigParserTest`
 
 Module docstring: `"""Tests for CoshshConfigParser — isa section inheritance."""`
 
-No full generator needed.  Write temp INI files using `tempfile` or string buffers.
-
 #### 3a. `test_isa_child_inherits_missing_keys_from_parent`
-INI content: parent section with keys `a=1`, `b=2`; child section with `isa=parent`,
-`b=99`.
-After `read()`: assert child has `a == '1'` (inherited) and `b == '99'` (not overwritten).
-
 #### 3b. `test_isa_key_not_copied_to_child`
-Assert: child section does NOT have an `isa` key after read (the `isa` key itself must
-not be inherited).
-
 #### 3c. `test_isa_missing_parent_leaves_section_unchanged`
-Child section references a parent section that does not exist.
-Assert: no exception; child section has only its own keys.
-
 #### 3d. `test_section_without_isa_unaffected`
-A plain section with no `isa` key.
-Assert: its keys are unchanged after read.
-
 #### 3e. `test_isa_one_level_only`
-Three sections: grandparent → parent (`isa=grandparent`) → child (`isa=parent`).
-Assert: child inherits keys from parent but NOT from grandparent (one-level only).
+
+*(Descriptions unchanged from v1 — write temp INI files using `tempfile`.)*
 
 ---
 
@@ -193,14 +209,10 @@ Assert: child inherits keys from parent but NOT from grandparent (one-level only
 Module docstring: `"""Tests for Dependency object construction and attribute access."""`
 
 #### 4a. `test_dependency_stores_host_and_parent`
-`d = Dependency({'host_name': 'child', 'parent_host_name': 'parent'})`.
-Assert: `d.host_name == 'child'`, `d.parent_host_name == 'parent'`.
-
 #### 4b. `test_dependency_is_not_item_subclass`
-Assert: `not isinstance(d, coshsh.item.Item)`.
-
 #### 4c. `test_dependency_missing_key_raises`
-Assert: `Dependency({'host_name': 'h'})` raises `KeyError` (no `parent_host_name`).
+
+*(Descriptions unchanged from v1.)*
 
 ---
 
@@ -208,48 +220,11 @@ Assert: `Dependency({'host_name': 'h'})` raises `KeyError` (no `parent_host_name
 
 Module docstring: `"""Tests for coshsh.util helper functions."""`
 
-#### 5a. `test_compare_attr_matches_regex`
-`compare_attr('linux', 'lin.*')` → `True`.
+#### 5a–5m: *(unchanged from v1)*
 
-#### 5b. `test_compare_attr_no_match`
-`compare_attr('windows', 'lin.*')` → `False`.
-
-#### 5c. `test_is_attr_case_insensitive_exact_match`
-`is_attr('Linux', 'linux')` → `True`; `is_attr('Linux', 'lin')` → `False`.
-
-#### 5d. `test_cleanout_removes_specified_chars`
-`cleanout('hello_world!', chars='_!')` → `'helloworld'`.
-
-#### 5e. `test_normalize_dict_lowercases_keys`
-`normalize_dict({'Host': ' srv01 ', 'OS': 'Linux'})` → `{'host': 'srv01', 'os': 'Linux'}`.
-
-#### 5f. `test_normalize_dict_lowercases_values_for_listed_columns`
-`normalize_dict({'os': 'Linux'}, lower_columns=['os'])` → `{'os': 'linux'}`.
-
-#### 5g. `test_clean_umlauts_replaces_all`
-`clean_umlauts('ÄÖÜäöüß')` → `'AeOeUeaeoeueß'` (or whatever the mapping is — verify
-against the actual replacement table in the source).
-
-#### 5h. `test_sanitize_filename_replaces_slash`
-`sanitize_filename('a/b')` returns a string not containing `/`.
-
-#### 5i. `test_sanitize_filename_appends_md5_suffix_when_changed`
-`sanitize_filename('a/b')` differs from `'ab'` (MD5 fragment appended to avoid
-collisions).
-
-#### 5j. `test_sanitize_filename_unchanged_input_no_suffix`
-`sanitize_filename('valid_name')` → `'valid_name'` exactly (no suffix when nothing
-was replaced).
-
-#### 5k. `test_odict_preserves_insertion_order`
-Insert keys `'c'`, `'a'`, `'b'`.  Assert `list(od) == ['c', 'a', 'b']`.
-
-#### 5l. `test_odict_setitem_getitem_delitem`
-Basic dict contract: set, get, delete, len.
-
-#### 5m. `test_substenv_expands_env_var`
-Set `os.environ['COSHSH_TEST_VAR'] = 'hello'`.
-`substenv('%COSHSH_TEST_VAR%')` → `'hello'`.
+`compare_attr`, `is_attr`, `cleanout`, `normalize_dict` (two variants),
+`clean_umlauts`, `sanitize_filename` (three variants), `odict` (two variants),
+`substenv`.
 
 ---
 
@@ -257,75 +232,53 @@ Set `os.environ['COSHSH_TEST_VAR'] = 'hello'`.
 
 Module docstring: `"""Unit tests for Datarecipient helper methods: too_much_delta(), count_objects()."""`
 
-Uses a concrete `DatarecipientCoshshDefault` instance or a minimal stub — no full
-recipe pipeline.
+#### 6a–6h: *(unchanged from v1)*
 
-#### 6a. `test_too_much_delta_returns_false_when_not_configured`
-A datarecipient with no `safe_output` / `max_delta` configured.
-Assert: `dr.too_much_delta() == False`.
-
-#### 6b. `test_too_much_delta_positive_threshold_not_exceeded`
-`old_objects = (10, 20)`, `new_objects = (9, 19)`, `max_delta = 50` (positive = bidirectional).
-Assert: `too_much_delta() == False`.
-
-#### 6c. `test_too_much_delta_positive_threshold_exceeded_on_shrinkage`
-`old = (100, 200)`, `new = (40, 80)`, `max_delta = 50`.
-Assert: `too_much_delta() == True`.
-
-#### 6d. `test_too_much_delta_positive_threshold_exceeded_on_growth`
-`old = (40, 80)`, `new = (100, 200)`, `max_delta = 50`.
-Assert: `too_much_delta() == True`.
-
-#### 6e. `test_too_much_delta_negative_threshold_only_shrinkage`
-`old = (100, 200)`, `new = (40, 80)`, `max_delta = -50` (negative = shrinkage only).
-Assert: `too_much_delta() == True`.
-
-#### 6f. `test_too_much_delta_negative_threshold_growth_ignored`
-`old = (40, 80)`, `new = (100, 200)`, `max_delta = -50`.
-Assert: `too_much_delta() == False`.
-
-#### 6g. `test_count_objects_empty_dir_returns_zero_zero`
-Point a datarecipient at a freshly-created empty temp directory.
-Assert: `dr.count_objects() == (0, 0)`.
-
-#### 6h. `test_count_objects_counts_hosts_and_nonempty_cfg_files`
-Create a temp dir with a `hosts/myhost/app.cfg` file containing content and an empty
-`hosts/myhost/empty.cfg`.
-Assert: hosts count = 1, application files count = 1 (empty file excluded).
+`too_much_delta` (6 variants), `count_objects` (2 variants).
 
 ---
 
 ### 7. `tests/test_delta.py` (EXTEND) — add to `DeltaTest`
 
 #### 7a. `test_too_much_delta_boundary_exactly_at_threshold`
-Full-pipeline run where delta equals the threshold exactly (boundary condition).
-Assert: `too_much_delta()` returns `False` (threshold is strictly greater-than, not ≥).
-*(Verify actual operator in source before writing.)*
+
+*(Unchanged from v1.)*
 
 ---
 
 ### 8. `tests/test_details.py` (EXTEND) — add to `MonitoringDetailTest`
 
 #### 8a. `test_comparison_operators`
-Create two `MonitoringDetail` instances; compare with `<`, `==`, `!=`.
-Assert: comparisons are consistent with `(monitoring_type, str(monitoring_0))` tuple
-ordering.
+Create two `MonitoringDetail` instances with different `monitoring_type`/`monitoring_0`
+values; compare with `<`, `==`, `!=`, `>`, `<=`, `>=`.
 
 #### 8b. `test_fingerprint_is_unique_per_instance`
-Create two otherwise-identical detail instances.
-Assert: `d1.fingerprint() != d2.fingerprint()` (identity-based).
+Two otherwise-identical detail instances.
+Assert: `d1.fingerprint() != d2.fingerprint()`.
+
+#### 8c. `test_application_fingerprint_host_level`
+Create a detail with `host_name` but no `application_name`/`application_type`.
+Assert: `detail.application_fingerprint() == host_name`.
+
+#### 8d. `test_application_fingerprint_app_level`
+Create a detail with `host_name`, `application_name`, `application_type`.
+Assert: fingerprint is `host_name+app_name+app_type`.
+
+#### 8e. `test_application_fingerprint_raises_on_no_host` **[BUG-3b]**
+Create a detail with `host_name=None` or `''`, no app info.
+Assert: raises `TypeError` (Python 2 string raise).
+
+#### 8f. `test_repr_format`
+Assert: `repr(detail)` returns `"TYPE value"` format.
 
 ---
 
 ### 9. `tests/test_merge.py` (EXTEND) — add to `MergeTest`
 
 #### 9a. `test_transform_hostname_strip_domain_skips_ip_address`
-`ds.hostname_transform_ops = [{'strip_domain': None}]`.
-`ds.transform_hostname('192.168.1.1')` → `'192.168.1.1'` (unchanged).
-
 #### 9b. `test_transform_hostname_unknown_op_does_not_raise`
-`ds.hostname_transform_ops = [{'unknown_op': None}]`.
-Assert: no exception, input returned unchanged (or logged as warning).
+
+*(Unchanged from v1.)*
 
 ---
 
@@ -333,65 +286,185 @@ Assert: no exception, input returned unchanged (or logged as warning).
 
 Module docstring: `"""Tests for coshsh Jinja2 custom filters and helper functions."""`
 
-These are pure-function unit tests; no recipe pipeline needed.
+#### 10a–10g: *(unchanged from v1)*
 
-#### 10a. `test_filter_re_sub_replaces_pattern`
-`filter_re_sub('hello world', 'world', 'earth')` → `'hello earth'`.
+`filter_re_sub` (2), `filter_re_escape`, `get_re_flags` (2), `filter_custom_macros` (2).
 
-#### 10b. `test_filter_re_sub_with_flags`
-`filter_re_sub('Hello World', 'hello', 'Hi', 'i')` → `'Hi World'`.
+#### 10h. `test_filter_rfc3986_encodes_text`
+`filter_rfc3986('hello world')` returns a string starting with `'rfc3986://'`.
 
-#### 10c. `test_filter_re_escape_escapes_special_chars`
-`filter_re_escape('a.b+c')` → `'a\\.b\\+c'`.
+#### 10i. `test_is_re_match_returns_true_on_match`
+`is_re_match('hello world', 'wor')` → `True`.
 
-#### 10d. `test_get_re_flags_single_flag`
-`get_re_flags('i') == re.IGNORECASE`.
+#### 10j. `test_is_re_match_returns_false_on_no_match`
+`is_re_match('hello', 'xyz')` → `False`.
 
-#### 10e. `test_get_re_flags_combined_flags`
-`get_re_flags('im') == re.IGNORECASE | re.MULTILINE`.
+#### 10k. `test_is_re_match_with_flags`
+`is_re_match('Hello', 'hello', 'i')` → `True`.
 
-#### 10f. `test_filter_custom_macros_merges_and_prefixes`
-Input: `custom_macros={'KEY': 'val'}`, `macros={'OTHER': 'x'}`.
-Assert: result has `_KEY` and `_OTHER` keys.
+#### 10l. `test_filter_host_simple_output`
+Create a stub host object with `host_name`, `contact_groups=[]`.
+Assert: `filter_host(host)` starts with `'define host {'` and contains the host_name.
 
-#### 10g. `test_filter_custom_macros_adds_underscore_prefix`
-Input macro key without leading `_`.
-Assert: output key has `_` prefix.
+#### 10m. `test_filter_neighbor_applications_returns_host_apps`
+Create a stub application with `host.applications = [app1, app2]`.
+Assert: `filter_neighbor_applications(app1) == [app1, app2]`.
+
+#### 10n. `test_global_environ_reads_env_var`
+Set `os.environ['COSHSH_TEST_J2'] = 'testval'`.
+Assert: `global_environ('COSHSH_TEST_J2') == 'testval'`.
+
+#### 10o. `test_global_environ_returns_default_when_missing`
+Assert: `global_environ('NONEXISTENT_VAR_XYZ', 'fallback') == 'fallback'`.
+
+#### 10p. `test_global_environ_returns_empty_string_when_missing_no_default`
+Assert: `global_environ('NONEXISTENT_VAR_XYZ') == ''`.
 
 ---
 
 ### 11. `tests/test_recipes.py` (EXTEND) — add to `RecipesTest`
 
 #### 11a. `test_recipe_env_key_sets_os_environ`
-Write a temp cookbook config with a recipe section containing `env_COSHSH_SPEC003 = sentinel`.
-After `Generator.read_cookbook()`, assert: `os.environ.get('COSHSH_SPEC003') == 'sentinel'`.
-
 #### 11b. `test_recipe_get_datasource_returns_none_for_unknown_name`
-Use any existing recipe.
-Assert: `r.get_datasource('no_such_ds')` returns `None`.
-
 #### 11c. `test_recipe_get_datarecipient_returns_none_for_unknown_name`
-Assert: `r.get_datarecipient('no_such_dr')` returns `None`.
+
+*(Unchanged from v1.)*
+
+#### 11d. `test_recipe_count_after_objects_raises_typeerror` **[BUG-2]**
+Set up a recipe with at least one datarecipient.
+Assert: calling `recipe.count_after_objects()` raises `TypeError`.
+Rationale: `sum(0, [list])` on line 565 has reversed arguments.
+
+#### 11e. `test_recipe_max_delta_parsing_colon_split`
+Create a recipe with `max_delta='10:20'`.
+Assert: `recipe.max_delta == (10, 20)`.
+
+#### 11f. `test_recipe_max_delta_parsing_single_value_duplicated`
+Create a recipe with `max_delta='15'`.
+Assert: `recipe.max_delta == (15, 15)`.
+
+#### 11g. `test_recipe_assemble_removes_orphaned_applications`
+Add a host and an application whose `host_name` does not match any host.
+Call `recipe.assemble()`.
+Assert: the orphaned application is removed from `recipe.objects['applications']`.
+
+#### 11h. `test_recipe_assemble_creates_hostgroup_objects`
+Add a host with `host.hostgroups = ['web-servers']`.
+Call `recipe.assemble()`.
+Assert: `'web-servers' in recipe.objects['hostgroups']`.
+
+#### 11i. `test_recipe_collect_returns_false_on_datasource_exception`
+Use a datasource that raises `DatasourceNotAvailable` from `read()`.
+Assert: `recipe.collect()` returns `False`.
 
 ---
 
 ### 12. `tests/test_vault.py` (EXTEND) — add to `VaultTest`
 
 #### 12a. `test_vault_get_returns_none_for_missing_key`
-Open vault with correct password.
-Assert: `r_prod.vaults[0].get('$NONEXISTENT$')` returns `None`.
-
 #### 12b. `test_vault_getall_returns_list_of_values`
-Open vault with correct password.
-Assert: `r_prod.vaults[0].getall()` returns a non-empty list.
+
+*(Unchanged from v1.)*
 
 ---
 
 ### 13. `tests/test_contacts.py` (EXTEND) — add to `ContactsTest`
 
 #### 13a. `test_generic_contact_clean_name_replaces_umlauts`
-Create a `GenericContact` (or `Contact`) with a name containing German umlauts.
-Assert: the resulting `contact_name` attribute contains only ASCII characters.
+
+*(Unchanged from v1.)*
+
+#### 13b. `test_contact_notification_period_fallback`
+Create a `Contact` with `notification_period='24x7'` but no
+`host_notification_period` or `service_notification_period`.
+Assert: `contact.host_notification_period == '24x7'` and
+`contact.service_notification_period == '24x7'`.
+
+---
+
+### 14. `tests/test_templaterule.py` (NEW) — `TemplateRuleTest`
+
+Module docstring: `"""Tests for TemplateRule construction and default attributes."""`
+
+#### 14a. `test_default_attributes`
+`rule = TemplateRule(template='mytemplate')`.
+Assert: `rule.needsattr is None`, `rule.isattr is None`, `rule.suffix == 'cfg'`,
+`rule.for_tool == 'nagios'`, `rule.self_name == 'application'`,
+`rule.unique_attr == 'name'`, `rule.unique_config is None`.
+
+#### 14b. `test_custom_attributes`
+`rule = TemplateRule(needsattr='os', isattr='linux', template='os_linux',
+for_tool='prometheus', suffix='yml')`.
+Assert all attributes match the constructor arguments.
+
+#### 14c. `test_str_representation`
+Assert: `str(rule)` contains `'needsattr='` and `'template='`.
+
+---
+
+### 15. `tests/test_contactgroup.py` (NEW) — `ContactGroupTest`
+
+Module docstring: `"""Tests for ContactGroup construction and fingerprint."""`
+
+#### 15a. `test_construction_and_fingerprint`
+`cg = ContactGroup({'contactgroup_name': 'admins'})`.
+Assert: `cg.contactgroup_name == 'admins'`, `cg.fingerprint() == 'admins'`,
+`cg.members == []`.
+
+#### 15b. `test_str_representation`
+Assert: `str(cg)` contains `'admins'`.
+
+---
+
+### 16. `tests/test_datasource.py` (NEW) — `DatasourceUnitTest`
+
+Module docstring: `"""Unit tests for Datasource.add(), find(), get(), and host linking."""`
+
+These use a concrete datasource instance from a test recipe.
+
+#### 16a. `test_add_host_stores_by_fingerprint`
+Add a host to a datasource.
+Assert: `ds.find('hosts', host.host_name)` is `True`.
+Assert: `ds.get('hosts', host.host_name)` returns the host object.
+
+#### 16b. `test_add_application_links_to_host`
+Add a host, then add an application with the same `host_name`.
+Assert: `app.host == host`.
+
+#### 16c. `test_add_records_in_chronicle`
+Add a host.
+Assert: `len(host.object_chronicle) >= 1`.
+Assert: `'datasource'` appears in the chronicle message.
+
+#### 16d. `test_get_returns_none_for_missing_fingerprint`
+Assert: `ds.get('hosts', 'nonexistent')` returns `None`.
+
+#### 16e. `test_find_returns_false_for_missing`
+Assert: `ds.find('hosts', 'nonexistent')` is `False`.
+
+#### 16f. `test_getall_returns_all_objects`
+Add two hosts.
+Assert: `len(ds.getall('hosts')) == 2`.
+
+#### 16g. `test_getall_returns_empty_for_missing_type`
+Assert: `ds.getall('nonexistent_type') == []`.
+
+---
+
+### 17. `tests/test_generic.py` (EXTEND) — add to `GenericApplicationTest`
+
+#### 17a. `test_generic_application_render_returns_zero_without_details`
+Create a GenericApplication with no processes/filesystems/ports.
+Call `app.render(template_cache, jinja2, recipe)`.
+Assert: returns `0` and `app.config_files` is empty.
+
+---
+
+### 18. `tests/test_package.py` (EXTEND) — add to `PackageTest`
+
+#### 18a. `test_application_lower_columns_normalised`
+`app = Application({'host_name': 'h', 'name': 'MyApp', 'type': 'WEB'})`.
+Assert: `app.name == 'myapp'`, `app.type == 'web'`.
 
 ---
 
@@ -409,9 +482,15 @@ Assert: the resulting `contact_name` attribute contains only ASCII characters.
 
 ## Out of scope
 
-- Fixing the `Host.is_correct()` bug (spec 004 or a separate PR).
+- Fixing BUG-1, BUG-2, BUG-3a, BUG-3b (separate fix-bugs spec/PR).
 - Adding test infrastructure for the pushgateway in-process path (requires mocking
   `prometheus_client`; defer to a dedicated metrics spec).
 - `max_delta_action` external command execution (integration test, not unit test; defer).
 - Vault exception hierarchy (`VaultNotReady`, `VaultCorrupt`, etc.) — not raised by
   any reachable code path in the current test fixtures; defer.
+- `set_recipe_sys_path` / `unset_recipe_sys_path` — sys.path manipulation is fragile
+  to test in isolation without side effects; defer.
+- `Recipe >>>` shorthand — requires a test cookbook fixture; include if trivial to
+  add to an existing config, otherwise defer.
+- Datasource dead code (`return 'i do not exist'` on line 236) — cosmetic; note in
+  comments but no dedicated test.
