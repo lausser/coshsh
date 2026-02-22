@@ -89,6 +89,57 @@ class RecipesTest(CommonCoshshTest):
         self.assertEqual(os.environ["THEZDIR"], "/opt/zisch/i_am_the_dir")
         self.assertEqual(os.environ["MIBDIRS"], "/usr/share/snmp/mibs:/omd/sites/sitexy/etc/coshsh/data/mibs")
 
+    def test_recipe_get_datasource_returns_none_for_unknown_name(self):
+        """get_datasource() returns None when the name does not match any datasource."""
+        self.setUpConfig("etc/coshsh.cfg", "test10")
+        r = self.generator.get_recipe("test10")
+        self.assertIsNone(r.get_datasource("nonexistent"))
+
+    def test_recipe_get_datarecipient_returns_none_for_unknown_name(self):
+        """get_datarecipient() returns None when the name does not match any datarecipient."""
+        self.setUpConfig("etc/coshsh.cfg", "test10")
+        r = self.generator.get_recipe("test10")
+        self.assertIsNone(r.get_datarecipient("nonexistent"))
+
+    def test_recipe_count_after_objects_raises_typeerror(self):
+        """[BUG-2] count_after_objects() raises TypeError due to reversed sum() arguments."""
+        self.setUpConfig("etc/coshsh.cfg", "test10")
+        r = self.generator.get_recipe("test10")
+        r.count_before_objects()
+        r.cleanup_target_dir()
+        r.prepare_target_dir()
+        r.collect()
+        r.assemble()
+        r.render()
+        r.output()
+        with self.assertRaises(TypeError):
+            r.count_after_objects()
+
+    def test_recipe_assemble_removes_orphaned_applications(self):
+        """assemble() removes applications that refer to non-existing hosts."""
+        self.setUpConfig("etc/coshsh.cfg", "test10")
+        r = self.generator.get_recipe("test10")
+        r.collect()
+        from coshsh.application import Application
+        orphan = Application({'host_name': 'ghost_host', 'name': 'orphan', 'type': 'generic'})
+        r.objects['applications'][orphan.fingerprint()] = orphan
+        count_before = len(r.objects['applications'])
+        r.assemble()
+        self.assertNotIn(orphan.fingerprint(), r.objects['applications'])
+        self.assertLess(len(r.objects['applications']), count_before)
+
+    def test_recipe_assemble_creates_hostgroup_objects(self):
+        """assemble() creates HostGroup objects from host.hostgroups."""
+        self.setUpConfig("etc/coshsh.cfg", "test10")
+        r = self.generator.get_recipe("test10")
+        r.collect()
+        # Add a hostgroup to a host so assemble() has something to create
+        r.objects['hosts']['test_host_0'].hostgroups = ['linux_servers']
+        r.assemble()
+        self.assertIn('linux_servers', r.objects['hostgroups'])
+        import coshsh.hostgroup
+        self.assertIsInstance(r.objects['hostgroups']['linux_servers'], coshsh.hostgroup.HostGroup)
+
     def test_create_recipe_template_error(self):
         """Template render errors are counted and do not block output of other objects."""
         self.setUpConfig("etc/coshsh.cfg", "test10tplerr")

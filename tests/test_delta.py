@@ -135,6 +135,16 @@ class DeltaTest(CommonCoshshTest):
         self.assertTrue(os.path.exists("var/objects/test16/dynamic/hosts/test_host_009/host.cfg"))
         self.assertTrue(os.path.exists("var/objects/test16/dynamic/hosts/test_host_019"))
 
+    def test_too_much_delta_boundary_exactly_at_threshold(self):
+        """Datarecipient.too_much_delta() returns False when change is exactly at threshold."""
+        from coshsh.datarecipient import Datarecipient
+        dr = object.__new__(Datarecipient)
+        dr.max_delta = (100, 100)  # positive: guards both directions
+        dr.old_objects = (10, 10)
+        dr.new_objects = (20, 20)  # exactly 100% increase
+        # 100% change == threshold of 100 → abs(100) > 100 is False
+        self.assertFalse(dr.too_much_delta())
+
     def test_delta_exceeded_on_shrink_restores_old_files(self):
         """Shrinkage beyond max_delta threshold keeps old files and does not write new ones."""
         self.setUpConfig("etc/coshsh.cfg", "test16")

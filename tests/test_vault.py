@@ -41,6 +41,22 @@ class VaultTest(CommonCoshshTest):
         r_prod = self.generator.get_recipe("prod")
         self.assertIsNone(r_prod)
 
+    def test_vault_get_returns_none_for_missing_key(self):
+        """vault.get() returns None for a key that does not exist."""
+        os.environ["NAEMON_VIM_MASTER_PASSWORD"] = "niemonfault"
+        self.setUpConfig("etc/coshsh20.cfg", "prod")
+        r_prod = self.generator.get_recipe("prod")
+        self.assertIsNone(r_prod.vaults[0].get('$NONEXISTENT$'))
+
+    def test_vault_getall_returns_list_of_values(self):
+        """vault.getall() returns a list of all stored values."""
+        os.environ["NAEMON_VIM_MASTER_PASSWORD"] = "niemonfault"
+        self.setUpConfig("etc/coshsh20.cfg", "prod")
+        r_prod = self.generator.get_recipe("prod")
+        values = r_prod.vaults[0].getall()
+        self.assertIsInstance(values, list)
+        self.assertTrue(len(values) > 0)
+
     def test_open_vault_fails_no_such_file(self):
         """Missing vault file causes VaultNotAvailable and recipe is not loaded."""
         os.environ["NAEMON_VIM_MASTER_PASSWORD"] = "niemonfault"

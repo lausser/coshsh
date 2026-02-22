@@ -46,6 +46,12 @@ class PackageTest(CommonCoshshTest):
         self.assertEqual(application.contact_groups, [])
         self.assertEqual(application.__class__.__name__, "GenericApplication")
 
+    def test_application_lower_columns_normalised(self):
+        """Application name and type are lowered on init."""
+        application = coshsh.application.Application({"host_name": "TEST", "name": "Shop", "type": "Apache"})
+        self.assertEqual(application.name, "shop")
+        self.assertEqual(application.type, "apache")
+
     def test_create_application(self):
         """Application has empty contact_groups list."""
         application = coshsh.application.Application({"host_name": "test", "name": "shop", "type": "apache"})

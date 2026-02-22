@@ -135,6 +135,79 @@ class MonitoringDetailTest(CommonCoshshTest):
         r.output()
         self.assertTrue(os.path.exists('var/objects/test6/dynamic/hosts/test_host_0/app_generic_web.cfg'))
 
+    def test_comparison_operators(self):
+        """MonitoringDetail comparison operators use (monitoring_type, str(monitoring_0)) tuple."""
+        self.setUpConfig("etc/coshsh.cfg", "test6")
+        a = MonitoringDetail({
+            'host_name': 'h', 'name': 'n', 'type': 'generic',
+            'monitoring_type': 'FILESYSTEM', 'monitoring_0': '/',
+        })
+        b = MonitoringDetail({
+            'host_name': 'h', 'name': 'n', 'type': 'generic',
+            'monitoring_type': 'FILESYSTEM', 'monitoring_0': '/',
+        })
+        c = MonitoringDetail({
+            'host_name': 'h', 'name': 'n', 'type': 'generic',
+            'monitoring_type': 'URL', 'monitoring_0': 'http://x',
+        })
+        self.assertEqual(a, b)
+        self.assertNotEqual(a, c)
+        self.assertTrue(a < c)  # FILESYSTEM < URL
+        self.assertTrue(c > a)
+        self.assertTrue(a <= b)
+        self.assertTrue(a >= b)
+
+    def test_fingerprint_is_unique_per_instance(self):
+        """Two MonitoringDetail instances have different fingerprints (id-based)."""
+        self.setUpConfig("etc/coshsh.cfg", "test6")
+        a = MonitoringDetail({
+            'host_name': 'h', 'name': 'n', 'type': 'generic',
+            'monitoring_type': 'FILESYSTEM', 'monitoring_0': '/',
+        })
+        b = MonitoringDetail({
+            'host_name': 'h', 'name': 'n', 'type': 'generic',
+            'monitoring_type': 'FILESYSTEM', 'monitoring_0': '/',
+        })
+        self.assertNotEqual(a.fingerprint(), b.fingerprint())
+
+    def test_application_fingerprint_host_level(self):
+        """application_fingerprint() with host_name only returns just the host_name."""
+        self.setUpConfig("etc/coshsh.cfg", "test6")
+        d = MonitoringDetail({
+            'host_name': 'srv01', 'name': '', 'type': '',
+            'monitoring_type': 'FILESYSTEM', 'monitoring_0': '/',
+        })
+        self.assertEqual(d.application_fingerprint(), 'srv01')
+
+    def test_application_fingerprint_app_level(self):
+        """application_fingerprint() with host+app+type returns composite key."""
+        self.setUpConfig("etc/coshsh.cfg", "test6")
+        d = MonitoringDetail({
+            'host_name': 'srv01', 'name': 'myapp', 'type': 'web',
+            'monitoring_type': 'FILESYSTEM', 'monitoring_0': '/',
+        })
+        self.assertEqual(d.application_fingerprint(), 'srv01+myapp+web')
+
+    def test_application_fingerprint_raises_on_no_host(self):
+        """[BUG-3b] application_fingerprint() raises TypeError when host_name is missing."""
+        self.setUpConfig("etc/coshsh.cfg", "test6")
+        d = MonitoringDetail({
+            'host_name': '', 'name': '', 'type': '',
+            'monitoring_type': 'FILESYSTEM', 'monitoring_0': '/',
+        })
+        d.host_name = None
+        with self.assertRaises(TypeError):
+            d.application_fingerprint()
+
+    def test_repr_format(self):
+        """__repr__ returns 'TYPE value' format."""
+        self.setUpConfig("etc/coshsh.cfg", "test6")
+        d = MonitoringDetail({
+            'host_name': 'h', 'name': 'n', 'type': 'generic',
+            'monitoring_type': 'FILESYSTEM', 'monitoring_0': '/',
+        })
+        self.assertEqual(repr(d), 'FILESYSTEM /')
+
     def test_lazy_datasource(self):
         """Lazy datasource attributes are merged onto application objects during assemble."""
         self.setUpConfig("etc/coshsh.cfg", "test14")

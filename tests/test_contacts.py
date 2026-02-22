@@ -61,6 +61,23 @@ class ContactsTest(CommonCoshshTest):
         self.assertEqual(u_bmc.host_notification_options, "d,u,r")
         self.assertEqual(u_bmc.service_notification_commands, ["notify-service-optis"])
 
+    def test_generic_contact_clean_name_replaces_umlauts(self):
+        """Contact.clean_name() replaces German umlauts with ASCII equivalents."""
+        contact = coshsh.contact.Contact({
+            "type": "UNKNOWN", "name": "m\u00fcller", "userid": "mueller",
+            "notification_period": "24x7",
+        })
+        self.assertEqual(contact.name, "mueller")
+
+    def test_contact_notification_period_fallback(self):
+        """Generic notification_period falls back to host_notification_period and service_notification_period."""
+        contact = coshsh.contact.Contact({
+            "type": "UNKNOWN", "name": "test", "userid": "test",
+            "notification_period": "5x8",
+        })
+        self.assertEqual(contact.host_notification_period, "5x8")
+        self.assertEqual(contact.service_notification_period, "5x8")
+
     def test_create_custom_contacts(self):
         """Verify that contacts with existing Nagios templates render the correct use directive in their config files."""
         self.setUpConfig("etc/coshsh4.cfg", "test221")

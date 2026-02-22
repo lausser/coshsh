@@ -39,6 +39,19 @@ class GenericApplicationTest(CommonCoshshTest):
         self.assertFalse(os.path.exists("var/objects/test33/dynamic/hosts/testhost/app_my_generic_fs.cfg"))
         self.assertFalse(os.path.exists("var/objects/test33/dynamic/hosts/testhost/app_my_generic_ports.cfg"))
 
+    def test_generic_application_render_returns_zero_without_details(self):
+        """GenericApplication.render() returns 0 when there are no monitoring details."""
+        self.setUpConfig("etc/coshsh5.cfg", "test33")
+        r = self.generator.get_recipe("test33")
+        app = Application({
+            'host_name': 'testhost',
+            'name': 'noname',
+            'type': 'arschknarsch',
+        })
+        self.assertEqual(app.__class__, GenericApplication)
+        result = app.render({}, r.jinja2, r)
+        self.assertEqual(result, 0)
+
     def test_mygeneric_app(self):
         """Verify application with monitoring details is reblessed to MyGenericApplication with output files."""
         self.setUpConfig("etc/coshsh5.cfg", "test34")

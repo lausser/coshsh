@@ -2,6 +2,7 @@
 
 Generated: 2026-02-22
 Baseline: 100 collected, 100 passed, 0 failed
+Final: 205 collected, 205 passed, 0 failed (+105 new tests)
 Spec: specs/003-add-missing-tests/spec.md
 Branch: 003-add-missing-tests
 
@@ -28,13 +29,14 @@ TASK-000  Record baseline
      TASK-017  tests/test_package.py (EXTEND)
      TASK-018  tests/test_delta.py (EXTEND)
        └─ (all above) → TASK-019 (final verification)
+                         └─ TASK-020 (fix DeprecationWarning in filter_re_sub)
 ```
 
 ---
 
 ## TASK-000 — Record baseline
 
-**Status**: pending
+**Status**: done
 **Depends on**: —
 
 Run the full test suite and record the exact numbers before any changes.
@@ -50,7 +52,7 @@ Acceptance: baseline recorded; no code touched.
 
 ## TASK-001 — `tests/test_util.py` (NEW)
 
-**Status**: pending
+**Status**: done
 **Depends on**: TASK-000
 **Spec section**: 5
 **Tests**: 5a–5m (~13 tests)
@@ -77,7 +79,7 @@ Acceptance: all new tests pass; `python -m pytest tests/test_util.py -v` green.
 
 ## TASK-002 — `tests/test_dependency.py` (NEW)
 
-**Status**: pending
+**Status**: done
 **Depends on**: TASK-000
 **Spec section**: 4
 **Tests**: 4a–4c (3 tests)
@@ -96,7 +98,7 @@ Acceptance: `python -m pytest tests/test_dependency.py -v` green.
 
 ## TASK-003 — `tests/test_templaterule.py` (NEW)
 
-**Status**: pending
+**Status**: done
 **Depends on**: TASK-000
 **Spec section**: 14
 **Tests**: 14a–14c (3 tests)
@@ -115,7 +117,7 @@ Acceptance: `python -m pytest tests/test_templaterule.py -v` green.
 
 ## TASK-004 — `tests/test_contactgroup.py` (NEW)
 
-**Status**: pending
+**Status**: done
 **Depends on**: TASK-000
 **Spec section**: 15
 **Tests**: 15a–15b (2 tests)
@@ -133,7 +135,7 @@ Acceptance: `python -m pytest tests/test_contactgroup.py -v` green.
 
 ## TASK-005 — `tests/test_configparser.py` (NEW)
 
-**Status**: pending
+**Status**: done
 **Depends on**: TASK-000
 **Spec section**: 3
 **Tests**: 3a–3e (5 tests)
@@ -156,7 +158,7 @@ Acceptance: `python -m pytest tests/test_configparser.py -v` green.
 
 ## TASK-006 — `tests/test_host.py` (NEW)
 
-**Status**: pending
+**Status**: done
 **Depends on**: TASK-000
 **Spec section**: 1
 **Tests**: 1a–1i (9 tests, one is BUG-1)
@@ -181,7 +183,7 @@ Acceptance: all tests pass (BUG-1 test expected to demonstrate the bug).
 
 ## TASK-007 — `tests/test_item.py` (NEW)
 
-**Status**: pending
+**Status**: done
 **Depends on**: TASK-000
 **Spec section**: 2
 **Tests**: 2a–2q (17 tests, one is BUG-3a)
@@ -212,7 +214,7 @@ Acceptance: all tests pass (BUG-3a test expected to demonstrate the bug).
 
 ## TASK-008 — `tests/test_jinja2_extensions.py` (NEW)
 
-**Status**: pending
+**Status**: done
 **Depends on**: TASK-000
 **Spec section**: 10
 **Tests**: 10a–10p (16 tests)
@@ -239,7 +241,7 @@ Acceptance: `python -m pytest tests/test_jinja2_extensions.py -v` green.
 
 ## TASK-009 — `tests/test_datasource.py` (NEW)
 
-**Status**: pending
+**Status**: done
 **Depends on**: TASK-000
 **Spec section**: 16
 **Tests**: 16a–16g (7 tests)
@@ -264,7 +266,7 @@ Acceptance: `python -m pytest tests/test_datasource.py -v` green.
 
 ## TASK-010 — `tests/test_datarecipient.py` (NEW)
 
-**Status**: pending
+**Status**: done
 **Depends on**: TASK-000
 **Spec section**: 6
 **Tests**: 6a–6h (8 tests)
@@ -283,7 +285,7 @@ Acceptance: `python -m pytest tests/test_datarecipient.py -v` green.
 
 ## TASK-011 — `tests/test_details.py` (EXTEND)
 
-**Status**: pending
+**Status**: done
 **Depends on**: TASK-000
 **Spec section**: 8
 **Tests**: 8a–8f (6 new tests, one is BUG-3b)
@@ -304,7 +306,7 @@ Acceptance: all existing + new tests pass (BUG-3b demonstrates the bug).
 
 ## TASK-012 — `tests/test_merge.py` (EXTEND)
 
-**Status**: pending
+**Status**: done
 **Depends on**: TASK-000
 **Spec section**: 9
 **Tests**: 9a–9b (2 new tests)
@@ -321,7 +323,7 @@ Acceptance: all existing + new tests pass.
 
 ## TASK-013 — `tests/test_recipes.py` (EXTEND)
 
-**Status**: pending
+**Status**: done
 **Depends on**: TASK-000
 **Spec section**: 11
 **Tests**: 11a–11i (9 new tests, one is BUG-2)
@@ -345,7 +347,7 @@ Acceptance: all existing + new tests pass (BUG-2 demonstrates the bug).
 
 ## TASK-014 — `tests/test_vault.py` (EXTEND)
 
-**Status**: pending
+**Status**: done
 **Depends on**: TASK-000
 **Spec section**: 12
 **Tests**: 12a–12b (2 new tests)
@@ -362,7 +364,7 @@ Acceptance: all existing + new tests pass.
 
 ## TASK-015 — `tests/test_contacts.py` (EXTEND)
 
-**Status**: pending
+**Status**: done
 **Depends on**: TASK-000
 **Spec section**: 13
 **Tests**: 13a–13b (2 new tests)
@@ -379,7 +381,7 @@ Acceptance: all existing + new tests pass.
 
 ## TASK-016 — `tests/test_generic.py` (EXTEND)
 
-**Status**: pending
+**Status**: done
 **Depends on**: TASK-000
 **Spec section**: 17
 **Tests**: 17a (1 new test)
@@ -396,7 +398,7 @@ Acceptance: all existing + new tests pass.
 
 ## TASK-017 — `tests/test_package.py` (EXTEND)
 
-**Status**: pending
+**Status**: done
 **Depends on**: TASK-000
 **Spec section**: 18
 **Tests**: 18a (1 new test)
@@ -412,7 +414,7 @@ Acceptance: all existing + new tests pass.
 
 ## TASK-018 — `tests/test_delta.py` (EXTEND)
 
-**Status**: pending
+**Status**: done
 **Depends on**: TASK-000
 **Spec section**: 7
 **Tests**: 7a (1 new test)
@@ -428,7 +430,7 @@ Acceptance: all existing + new tests pass.
 
 ## TASK-019 — Final verification
 
-**Status**: pending
+**Status**: done
 **Depends on**: TASK-001 through TASK-018
 
 Full suite verification.
@@ -444,3 +446,29 @@ Steps:
 6. Verify `git log --oneline` shows one commit per test file (or per logical group).
 
 Acceptance: all tests pass; total count = 100 + N new; all spec acceptance criteria met.
+
+---
+
+## TASK-020 — Fix DeprecationWarning in `filter_re_sub`
+
+**Status**: done
+**Depends on**: TASK-008
+**Commit**: `9060716`
+
+Fix Python 3.13 `DeprecationWarning` in `coshsh/jinja2_extensions.py:131`:
+change `re.sub(myre, repl, s, count)` → `re.sub(myre, repl, s, count=count)`.
+
+This is a **source code fix**, not a test issue. The keyword form works on all
+Python 3.x versions. No change to the Jinja2 filter interface — existing `.tpl`
+files are unaffected.
+
+Acceptance: `python -m pytest tests/ -q -W error::DeprecationWarning` passes all 205 tests with zero warnings.
+
+---
+
+## Completion
+
+**Status**: FINISHED
+**Date**: 2026-02-22
+**Final**: 205 collected, 205 passed, 0 failed, 0 warnings
+**Branch**: `003-add-missing-tests`

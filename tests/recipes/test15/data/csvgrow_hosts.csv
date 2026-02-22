@@ -1,0 +1,21 @@
+host_name,address,type,os,hardware,virtual,notification_period,location,department
+test_host_000,127.0.0.1,server,,Proliant DL380 G6,ps,7x24,rack1,versandverpackung
+test_host_001,127.0.0.1,server,,Proliant DL380 G6,ps,7x24,rack1,versandverpackung
+test_host_002,127.0.0.1,server,,Proliant DL380 G6,ps,7x24,rack1,versandverpackung
+test_host_003,127.0.0.1,server,,Proliant DL380 G6,ps,7x24,rack1,versandverpackung
+test_host_004,127.0.0.1,server,,Proliant DL380 G6,ps,7x24,rack1,versandverpackung
+test_host_005,127.0.0.1,server,,Proliant DL380 G6,ps,7x24,rack1,versandverpackung
+test_host_006,127.0.0.1,server,,Proliant DL380 G6,ps,7x24,rack1,versandverpackung
+test_host_007,127.0.0.1,server,,Proliant DL380 G6,ps,7x24,rack1,versandverpackung
+test_host_008,127.0.0.1,server,,Proliant DL380 G6,ps,7x24,rack1,versandverpackung
+test_host_009,127.0.0.1,server,,Proliant DL380 G6,ps,7x24,rack1,versandverpackung
+test_host_010,127.0.0.1,server,,Proliant DL380 G6,ps,7x24,rack1,versandverpackung
+test_host_011,127.0.0.1,server,,Proliant DL380 G6,ps,7x24,rack1,versandverpackung
+test_host_012,127.0.0.1,server,,Proliant DL380 G6,ps,7x24,rack1,versandverpackung
+test_host_013,127.0.0.1,server,,Proliant DL380 G6,ps,7x24,rack1,versandverpackung
+test_host_014,127.0.0.1,server,,Proliant DL380 G6,ps,7x24,rack1,versandverpackung
+test_host_015,127.0.0.1,server,,Proliant DL380 G6,ps,7x24,rack1,versandverpackung
+test_host_016,127.0.0.1,server,,Proliant DL380 G6,ps,7x24,rack1,versandverpackung
+test_host_017,127.0.0.1,server,,Proliant DL380 G6,ps,7x24,rack1,versandverpackung
+test_host_018,127.0.0.1,server,,Proliant DL380 G6,ps,7x24,rack1,versandverpackung
+test_host_019,127.0.0.1,server,,Proliant DL380 G6,ps,7x24,rack1,versandverpackung
