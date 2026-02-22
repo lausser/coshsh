@@ -1,3 +1,4 @@
+"""Base test class and shared infrastructure for all coshsh tests."""
 import sys
 sys.dont_write_bytecode = True
 import os
@@ -6,7 +7,6 @@ import unittest
 from coshsh.configparser import CoshshConfigParser
 import shutil
 import logging
-import pprint
 import coshsh
 from coshsh.generator import Generator
 from coshsh.datasource import Datasource
@@ -59,7 +59,6 @@ class CommonCoshshTest(unittest.TestCase):
             getattr(self, "mySetUpRm")()
         if hasattr(self, "mySetUpMk"):
             getattr(self, "mySetUpMk")()
-        self.pp = pprint.PrettyPrinter(indent=4)
 
 
     def setUpConfig(self, configfile, default_recipe, default_log_level="info", force=False, safe_output=False):
@@ -95,9 +94,3 @@ class CommonCoshshTest(unittest.TestCase):
         self.generator = None
         self.generator = coshsh.generator.Generator()
         setup_logging()
-
-    def print_header(self):
-        print("#" * 80 + "\n" + "#" + " " * 78 + "#")
-        print("#" + str.center(self.id(), 78) + "#")
-        print("#" + " " * 78 + "#\n" + "#" * 80 + "\n")
-

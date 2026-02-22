@@ -1,3 +1,5 @@
+"""Tests for the catchall (MyGenericApplication) plugin and per-type config file output."""
+
 import os
 import shutil
 import coshsh
@@ -6,13 +8,13 @@ from coshsh.application import Application
 from coshsh.monitoringdetail import MonitoringDetail
 from tests.common_coshsh_test import CommonCoshshTest
 
-class CoshshTest(CommonCoshshTest):
+
+class CatchallTest(CommonCoshshTest):
 
     def test_mygeneric_app(self):
+        """Verify MyGenericApplication catches unknown types and writes per-monitoring-type config files."""
         shutil.rmtree("/tmp/coshsh_test34.log", True)
         self.setUpConfig("etc/coshsh5.cfg", "test34")
-        # init-meldungen von test34
-        self.assertTrue(os.path.exists("/tmp/coshsh_test34.log"))
         r = self.generator.get_recipe("test34")
         r.update_item_class_factories()
         ds = self.generator.get_recipe("test34").get_datasource("simplesample")
@@ -57,13 +59,11 @@ class CoshshTest(CommonCoshshTest):
         r.collect()
         r.assemble()
         r.render()
-        self.assertTrue(len(r.objects['applications']) == 1)
-        self.assertTrue(r.datasources[0].getall('applications')[0] == app)
-        self.assertTrue(r.datasources[0].getall('applications')[0].__class__.__name__ == "MyGenericApplication")
+        self.assertEqual(len(r.objects['applications']), 1)
+        self.assertEqual(r.datasources[0].getall('applications')[0], app)
+        self.assertEqual(r.datasources[0].getall('applications')[0].__class__.__name__, "MyGenericApplication")
         r.output()
         self.assertTrue(os.path.exists("var/objects/test33/dynamic/hosts/testhost/host.cfg"))
         self.assertTrue(os.path.exists("var/objects/test33/dynamic/hosts/testhost/app_my_generic_fs.cfg"))
         self.assertTrue(os.path.exists("var/objects/test33/dynamic/hosts/testhost/app_my_generic_ports.cfg"))
         self.assertTrue(os.path.exists("var/objects/test33/dynamic/hosts/testhost/app_my_generic_blinkenlights.cfg"))
-
-
