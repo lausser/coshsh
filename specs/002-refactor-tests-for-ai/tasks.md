@@ -1,6 +1,7 @@
 # Tasks: 002-refactor-tests-for-ai
 
 Generated: 2026-02-21
+Baseline: 98 collected, 98 passed, 0 failed (recorded 2026-02-21)
 Spec: specs/002-refactor-tests-for-ai/spec.md
 Branch: 002-refactor-tests-for-ai
 
