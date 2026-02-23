@@ -27,15 +27,18 @@ that provide parent/child host information and are stored for later use
 during configuration output.
 """
 
+from __future__ import annotations
+
+from typing import Any
+
 
 # WHY: Dependency is a plain object (not an Item subclass) because it only
 # stores two strings and never needs template rendering, class-factory lookup,
 # monitoring-detail resolution, or fingerprint-based deduplication.  Keeping it
 # lightweight avoids pulling in the full Item/CoshshDatainterface machinery for
 # what is essentially a two-field data record.
-class Dependency(object):
+class Dependency:
 
-    def __init__(self, params={}):
-        self.host_name = params["host_name"]
-        self.parent_host_name = params["parent_host_name"]
-        
+    def __init__(self, params: dict[str, Any] = {}) -> None:
+        self.host_name: str = params["host_name"]
+        self.parent_host_name: str = params["parent_host_name"]

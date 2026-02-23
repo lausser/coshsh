@@ -26,13 +26,17 @@ in ``recipe.objects['contactgroups']`` and rendered alongside hosts,
 applications, and contacts.
 """
 
+from __future__ import annotations
+
 import os
+from typing import Any, ClassVar
+
 import coshsh
 
 
 class ContactGroup(coshsh.item.Item):
 
-    template_rules = [
+    template_rules: ClassVar[list[coshsh.templaterule.TemplateRule]] = [
         coshsh.templaterule.TemplateRule(
             template="contactgroup",
             self_name="contactgroup",
@@ -40,7 +44,7 @@ class ContactGroup(coshsh.item.Item):
         )
     ]
 
-    def __init__(self, params={}):
+    def __init__(self, params: dict[str, Any] = {}) -> None:
         """Create a ContactGroup from a params dict.
 
         Args:
@@ -51,20 +55,19 @@ class ContactGroup(coshsh.item.Item):
         # WHY: members is initialised before super().__init__ so that
         # params can safely overwrite it if the datasource provides an
         # explicit member list.
-        self.members = []
+        self.members: list[str] = []
         super(ContactGroup, self).__init__(params)
         self.fingerprint = lambda s=self:s.__class__.fingerprint(params)
 
     @classmethod
-    def fingerprint(self, params):
+    def fingerprint(cls, params: dict[str, Any]) -> str:
         """Return the unique identity string for this contactgroup.
 
         The fingerprint is simply the ``contactgroup_name`` because
         group names are globally unique within a monitoring installation.
         """
-        return "%s" % (params["contactgroup_name"], )
+        return f"{params['contactgroup_name']}"
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a human-readable label for logging and debugging."""
-        return "contactgroup %s" % self.contactgroup_name
-
+        return f"contactgroup {self.contactgroup_name}"

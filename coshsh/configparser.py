@@ -33,6 +33,10 @@ AI agent note:
     after read() are not retroactively inherited.
 """
 
+from __future__ import annotations
+
+import os
+from collections.abc import Iterable
 from configparser import RawConfigParser
 
 
@@ -46,7 +50,11 @@ class CoshshConfigParser(RawConfigParser, object):
     defined locally.
     """
 
-    def read(self, files):
+    def read(
+        self,
+        files: str | os.PathLike[str] | Iterable[str | os.PathLike[str]],
+        encoding: str | None = None,
+    ) -> list[str]:
         """Read and parse INI file(s), then apply ``isa`` inheritance.
 
         After the standard RawConfigParser.read() populates self._sections,
@@ -56,6 +64,10 @@ class CoshshConfigParser(RawConfigParser, object):
 
         Args:
             files: A filename string or list of filename strings to read.
+            encoding: Encoding to use when opening files.
+
+        Returns:
+            List of successfully read filenames.
 
         Side effects:
             - Populates self._sections via the parent class read().
@@ -70,7 +82,7 @@ class CoshshConfigParser(RawConfigParser, object):
         # around Python 2/3 compatibility in older coshsh versions.  The
         # ``object`` in the class bases was originally required for
         # new-style class behaviour under Python 2.
-        super(self.__class__, self).read(files)
+        result = super(self.__class__, self).read(files, encoding=encoding)
         # WHY: Inheritance is implemented by direct dict manipulation on
         # _sections rather than using the public ConfigParser API.  This
         # avoids triggering interpolation logic (even though RawConfigParser
@@ -81,4 +93,4 @@ class CoshshConfigParser(RawConfigParser, object):
                 for key in self._sections[section["isa"]]:
                     if not key in section and not key == "isa":
                         section[key] = self._sections[section["isa"]][key]
-
+        return result

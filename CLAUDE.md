@@ -5,6 +5,8 @@ Auto-generated from all feature plans. Last updated: 2026-02-17
 ## Active Technologies
 - Python 3.12+ (coshsh source) / Markdown (documentation format) + None new — documents the existing stack: Python stdlib, (001-ai-handover-docs)
 - Markdown files committed to the repository under `docs/`; inline comments (001-ai-handover-docs)
+- Python 3.12+ (minimum supported; runtime may be 3.14) + Jinja2 (templating), configparser (stdlib, config files) (004-modernize-codebase)
+- Filesystem (generated config files, templates, recipe class files) (004-modernize-codebase)
 
 - (001-ai-handover-docs)
 
@@ -25,6 +27,7 @@ tests/
 : Follow standard conventions
 
 ## Recent Changes
+- 004-modernize-codebase: Added Python 3.12+ (minimum supported; runtime may be 3.14) + Jinja2 (templating), configparser (stdlib, config files)
 - 001-ai-handover-docs: Added Python 3.12+ (coshsh source) / Markdown (documentation format) + None new — documents the existing stack: Python stdlib,
 
 - 001-ai-handover-docs: Added
