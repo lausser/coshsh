@@ -32,15 +32,19 @@ stateless except the logging helpers which store state as function
 attributes on ``setup_logging``.
 """
 
-import time
-import sys
-import re
-import hashlib
+from __future__ import annotations
+
 import copy
-import os
+import hashlib
 import logging
-from logging.handlers import RotatingFileHandler
+import os
+import re
+import sys
+import time
 from collections.abc import MutableMapping
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
+from typing import Any
 
 
 # WHY: odict exists to preserve the insertion order of recipes in
@@ -60,33 +64,33 @@ class odict(MutableMapping):
     http://code.activestate.com/recipes/496761-a-more-clean-implementation-for-ordered-dictionary/
     Thanks! I use the odict class for generator.recipes
     """
-    def __init__(self):
-        self._keys = []
-        self._data = {}
+    def __init__(self) -> None:
+        self._keys: list[str] = []
+        self._data: dict[str, Any] = {}
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._data)
 
     def __iter__(self):
         for i in self._data:
             yield i
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any) -> None:
         if key not in self._data:
             self._keys.append(key)
         self._data[key] = value
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         return self._data[key]
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: str) -> None:
         del self._data[key]
         self._keys.remove(key)
 
-    def keys(self):
+    def keys(self) -> list[str]:
         return list(self._keys)
 
-    def copy(self):
+    def copy(self) -> odict:
         copyDict = odict()
         copyDict._data = self._data.copy()
         copyDict._keys = self._keys[:]
@@ -99,7 +103,7 @@ class odict(MutableMapping):
 # to say "type starts with 'linux'" without accidentally matching
 # "solarislinux".  The IGNORECASE flag is deliberate -- CMDB / CSV
 # data often has inconsistent casing.
-def compare_attr(key, params, strings):
+def compare_attr(key: str, params: dict[str, Any], strings: str | list[str]) -> bool:
     """Check whether ``params[key]`` matches any regex in *strings*.
 
     Each element of *strings* is compiled as a regex and tested with
@@ -121,7 +125,7 @@ def compare_attr(key, params, strings):
             return True
     return False
 
-def is_attr(key, params, strings):
+def is_attr(key: str, params: dict[str, Any], strings: str | list[str]) -> bool:
     """Check whether ``params[key]`` exactly equals any element in *strings*.
 
     Comparison is case-insensitive but, unlike :func:`compare_attr`, no
@@ -134,13 +138,15 @@ def is_attr(key, params, strings):
             return True
     return False
 
-def cleanout(dirty_string, delete_chars="", delete_words=[]):
+def cleanout(dirty_string: str | None, delete_chars: str = "", delete_words: list[str] | None = None) -> str | None:
     """Remove unwanted characters and substrings from *dirty_string*.
 
     *delete_chars* is iterated character-by-character; *delete_words* are
     removed as whole substrings.  The result is also stripped of leading
     and trailing whitespace.
     """
+    if delete_words is None:
+        delete_words = []
     if not dirty_string:
         return dirty_string
     for dirt in delete_words + list(delete_chars):
@@ -155,7 +161,7 @@ def cleanout(dirty_string, delete_chars="", delete_words=[]):
 # files historically used that syntax.  If the variable is not set the
 # original ``%VAR%`` token is returned unchanged -- this is intentional
 # so that unexpanded tokens are visible in the output for debugging.
-def substenv(matchobj):
+def substenv(matchobj: re.Match) -> str:
     """``re.sub`` callback: expand a ``%VAR%`` token from the environment.
 
     Strips the surrounding ``%`` characters, looks the result up in
@@ -167,7 +173,7 @@ def substenv(matchobj):
     else:
         return matchobj.group(0)
 
-def normalize_dict(the_dict, titles=[]):
+def normalize_dict(the_dict: dict[str, Any], titles: list[str] | None = None) -> None:
     """Normalise a dictionary that came from a CSV or CMDB data source.
 
     All keys are lower-cased and values are stripped of surrounding
@@ -175,7 +181,9 @@ def normalize_dict(the_dict, titles=[]):
     lower-cased -- this is used for fields like ``hostname`` or ``type``
     where case-insensitive comparison is the norm.
     """
-    for k in the_dict.keys():
+    if titles is None:
+        titles = []
+    for k in list(the_dict.keys()):
         try:
             if k != k.lower():
                 the_dict[k.lower()] = the_dict[k].strip()
@@ -190,7 +198,7 @@ def normalize_dict(the_dict, titles=[]):
         except Exception:
             pass
 
-def clean_umlauts(text):
+def clean_umlauts(text: str) -> str:
     """Replace German umlauts and sharp-s with their ASCII equivalents.
 
     This is used when generating filenames or Nagios object names from
@@ -219,7 +227,7 @@ def clean_umlauts(text):
 # accidental collisions extremely unlikely within a single host's
 # config directory.  When no characters needed replacing the original
 # name is returned unchanged, so existing clean filenames are stable.
-def sanitize_filename(filename):
+def sanitize_filename(filename: str) -> str:
     """Return a filesystem-safe version of *filename*.
 
     Characters that are illegal or problematic on common filesystems
@@ -231,21 +239,29 @@ def sanitize_filename(filename):
 
     If no replacement is needed the original filename is returned as-is.
     """
-    name, ext = os.path.splitext(filename)
+    p = Path(filename)
+    name = p.stem
+    ext = p.suffix
     sanitized = re.sub(r'[\\/*?:"<>| ]+', '_', name)
     if sanitized == name:
         return filename
     # WHY: The MD5 suffix is only 4 hex chars -- enough to disambiguate
     # within a single host's directory while keeping names readable.
     hash_suffix = hashlib.md5(filename.encode()).hexdigest()[:4]
-    sanitized_with_hash = "{}_{}{}".format(sanitized, hash_suffix, ext)
-    return sanitized_with_hash
+    return f"{sanitized}_{hash_suffix}{ext}"
 
 
 # NOTE: setup_logging stores its configuration as function attributes
 # (e.g. setup_logging.logdir) so that switch_logging / restore_logging
 # can access and restore the original settings without module-level globals.
-def setup_logging(logdir=".", logfile="coshsh.log", scrnloglevel=logging.INFO, txtloglevel=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", backup_count=2):
+def setup_logging(
+    logdir: str = ".",
+    logfile: str = "coshsh.log",
+    scrnloglevel: int = logging.INFO,
+    txtloglevel: int = logging.INFO,
+    format: str = "%(asctime)s - %(levelname)s - %(message)s",
+    backup_count: int = 2,
+) -> logging.Logger:
     """Initialise the coshsh logger with a rotating file handler and a
     console (stderr) handler.
 
@@ -256,12 +272,13 @@ def setup_logging(logdir=".", logfile="coshsh.log", scrnloglevel=logging.INFO, t
 
     Returns the configured :class:`logging.Logger` instance.
     """
-    logdir = os.path.abspath(logdir)
-    abs_logfile = logfile if os.path.isabs(logfile) else os.path.join(logdir, logfile)
-    if not os.path.exists(os.path.dirname(abs_logfile)):
-        os.makedirs(os.path.dirname(abs_logfile), 0o755)
-   
-    setup_logging.logger_name = os.path.basename(abs_logfile).replace(".log", "")
+    logdir_path = Path(logdir).resolve()
+    logfile_path = Path(logfile)
+    abs_logfile = logfile_path if logfile_path.is_absolute() else logdir_path / logfile
+    if not abs_logfile.parent.exists():
+        abs_logfile.parent.mkdir(parents=True, mode=0o755)
+
+    setup_logging.logger_name = abs_logfile.name.replace(".log", "")
     logger = logging.getLogger(setup_logging.logger_name)
 
     if logger.hasHandlers():
@@ -273,7 +290,7 @@ def setup_logging(logdir=".", logfile="coshsh.log", scrnloglevel=logging.INFO, t
     logger.setLevel(logging.DEBUG)
     log_formatter = logging.Formatter(format)
 
-    txt_handler = RotatingFileHandler(abs_logfile, backupCount=backup_count, maxBytes=20*1024*1024, delay=True)
+    txt_handler = RotatingFileHandler(str(abs_logfile), backupCount=backup_count, maxBytes=20*1024*1024, delay=True)
     txt_handler.setFormatter(log_formatter)
     txt_handler.setLevel(txtloglevel)
     logger.addHandler(txt_handler)
@@ -284,11 +301,11 @@ def setup_logging(logdir=".", logfile="coshsh.log", scrnloglevel=logging.INFO, t
     console_handler.setLevel(scrnloglevel)
     logger.addHandler(console_handler)
 
-    setup_logging.logdir = logdir
+    setup_logging.logdir = str(logdir_path)
     setup_logging.logfile = logfile
     setup_logging.scrnloglevel = scrnloglevel
     setup_logging.txtloglevel = txtloglevel
-    setup_logging.abs_logfile = abs_logfile
+    setup_logging.abs_logfile = str(abs_logfile)
     setup_logging.log_formatter = log_formatter
     setup_logging.txt_handler = txt_handler
     setup_logging.console_handler = console_handler
@@ -296,7 +313,7 @@ def setup_logging(logdir=".", logfile="coshsh.log", scrnloglevel=logging.INFO, t
     return logger
 
 
-def switch_logging(**kwargs):
+def switch_logging(**kwargs: Any) -> None:
     """Redirect the file log handler to a different log file.
 
     Accepts optional *logdir*, *logfile*, and *backup_count* keyword
@@ -310,24 +327,26 @@ def switch_logging(**kwargs):
     logdir = setup_logging.logdir if logdir == None else logdir
     logfile = setup_logging.logfile if logfile == None else logfile
     backup_count = setup_logging.backup_count if backup_count == None else backup_count
-    abs_logfile = logfile if os.path.isabs(logfile) else os.path.join(logdir, logfile)
-    if abs_logfile == setup_logging.abs_logfile:
+    logfile_path = Path(logfile)
+    abs_logfile = logfile_path if logfile_path.is_absolute() else Path(logdir) / logfile
+    abs_logfile_str = str(abs_logfile)
+    if abs_logfile_str == setup_logging.abs_logfile:
         return
-    if not os.path.exists(os.path.dirname(abs_logfile)):
-        os.mkdir(os.path.dirname(abs_logfile))
+    if not abs_logfile.parent.exists():
+        abs_logfile.parent.mkdir()
     logger = logging.getLogger(setup_logging.logger_name)
-    logger.debug("Logger switches to " + abs_logfile)
+    logger.debug("Logger switches to " + abs_logfile_str)
     # remove the txt_handler
     logger.removeHandler(setup_logging.txt_handler)
     for handler in [h for h in logger.handlers]:
         if hasattr(handler, "baseFilename"):
             logger.removeHandler(handler)
-    txt_handler = RotatingFileHandler(abs_logfile, backupCount=backup_count, maxBytes=20*1024*1024, delay=True)
+    txt_handler = RotatingFileHandler(abs_logfile_str, backupCount=backup_count, maxBytes=20*1024*1024, delay=True)
     txt_handler.setFormatter(setup_logging.log_formatter)
     txt_handler.setLevel(setup_logging.txtloglevel)
     logger.addHandler(txt_handler)
 
-def restore_logging():
+def restore_logging() -> None:
     """Switch the file log handler back to the original log file.
 
     Delegates to :func:`switch_logging` with the settings that were
@@ -337,7 +356,7 @@ def restore_logging():
     logger = logging.getLogger('coshsh')
     logger.debug("Logger restored to " + setup_logging.logdir+"/"+setup_logging.logfile+"\n")
 
-def get_logger(self, name="coshsh"):
+def get_logger(self: Any, name: str = "coshsh") -> logging.Logger:
     """Return the named logger (default ``"coshsh"``).
 
     Note: the *self* parameter exists for historical reasons -- this
@@ -345,4 +364,3 @@ def get_logger(self, name="coshsh"):
     monkey-patched onto classes if needed.
     """
     return logging.getLogger(name)
-

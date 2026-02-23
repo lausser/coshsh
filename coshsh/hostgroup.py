@@ -29,20 +29,25 @@ ordering allows applications to modify ``host.hostgroups`` during their
 own ``wemustrepeat()`` / resolve phase before hostgroup objects are built.
 """
 
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any, ClassVar
+
 import coshsh
 
 
 class HostGroup(coshsh.item.Item):
 
-    template_rules = [
-        coshsh.templaterule.TemplateRule(needsattr=None, 
-            template="hostgroup", 
+    template_rules: ClassVar[list[coshsh.templaterule.TemplateRule]] = [
+        coshsh.templaterule.TemplateRule(needsattr=None,
+            template="hostgroup",
             self_name="hostgroup",
             unique_attr="hostgroup_name", unique_config="hostgroup_%s",
         ),
     ]
 
-    def __init__(self, params={}):
+    def __init__(self, params: dict[str, Any] = {}) -> None:
         """Create a HostGroup from a params dict.
 
         Args:
@@ -54,14 +59,13 @@ class HostGroup(coshsh.item.Item):
         # WHY: List attributes are initialised before super().__init__ so
         # that values supplied in params can safely overwrite the defaults
         # (Item.__init__ sets attributes from params after these lines run).
-        self.members = []
-        self.contacts = []
-        self.contactgroups = []
-        self.templates = []
-        superclass = super(HostGroup, self)
-        superclass.__init__(params)
-        
-    def is_correct(self):
+        self.members: list[str] = []
+        self.contacts: list[str] = []
+        self.contactgroups: list[str] = []
+        self.templates: list[str] = []
+        super(HostGroup, self).__init__(params)
+
+    def is_correct(self) -> bool:
         """Validate the hostgroup.  Always returns True for the base class.
 
         Subclasses may override this to enforce constraints (e.g. non-empty
@@ -69,7 +73,7 @@ class HostGroup(coshsh.item.Item):
         """
         return True
 
-    def write_config(self, target_dir, want_tool=None):
+    def write_config(self, target_dir: str, want_tool: str | None = None) -> None:
         """Write rendered configuration files to the hostgroups sub-directory.
 
         Creates ``<target_dir>/hostgroups/<hostgroup_name>/`` and writes
@@ -81,18 +85,16 @@ class HostGroup(coshsh.item.Item):
             want_tool:  Optional monitoring-tool filter.  When set, only
                         config files for that tool are written.
         """
-        my_target_dir = os.path.join(target_dir, "hostgroups", self.hostgroup_name)
-        if not os.path.exists(my_target_dir):
-            os.makedirs(my_target_dir)
+        my_target_dir = Path(target_dir) / "hostgroups" / self.hostgroup_name
+        my_target_dir.mkdir(parents=True, exist_ok=True)
         for tool in self.config_files:
             if not want_tool or want_tool == tool:
                 for file in self.config_files[tool]:
                     content = self.config_files[tool][file]
-                    with open(os.path.join(my_target_dir, file), "w") as f:
+                    with open(my_target_dir / file, "w") as f:
                         f.write(content)
 
-
-    def create_members(self):
+    def create_members(self) -> None:
         """Hook for subclasses to populate the ``members`` list.
 
         The base implementation is a no-op because members are supplied
@@ -100,7 +102,7 @@ class HostGroup(coshsh.item.Item):
         """
         pass
 
-    def create_contacts(self):
+    def create_contacts(self) -> None:
         """Hook for subclasses to populate the ``contacts`` list.
 
         Called by ``Recipe.assemble()`` after the HostGroup is created.
@@ -108,11 +110,10 @@ class HostGroup(coshsh.item.Item):
         """
         pass
 
-    def create_templates(self):
+    def create_templates(self) -> None:
         """Hook for subclasses to populate the ``templates`` list.
 
         Called by ``Recipe.assemble()`` after the HostGroup is created.
         The base implementation is a no-op.
         """
         pass
-
