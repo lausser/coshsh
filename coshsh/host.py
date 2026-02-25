@@ -30,6 +30,10 @@ calls ``resolve_monitoring_details``, ``create_hostgroups``,
 rendering.
 """
 
+from __future__ import annotations
+
+from typing import Any, ClassVar
+
 import coshsh
 
 
@@ -42,7 +46,7 @@ class Host(coshsh.item.Item):
     recipe's ``classes_dir``.
     """
 
-    template_rules = [
+    template_rules: ClassVar[list[coshsh.templaterule.TemplateRule]] = [
         coshsh.templaterule.TemplateRule(needsattr=None,
             template="host",
             self_name="host",
@@ -55,9 +59,9 @@ class Host(coshsh.item.Item):
     # functions, and recipe logic can rely on a single canonical form
     # (e.g. ``host.os == "windows"``) without case-insensitive comparisons
     # scattered throughout the codebase.
-    lower_columns = ['address', 'type', 'os', 'hardware', 'virtual', 'location', 'department']
+    lower_columns: ClassVar[list[str]] = ['address', 'type', 'os', 'hardware', 'virtual', 'location', 'department']
 
-    def __init__(self, params={}):
+    def __init__(self, params: dict[str, Any] = {}) -> None:
         """Initialise a Host from a datasource parameter dict.
 
         Processing steps:
@@ -97,16 +101,16 @@ class Host(coshsh.item.Item):
         self.fingerprint = lambda s=self:s.__class__.fingerprint(params)
 
     @classmethod
-    def fingerprint(self, params):
+    def fingerprint(cls, params: dict[str, Any]) -> str:
         """Return a unique identity string for the host described by *params*.
 
         The fingerprint is used as the dict key in
         ``recipe.objects['hosts']`` so it must be deterministic and unique
         across all hosts in a recipe.
         """
-        return "%s" % (params["host_name"], )
+        return f"{params['host_name']}"
 
-    def is_correct(self):
+    def is_correct(self) -> bool:
         """Validate that this host has the minimum required attributes.
 
         Returns ``True`` when the host carries a non-None ``host_name``.
@@ -120,7 +124,7 @@ class Host(coshsh.item.Item):
         # template rendering or config writing.
         return hasattr(self.host_name) and self.host_name != None
 
-    def create_hostgroups(self):
+    def create_hostgroups(self) -> None:
         """Hook for subclasses to populate ``self.hostgroups`` at assemble time.
 
         Called by ``Recipe.assemble()`` after monitoring details have been
@@ -130,7 +134,7 @@ class Host(coshsh.item.Item):
         """
         pass
 
-    def create_contacts(self):
+    def create_contacts(self) -> None:
         """Hook for subclasses to populate ``self.contacts`` at assemble time.
 
         Called by ``Recipe.assemble()`` after monitoring details have been
@@ -139,7 +143,7 @@ class Host(coshsh.item.Item):
         """
         pass
 
-    def create_templates(self):
+    def create_templates(self) -> None:
         """Hook for subclasses to modify ``self.template_rules`` at assemble time.
 
         Called by ``Recipe.assemble()`` after monitoring details have been

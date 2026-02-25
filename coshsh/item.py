@@ -17,19 +17,23 @@ This module does NOT handle plugin/class discovery -- that logic lives in
 datainterface.py (CoshshDatainterface).
 """
 
-import os
-import re
-import locale
-import logging
+from __future__ import annotations
+
 import functools
-from jinja2 import FileSystemLoader, Environment, TemplateSyntaxError, TemplateNotFound
+import logging
+import re
 from copy import copy, deepcopy
+from pathlib import Path
+from typing import Any
+
+from jinja2 import Environment, FileSystemLoader, TemplateNotFound, TemplateSyntaxError
+
 import coshsh
 
 logger = logging.getLogger('coshsh')
 
 
-class EmptyObject(object):
+class EmptyObject:
     pass
 
 
@@ -37,12 +41,12 @@ class Item(coshsh.datainterface.CoshshDatainterface):
     template_cache = {}
 
     @classmethod
-    def reload_template_path(cls):
+    def reload_template_path(cls) -> None:
         loader = FileSystemLoader(cls.templates_path)
         cls.env = Environment(loader=loader)
         cls.env.trim_blocks = True
 
-    def __init__(self, params={}):
+    def __init__(self, params: dict[str, Any] = {}) -> None:
         """Initialise an Item from a dict of datasource parameters.
 
         Each key/value pair in *params* becomes an instance attribute.
@@ -82,11 +86,11 @@ class Item(coshsh.datainterface.CoshshDatainterface):
         self.config_files = {}
         self.object_chronicle = []
 
-    def record_in_chronicle(self, message=""):
+    def record_in_chronicle(self, message: str = "") -> None:
         if message:
             self.object_chronicle.append(message)
 
-    def write_config(self, target_dir, want_tool=None):
+    def write_config(self, target_dir: str, want_tool: str | None = None) -> None:
         """Write all rendered config files for this item to disk.
 
         Creates a per-host subdirectory under *target_dir*/hosts/ and
@@ -95,17 +99,16 @@ class Item(coshsh.datainterface.CoshshDatainterface):
         tool are written (e.g. ``want_tool='nagios'``); otherwise all
         tools are written.
         """
-        my_target_dir = os.path.join(target_dir, "hosts", self.host_name)
-        if not os.path.exists(my_target_dir):
-            os.makedirs(my_target_dir)
+        my_target_dir = Path(target_dir) / "hosts" / self.host_name
+        my_target_dir.mkdir(parents=True, exist_ok=True)
         for tool in self.config_files:
             if not want_tool or want_tool == tool:
                 for file in self.config_files[tool]:
                     content = self.config_files[tool][file]
-                    with open(os.path.join(my_target_dir, file), "w") as f:
+                    with open(my_target_dir / file, "w") as f:
                         f.write(content)
 
-    def resolve_monitoring_details(self):
+    def resolve_monitoring_details(self) -> None:
         """Flatten monitoring detail objects into attributes on this item.
 
         Each monitoring detail carries data from the datasource (e.g. a
@@ -197,7 +200,7 @@ class Item(coshsh.datainterface.CoshshDatainterface):
             if hasattr(getattr(self, one_property + 's')[0], one_property):
                 setattr(self, one_property, getattr(getattr(self, one_property + 's')[0], one_property))
 
-    def wemustrepeat(self):
+    def wemustrepeat(self) -> None:
         """
         This method is called by some classes if different monitoring_details need to interact.
         Ex. (username/password was set in a LOGIN detail and/or a URL detail
@@ -213,7 +216,7 @@ class Item(coshsh.datainterface.CoshshDatainterface):
         # detail values).  The base implementation is intentionally a no-op.
         pass
 
-    def pythonize(self):
+    def pythonize(self) -> None:
         # WHY: datasources deliver list-type attributes as comma-separated
         # strings (Nagios format).  pythonize converts them to Python lists
         # so code can use append/extend/set operations.  depythonize is the
@@ -243,7 +246,7 @@ class Item(coshsh.datainterface.CoshshDatainterface):
         if hasattr(self, "service_notification_commands"):
             self.service_notification_commands = self.service_notification_commands.split(',')
 
-    def depythonize(self):
+    def depythonize(self) -> None:
         if hasattr(self, "templates"):
             self.templates = ",".join(self.templates)
         if hasattr(self, "contactgroups"):
@@ -265,7 +268,7 @@ class Item(coshsh.datainterface.CoshshDatainterface):
         if hasattr(self, "service_notification_commands"):
             self.service_notification_commands = ",".join(sorted(list(set(self.service_notification_commands))))
 
-    def render_cfg_template(self, jinja2, template_cache, name, output_name, suffix, for_tool, **kwargs):
+    def render_cfg_template(self, jinja2: Any, template_cache: dict[str, Any], name: str, output_name: str, suffix: str, for_tool: str, **kwargs: Any) -> int:
         """Load a single Jinja2 template and render it into ``config_files``.
 
         Parameters
@@ -332,7 +335,7 @@ class Item(coshsh.datainterface.CoshshDatainterface):
             self.pythonize()
         return render_errors
 
-    def render(self, template_cache, jinja2, recipe):
+    def render(self, template_cache: dict[str, Any], jinja2: Any, recipe: Any) -> int:
         """Render all applicable template rules for this item.
 
         Iterates over ``self.template_rules`` and evaluates each rule's
@@ -387,12 +390,14 @@ class Item(coshsh.datainterface.CoshshDatainterface):
                     render_errors += self.render_cfg_template(jinja2, template_cache, rule.template, rule.template, rule.suffix, rule.for_tool, **dict([(rule.self_name, self), ("recipe", recipe)]))
         return render_errors
 
-    def fingerprint(self):
+    def fingerprint(self) -> str:
         try:
-            return "%s+%s+%s" % (self.host_name, self.name, self.type)
-        except: pass
+            return f"{self.host_name}+{self.name}+{self.type}"
+        except AttributeError:
+            pass
         try:
-            return "%s" % (self.host_name, )
-        except: pass
+            return f"{self.host_name}"
+        except AttributeError:
+            pass
         raise "impossible fingerprint"
 

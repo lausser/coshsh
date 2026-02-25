@@ -6,17 +6,16 @@
 # This software is licensed under the
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
+from __future__ import annotations
+
 import sys
 sys.dont_write_bytecode = True
 import os
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
-try:
-    import importlib
-    importlib.reload(sys)
-except Exception:
-    import imp
-    imp.reload(sys)
+import importlib
+importlib.reload(sys)
 from optparse import OptionParser
+from pathlib import Path
 
 try:
     import coshsh
@@ -24,7 +23,7 @@ except Exception:
     if 'COSHSH_HOME' in os.environ:
         coshsh_home = os.environ['COSHSH_HOME']
     else:
-        coshsh_home = os.path.join(os.path.dirname(__file__), '..')
+        coshsh_home = str(Path(__file__).parent / '..')
         os.environ['COSHSH_HOME'] = coshsh_home
     sys.path.append(coshsh_home)
     try:
@@ -73,4 +72,3 @@ if __name__ == '__main__':
         parser.error("Does not accept any argument. Use option -c/--cookbook")
 
     generator.run()
-

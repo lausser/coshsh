@@ -71,10 +71,13 @@ AI agent note:
     the only positional column guaranteed to exist across all detail types.
 """
 
-import sys
-import os
+from __future__ import annotations
+
 import logging
+import sys
+from typing import Any, ClassVar
 from urllib.parse import urlparse
+
 import coshsh
 
 logger = logging.getLogger('coshsh')
@@ -114,13 +117,13 @@ class MonitoringDetail(coshsh.item.Item):
     # files.  Each entry is a [path, module, ident_func] triple.  The base
     # class get_class() iterates this list, calling each ident_func(params)
     # until one returns a class.
-    class_factory = []
-    class_file_prefixes = ["detail_"]
-    class_file_ident_function = "__detail_ident__"
-    my_type = "detail"
-    lower_columns = ['name', 'type', 'application_name', 'application_type']
+    class_factory: ClassVar[list[tuple[str, str, Any]]] = []
+    class_file_prefixes: ClassVar[list[str]] = ["detail_"]
+    class_file_ident_function: ClassVar[str] = "__detail_ident__"
+    my_type: ClassVar[str] = "detail"
+    lower_columns: ClassVar[list[str]] = ['name', 'type', 'application_name', 'application_type']
 
-    def __init__(self, params):
+    def __init__(self, params: dict[str, Any] = {}) -> None:
         """Dispatch to the correct detail subclass based on ``monitoring_type``.
 
         When called on the base ``MonitoringDetail`` class, this method:
@@ -158,7 +161,7 @@ class MonitoringDetail(coshsh.item.Item):
                 # ``MonitoringDetail(params)`` and immediately appends the
                 # result).  Mutating the class lets the same object become
                 # the correct subclass transparently.
-                self.__class__ = newcls
+                self.__class__ = newcls  # type: ignore[assignment]  # WHY: intentional rebless pattern
                 super(MonitoringDetail, self).__init__(params)
                 self.__init__(params)
             else:
@@ -167,7 +170,7 @@ class MonitoringDetail(coshsh.item.Item):
         else:
             pass
 
-    def fingerprint(self):
+    def fingerprint(self) -> int:
         """Return a unique identity for this detail instance.
 
         Unlike Host or Application, details have no stable natural key
@@ -180,7 +183,7 @@ class MonitoringDetail(coshsh.item.Item):
         # id is used in self.add('details')
         return id(self)
 
-    def application_fingerprint(self):
+    def application_fingerprint(self) -> str:
         """Return the fingerprint of the application (or host) this detail belongs to.
 
         Used by the recipe to route a detail to the correct application
@@ -190,9 +193,9 @@ class MonitoringDetail(coshsh.item.Item):
         detail).
         """
         if hasattr(self, 'application_name') and self.application_name and hasattr(self, 'application_type') and self.application_type:
-            return "%s+%s+%s" % (self.host_name, self.application_name, self.application_type)
+            return f"{self.host_name}+{self.application_name}+{self.application_type}"
         elif self.host_name:
-            return "%s" % (self.host_name, )
+            return f"{self.host_name}"
         raise "impossible fingerprint"
 
     # WHY: comparison operators use the tuple (monitoring_type, monitoring_0)
@@ -202,24 +205,23 @@ class MonitoringDetail(coshsh.item.Item):
     # across all detail types, making it the lowest common denominator for
     # sorting and equality.  This matters because recipe.py sorts detail
     # lists after resolution to produce deterministic output order.
-    def __eq__(self, other):
+    def __eq__(self, other: MonitoringDetail) -> bool:
         return ((self.monitoring_type, str(self.monitoring_0)) == (other.monitoring_type, str(other.monitoring_0)))
 
-    def __ne__(self, other):
+    def __ne__(self, other: MonitoringDetail) -> bool:
         return ((self.monitoring_type, str(self.monitoring_0)) != (other.monitoring_type, str(other.monitoring_0)))
 
-    def __lt__(self, other):
+    def __lt__(self, other: MonitoringDetail) -> bool:
         return ((self.monitoring_type, str(self.monitoring_0)) < (other.monitoring_type, str(other.monitoring_0)))
 
-    def __le__(self, other):
+    def __le__(self, other: MonitoringDetail) -> bool:
         return ((self.monitoring_type, str(self.monitoring_0)) <= (other.monitoring_type, str(other.monitoring_0)))
 
-    def __gt__(self, other):
+    def __gt__(self, other: MonitoringDetail) -> bool:
         return ((self.monitoring_type, str(self.monitoring_0)) > (other.monitoring_type, str(other.monitoring_0)))
 
-    def __ge__(self, other):
+    def __ge__(self, other: MonitoringDetail) -> bool:
         return ((self.monitoring_type, str(self.monitoring_0)) >= (other.monitoring_type, str(other.monitoring_0)))
 
-    def __repr__(self):
-        return "%s %s" % (self.monitoring_type, str(self.monitoring_0))
-
+    def __repr__(self) -> str:
+        return f"{self.monitoring_type} {self.monitoring_0}"

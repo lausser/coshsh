@@ -6,20 +6,18 @@
 # This software is licensed under the
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
+from __future__ import annotations
+
 import sys
 sys.dont_write_bytecode = True
 import os
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 import importlib
-try:
-    import importlib
-    importlib.reload(sys)
-except Exception:
-    import imp
-    imp.reload(sys)
-from optparse import OptionParser
-from subprocess import Popen, PIPE, STDOUT
+importlib.reload(sys)
 import time
+from optparse import OptionParser
+from pathlib import Path
+from subprocess import PIPE, STDOUT, Popen
 
 try:
     import coshsh
@@ -27,7 +25,7 @@ except Exception:
     if 'COSHSH_HOME' in os.environ:
         coshsh_home = os.environ['COSHSH_HOME']
     else:
-        coshsh_home = os.path.join(os.path.dirname(__file__), '..')
+        coshsh_home = str(Path(__file__).parent / '..')
         os.environ['COSHSH_HOME'] = coshsh_home
     sys.path.append(coshsh_home)
     try:
@@ -85,36 +83,38 @@ if __name__ == '__main__':
 
     for recipe in generator.recipes.values():
         #recipe.collect()
-        basedir = recipe.objects_dir + "/static/service_templates"
-        if os.path.exists(recipe.objects_dir):
-            if not os.path.exists(recipe.objects_dir + "/static"):
-                os.mkdir(recipe.objects_dir + "/static")
-            if not os.path.exists(recipe.objects_dir + "/static/service_templates"):
-                os.mkdir(recipe.objects_dir + "/static/service_templates")
+        basedir = Path(recipe.objects_dir) / "static" / "service_templates"
+        objects_dir = Path(recipe.objects_dir)
+        if objects_dir.exists():
+            static_dir = objects_dir / "static"
+            if not static_dir.exists():
+                static_dir.mkdir()
+            templates_dir = static_dir / "service_templates"
+            if not templates_dir.exists():
+                templates_dir.mkdir()
 
         template = opts.template_name
         created = False
         while template.find("_") != -1:
             template, sep, tail = template.rpartition("_")
-            output = "define service {\n  name %s\n  use %s\n  register 0\n}\n" % (template + sep + tail, template)
-            template_file = os.path.join(basedir, template + sep + tail + ".cfg")
-            if not os.path.exists(template_file):
-                print("create %s" % template_file)
+            output = f"define service {{\n  name {template}{sep}{tail}\n  use {template}\n  register 0\n}}\n"
+            template_file = basedir / (template + sep + tail + ".cfg")
+            if not template_file.exists():
+                print(f"create {template_file}")
                 with open(template_file, "w") as f:
                     f.write(output)
                     created = True
             else:
-                print("confirm %s" % template_file)
-        if created and os.path.exists(recipe.objects_dir + '/static/.git'):
-            save_dir = os.getcwd()
-            os.chdir(recipe.objects_dir + '/static')
+                print(f"confirm {template_file}")
+        if created and (objects_dir / 'static' / '.git').exists():
+            save_dir = Path.cwd()
+            os.chdir(objects_dir / 'static')
             process = Popen(["git", "add", "."], stdout=PIPE, stderr=STDOUT)
             output, unused_err = process.communicate()
             retcode = process.poll()
-            commitmsg = time.strftime("%Y-%m-%d-%H-%M-%S") + " create template %s" % (template, )
+            commitmsg = f"{time.strftime('%Y-%m-%d-%H-%M-%S')} create template {template}"
             process = Popen(["git", "commit", "-a", "-m", commitmsg], stdout=PIPE, stderr=STDOUT)
             output, unused_err = process.communicate()
             retcode = process.poll()
             print(output)
             os.chdir(save_dir)
-

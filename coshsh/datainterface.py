@@ -33,25 +33,34 @@ AI agent note:
     plugins loaded in one test leak into another and cause false matches.
 """
 
-import os
+from __future__ import annotations
+
 import importlib.util
 import inspect
 import logging
+import os
+from pathlib import Path
+from typing import Any, ClassVar, Protocol
 
 logger = logging.getLogger('coshsh')
 
 
+class IdentFunction(Protocol):
+    """Callable signature for plugin ident functions (__mi_ident__, __ds_ident__, etc.)."""
+    def __call__(self, params: dict[str, Any] = {}) -> type | None: ...
+
+
 class CoshshDatainterface(object):
 
-    class_factory = []
-    class_file_prefixes = []
-    class_file_ident_function = ""
-    my_type = ""
+    class_factory: ClassVar[list[tuple[str, str, IdentFunction]]] = []
+    class_file_prefixes: ClassVar[list[str]] = []
+    class_file_ident_function: ClassVar[str] = ""
+    my_type: ClassVar[str] = ""
 
-    usage_numbers = {}
+    usage_numbers: ClassVar[dict[str, int]] = {}
 
     @classmethod
-    def init_class_factory(cls, classpath):
+    def init_class_factory(cls, classpath: list[str]) -> list[tuple[str, str, IdentFunction]]:
         """Discover and register plugin classes from a list of directory paths.
 
         Scans each directory in classpath for .py files whose names match
@@ -86,10 +95,10 @@ class CoshshDatainterface(object):
         # appended last by the caller, so recipe-specific plugins are found
         # before generic fallbacks.
         class_factory = []
-        for p in [p for p in reversed(classpath) if os.path.exists(p) and os.path.isdir(p)]:
+        for p in [p for p in reversed(classpath) if Path(p).exists() and Path(p).is_dir()]:
             for module in [item for item in sorted(os.listdir(p), reverse=True) if item[-3:] == ".py" and (item in cls.class_file_prefixes or [prefix for prefix in cls.class_file_prefixes if item.startswith(prefix)])]:
                 try:
-                    path = os.path.abspath(os.path.join(p, module))
+                    path = str((Path(p) / module).resolve())
                     module_name = module.replace('.py', '')
 
                     # Find the module
@@ -103,7 +112,7 @@ class CoshshDatainterface(object):
                     if spec is not None:
                         toplevel = importlib.util.module_from_spec(spec)
                         spec.loader.exec_module(toplevel)
-                        
+
                         for cl in inspect.getmembers(toplevel, inspect.isfunction):
                             if cl[0] == cls.class_file_ident_function:
                                 class_factory.append([path, module, cl[1]])
@@ -113,11 +122,11 @@ class CoshshDatainterface(object):
         return class_factory
 
     @classmethod
-    def update_class_factory(cls, class_factory):
+    def update_class_factory(cls, class_factory: list[tuple[str, str, IdentFunction]]) -> None:
         cls.class_factory = class_factory
 
     @classmethod
-    def get_class(cls, params={}):
+    def get_class(cls, params: dict[str, Any] = {}) -> type | None:
         """Select and return the appropriate class for the given params.
 
         Iterates the class_factory in reverse order, calling each registered
@@ -170,9 +179,8 @@ class CoshshDatainterface(object):
         return None
 
     @classmethod
-    def dump_classes_usage(cls):
+    def dump_classes_usage(cls) -> None:
         print("Classes usage overview")
         print("count  path__class")
         for pmc in sorted(cls.usage_numbers.items(), key=lambda x: x[1]):
-            print("{:6d} {}".format(pmc[1], pmc[0]))
-
+            print(f"{pmc[1]:6d} {pmc[0]}")

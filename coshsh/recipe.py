@@ -43,20 +43,23 @@ AI agent note:
     Steps 5-8 are called from generator.run(); steps 1-4 from generator.read_cookbook().
 """
 
-import sys
-import os
-import io
-import re
-import inspect
-import time
+from __future__ import annotations
+
 import logging
-import errno
-from jinja2 import FileSystemLoader, Environment, TemplateSyntaxError, TemplateNotFound
+import os
+import re
+import sys
+from pathlib import Path
+from typing import Any, ClassVar
+
+from jinja2 import Environment, FileSystemLoader
+
 import coshsh
 
 logger = logging.getLogger('coshsh')
 
-class EmptyObject(object):
+
+class EmptyObject:
     """A bare container used to attach arbitrary attributes (e.g. Jinja2 loader/env)."""
     pass
 
@@ -79,7 +82,7 @@ class RecipePidGarbage(Exception):
     pass
 
 
-class Recipe(object):
+class Recipe:
     """
     Central orchestrator for a single coshsh configuration-generation run.
 
@@ -103,14 +106,14 @@ class Recipe(object):
     # NOTE: attributes_for_adapters lists recipe-level config keys that are
     # forwarded to datasource/datarecipient constructors as "recipe_<key>".
     # If you add a new recipe-level setting that plugins should see, add it here.
-    attributes_for_adapters = ["name", "force", "safe_output", "pid_dir", "pid_file", "templates_dir", "classes_dir", "objects_dir", "max_delta", "max_delta_action", "classes_path", "templates_path", "filter", "git_init"]
+    attributes_for_adapters: ClassVar[list[str]] = ["name", "force", "safe_output", "pid_dir", "pid_file", "templates_dir", "classes_dir", "objects_dir", "max_delta", "max_delta_action", "classes_path", "templates_path", "filter", "git_init"]
 
-    def __del__(self):
+    def __del__(self) -> None:
         pass
         # sys.path is invisible here, so this will fail
         #self.unset_recipe_sys_path()
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         """
         Initialise a Recipe from keyword arguments (typically from a cookbook section).
 
@@ -173,12 +176,12 @@ class Recipe(object):
         self.pid_dir = kwargs.get("pid_dir")
         if not self.pid_dir:
             if 'OMD_ROOT' in os.environ:
-                self.pid_dir = os.path.join(os.environ['OMD_ROOT'], 'tmp/run')
+                self.pid_dir = str(Path(os.environ['OMD_ROOT']) / 'tmp/run')
             elif "cygwin" in sys.platform or "linux" in sys.platform:
                 self.pid_dir = "/tmp"
             else:
                 self.pid_dir = os.environ.get("%TEMP%", "C:/TEMP")
-        self.pid_file = os.path.join(self.pid_dir, "coshsh.pid." + re.sub(r'[/\.]', '_', self.name))
+        self.pid_file = str(Path(self.pid_dir) / ("coshsh.pid." + re.sub(r'[/\.]', '_', self.name)))
 
         self.templates_dir = kwargs.get("templates_dir")
         self.classes_dir = kwargs.get("classes_dir")
@@ -193,24 +196,24 @@ class Recipe(object):
         self.git_init = False if kwargs.get("git_init", "yes") == "no" else True
 
         if 'OMD_ROOT' in os.environ:
-            self.classes_path = [os.path.join(os.environ['OMD_ROOT'], 'share/coshsh/recipes/default/classes')]
+            self.classes_path = [str(Path(os.environ['OMD_ROOT']) / 'share/coshsh/recipes/default/classes')]
         else:
-            self.classes_path = [os.path.join(os.path.dirname(__file__), '../recipes/default/classes')]
+            self.classes_path = [str(Path(__file__).parent / '../recipes/default/classes')]
         if self.classes_dir:
             # WHY: "catchall" directories are appended *after* the default path
             # so that specific class implementations are found first by the
             # class factory; catchall acts as a last-resort fallback.
-            self.classes_path = [p.strip() for p in self.classes_dir.split(',') if os.path.basename(p.strip()) != 'catchall'] + self.classes_path + [p.strip() for p in self.classes_dir.split(',') if os.path.basename(p.strip()) == 'catchall']
+            self.classes_path = [p.strip() for p in self.classes_dir.split(',') if Path(p.strip()).name != 'catchall'] + self.classes_path + [p.strip() for p in self.classes_dir.split(',') if Path(p.strip()).name == 'catchall']
         self.set_recipe_sys_path()
         if 'OMD_ROOT' in os.environ:
-            self.templates_path = [os.path.join(os.environ['OMD_ROOT'], 'share/coshsh/recipes/default/templates')]
+            self.templates_path = [str(Path(os.environ['OMD_ROOT']) / 'share/coshsh/recipes/default/templates')]
         else:
-            self.templates_path = [os.path.join(os.path.dirname(__file__), '../recipes/default/templates')]
+            self.templates_path = [str(Path(__file__).parent / '../recipes/default/templates')]
         if self.templates_dir:
-            self.templates_path = [p.strip() for p in self.templates_dir.split(',') if os.path.basename(p.strip()) != 'catchall'] + self.templates_path + [p.strip() for p in self.templates_dir.split(',') if os.path.basename(p.strip()) == 'catchall']
+            self.templates_path = [p.strip() for p in self.templates_dir.split(',') if Path(p.strip()).name != 'catchall'] + self.templates_path + [p.strip() for p in self.templates_dir.split(',') if Path(p.strip()).name == 'catchall']
             logger.debug("recipe.templates_path reloaded %s" % ':'.join(self.templates_path))
-        logger.info("recipe %s classes_dir %s" % (self.name, ','.join([os.path.abspath(p) for p in self.classes_path])))
-        logger.info("recipe %s templates_dir %s" % (self.name, ','.join([os.path.abspath(p) for p in self.templates_path])))
+        logger.info("recipe %s classes_dir %s" % (self.name, ','.join([str(Path(p).resolve()) for p in self.classes_path])))
+        logger.info("recipe %s templates_dir %s" % (self.name, ','.join([str(Path(p).resolve()) for p in self.templates_path])))
 
         self.jinja2 = EmptyObject()
         setattr(self.jinja2, 'loader', FileSystemLoader(self.templates_path))
@@ -236,7 +239,7 @@ class Recipe(object):
                     self.jinja2.env.filters[extension.replace("filter_", "")] = imported
                 elif extension.startswith("global_"):
                     self.jinja2.env.globals[extension.replace("global_", "")] = imported
-            
+
         # WHY: Vault resolution order -- vaults are loaded and their secrets
         # read *before* datasources and datarecipients are instantiated
         # (see generator.read_cookbook: add_vault() runs first, then
@@ -274,7 +277,7 @@ class Recipe(object):
             'dependencies': {},
             'bps': {},
         }
-        
+
         self.old_objects = (0, 0)
         self.new_objects = (0, 0)
 
@@ -292,7 +295,7 @@ class Recipe(object):
             self.datasource_names = []
         if kwargs.get("objects_dir") and not kwargs.get("datarecipients"):
             self.objects_dir = kwargs["objects_dir"]
-            logger.info("recipe %s objects_dir %s" % (self.name, os.path.abspath(self.objects_dir)))
+            logger.info("recipe %s objects_dir %s" % (self.name, str(Path(self.objects_dir).resolve())))
             self.datarecipient_names = ["datarecipient_coshsh_default"]
         elif kwargs.get("objects_dir") and kwargs.get("datarecipients"):
             self.objects_dir = kwargs["objects_dir"]
@@ -340,16 +343,16 @@ class Recipe(object):
 
         self.render_errors = 0
 
-    def set_recipe_sys_path(self):
+    def set_recipe_sys_path(self) -> None:
         """Prepend classes_path directories to sys.path so plugin modules can be imported."""
         sys.path[0:0] = self.classes_path
 
-    def unset_recipe_sys_path(self):
+    def unset_recipe_sys_path(self) -> None:
         """Remove the classes_path entries previously prepended to sys.path."""
-        for p in [p for p in self.classes_path if os.path.exists(p) and os.path.isdir(p)]:
+        for p in [p for p in self.classes_path if Path(p).exists() and Path(p).is_dir()]:
             sys.path.pop(0)
 
-    def collect(self):
+    def collect(self) -> bool:
         """
         Read raw monitoring data from every configured datasource into self.objects.
 
@@ -409,11 +412,11 @@ class Recipe(object):
                 data_valid = False
                 logger.critical("datasource %s returns bad data (%s)" % (ds.name, exp), exc_info=True)
             if not data_valid:
-                logger.info("aborting collection phase") 
+                logger.info("aborting collection phase")
                 return False
         return data_valid
 
-    def assemble(self):
+    def assemble(self) -> bool:
         """
         Build cross-references between collected objects and prepare them for rendering.
 
@@ -513,8 +516,8 @@ class Recipe(object):
             self.objects['hostgroups'][hostgroup_name].create_contacts()
 
         return True
- 
-    def render(self):
+
+    def render(self) -> None:
         """
         Apply Jinja2 templates to every assembled object to produce config file content.
 
@@ -551,30 +554,30 @@ class Recipe(object):
                 # has not been populated with content in the datasource
                 # (like bmw appmon timeperiods)
                 self.render_errors += item.render(template_cache, self.jinja2, self)
-            
-    def count_before_objects(self):
+
+    def count_before_objects(self) -> None:
         """Count existing config files in output dirs *before* writing new ones (for delta check)."""
         for datarecipient in self.datarecipients:
             datarecipient.count_before_objects()
         self.old_objects = (sum([dr.old_objects[0] for dr in self.datarecipients], 0), sum([dr.old_objects[1] for dr in self.datarecipients], 0))
 
-    def count_after_objects(self):
+    def count_after_objects(self) -> None:
         """Count config files in output dirs *after* writing (for delta comparison with before)."""
         for datarecipient in self.datarecipients:
             datarecipient.count_after_objects()
         self.new_objects = (sum(0, [dr.new_objects[0] for dr in self.datarecipients]), sum(0, [dr.new_objects[1] for dr in self.datarecipients]))
 
-    def cleanup_target_dir(self):
+    def cleanup_target_dir(self) -> None:
         """Remove old generated config files from each datarecipient's target directory."""
         for datarecipient in self.datarecipients:
             datarecipient.cleanup_target_dir()
 
-    def prepare_target_dir(self):
+    def prepare_target_dir(self) -> None:
         """Create required subdirectories in each datarecipient's target directory."""
         for datarecipient in self.datarecipients:
             datarecipient.prepare_target_dir()
 
-    def output(self):
+    def output(self) -> None:
         """
         Write rendered config files to disk via all configured datarecipients.
 
@@ -598,18 +601,18 @@ class Recipe(object):
             datarecipient.prepare_target_dir()
             datarecipient.output()
 
-    def read(self):
+    def read(self) -> dict[str, dict[str, Any]]:
         """Return the current objects dict (used by tests and introspection)."""
         return self.objects
 
-    def add_class_factory(self, cls, path, factory):
+    def add_class_factory(self, cls: type, path: list[str], factory: list[tuple[str, str, Any]]) -> None:
         """
         Register a class factory (mapping of type-names to classes) for the given base class.
 
         Class factories enable dynamic plugin discovery: each datasource type,
         application type, etc. is resolved at runtime from the classes_path.
         """
-        logger.debug("init {} classes ({})".format(cls.__name__, len(factory)))
+        logger.debug("init %s classes (%d)", cls.__name__, len(factory))
         path_text = ",".join(path)
         if not hasattr(self, "class_factory"):
             self.class_factory = {}
@@ -617,42 +620,42 @@ class Recipe(object):
             self.class_factory[cls] = {}
         self.class_factory[cls][path_text] = factory
 
-    def get_class_factory(self, cls, path):
+    def get_class_factory(self, cls: type, path: list[str]) -> list[tuple[str, str, Any]]:
         """Retrieve a previously registered class factory for the given base class and path."""
         path_text = ",".join(path)
         return self.class_factory[cls][path_text]
 
-    def init_vault_class_factories(self):
+    def init_vault_class_factories(self) -> None:
         """Discover and register all vault plugin classes from classes_path."""
         self.add_class_factory(coshsh.vault.Vault, self.classes_path, coshsh.vault.Vault.init_class_factory(self.classes_path))
 
-    def init_ds_dr_class_factories(self):
+    def init_ds_dr_class_factories(self) -> None:
         """Discover and register all datasource and datarecipient plugin classes."""
         self.add_class_factory(coshsh.datasource.Datasource, self.classes_path, coshsh.datasource.Datasource.init_class_factory(self.classes_path))
         self.add_class_factory(coshsh.datarecipient.Datarecipient, self.classes_path, coshsh.datarecipient.Datarecipient.init_class_factory(self.classes_path))
 
-    def update_vault_class_factories(self):
+    def update_vault_class_factories(self) -> None:
         """Refresh the global vault class factory from this recipe's registered copy."""
         coshsh.vault.Vault.update_class_factory(self.get_class_factory(coshsh.vault.Vault, self.classes_path))
 
-    def update_ds_dr_class_factories(self):
+    def update_ds_dr_class_factories(self) -> None:
         """Refresh the global datasource and datarecipient class factories."""
         coshsh.datasource.Datasource.update_class_factory(self.get_class_factory(coshsh.datasource.Datasource, self.classes_path))
         coshsh.datarecipient.Datarecipient.update_class_factory(self.get_class_factory(coshsh.datarecipient.Datarecipient, self.classes_path))
 
-    def init_item_class_factories(self):
+    def init_item_class_factories(self) -> None:
         """Discover and register all application, monitoring-detail, and contact plugin classes."""
         self.add_class_factory(coshsh.application.Application, self.classes_path, coshsh.application.Application.init_class_factory(self.classes_path))
         self.add_class_factory(coshsh.monitoringdetail.MonitoringDetail, self.classes_path, coshsh.monitoringdetail.MonitoringDetail.init_class_factory(self.classes_path))
         self.add_class_factory(coshsh.contact.Contact, self.classes_path, coshsh.contact.Contact.init_class_factory(self.classes_path))
 
-    def update_item_class_factories(self):
+    def update_item_class_factories(self) -> None:
         """Refresh the global application, monitoring-detail, and contact class factories."""
         coshsh.application.Application.update_class_factory(self.get_class_factory(coshsh.application.Application, self.classes_path))
         coshsh.monitoringdetail.MonitoringDetail.update_class_factory(self.get_class_factory(coshsh.monitoringdetail.MonitoringDetail, self.classes_path))
         coshsh.contact.Contact.update_class_factory(self.get_class_factory(coshsh.contact.Contact, self.classes_path))
 
-    def add_vault(self, **kwargs):
+    def add_vault(self, **kwargs: Any) -> None:
         """
         Instantiate a vault plugin, read its secrets, and store them for later substitution.
 
@@ -682,7 +685,7 @@ class Recipe(object):
         else:
             logger.warning("could not find a suitable vault")
 
-    def substsecret(self, match):
+    def substsecret(self, match: re.Match[str]) -> str:
         """Regex substitution callback: replace @VAULT[key] with the secret value, or leave unchanged."""
         identifier = match.group(1)
         if identifier in self.vault_secrets:
@@ -690,7 +693,7 @@ class Recipe(object):
         else:
             return match.group(0)
 
-    def add_datasource(self, **kwargs):
+    def add_datasource(self, **kwargs: Any) -> None:
         """
         Instantiate a datasource plugin and append it to self.datasources.
 
@@ -728,14 +731,14 @@ class Recipe(object):
         else:
             logger.warning("could not find a suitable datasource")
 
-    def get_datasource(self, name):
+    def get_datasource(self, name: str) -> Any:
         """Return the datasource with the given name, or None if not found."""
         try:
             return [ds for ds in self.datasources if ds.name == name][0]
         except Exception:
             return None
 
-    def add_datarecipient(self, **kwargs):
+    def add_datarecipient(self, **kwargs: Any) -> None:
         """
         Instantiate a datarecipient plugin and append it to self.datarecipients.
 
@@ -764,14 +767,14 @@ class Recipe(object):
         else:
             logger.warning("could not find a suitable datarecipient")
 
-    def get_datarecipient(self, name):
+    def get_datarecipient(self, name: str) -> Any:
         """Return the datarecipient with the given name, or None if not found."""
         try:
             return [dr for dr in self.datarecipients if dr.name == name][0]
         except Exception:
             return None
 
-    def pid_exists(self, pid):
+    def pid_exists(self, pid: int) -> bool:
         """Check whether a process with the given PID is currently running (signal 0 probe)."""
         try:
             os.kill(pid, 0)
@@ -784,7 +787,7 @@ class Recipe(object):
         else:
             return True
 
-    def pid_protect(self):
+    def pid_protect(self) -> str:
         """
         Acquire an exclusive PID-file lock to prevent concurrent coshsh runs on the same recipe.
 
@@ -813,24 +816,25 @@ class Recipe(object):
         """
         # WHY: prevents concurrent coshsh runs on the same recipe, which would
         # race on cleanup/write of the output directory and corrupt monitoring config.
-        if os.path.exists(self.pid_file):
+        pid_path = Path(self.pid_file)
+        if pid_path.exists():
             if not os.access(self.pid_file, os.W_OK):
                 raise RecipePidNotWritable
             try:
-                with io.open(self.pid_file) as f:
+                with open(self.pid_file) as f:
                     pid = int(f.read().strip())
             except ValueError:
-                if os.stat(self.pid_file).st_size == 0 and os.statvfs(self.pid_file).f_bavail > 0:
+                if pid_path.stat().st_size == 0 and os.statvfs(self.pid_file).f_bavail > 0:
                     # might be (and was) the result of a full filesystem in the past
                     logger.info('removing empty pidfile %s' % (self.pid_file,))
-                    os.remove(self.pid_file)
+                    pid_path.unlink()
                 raise RecipePidGarbage
             except Exception as e:
                 logger.info('some other trouble with the pid file %s' % (self.pid_file,))
                 raise RecipePidGarbage
             if not self.pid_exists(pid):
                 # The pid doesn't exist, so remove the stale pidfile.
-                os.remove(self.pid_file)
+                pid_path.unlink()
                 logger.info('removing stale (pid %d) pidfile %s' % (pid, self.pid_file))
             else:
                 logger.info('another instance seems to be running (pid %s), exiting' % pid)
@@ -840,17 +844,16 @@ class Recipe(object):
                 raise RecipePidNotWritable
         pid = str(os.getpid())
         try:
-            with io.open(self.pid_file, 'w') as f:
+            with open(self.pid_file, 'w') as f:
                 f.write(pid)
         except Exception as e:
             raise RecipePidNotWritable
         else:
             return self.pid_file
 
-    def pid_remove(self):
+    def pid_remove(self) -> None:
         """Release the PID-file lock.  Silently ignores errors (e.g. file already gone)."""
         try:
-            os.remove(self.pid_file)
+            Path(self.pid_file).unlink()
         except Exception:
             pass
-

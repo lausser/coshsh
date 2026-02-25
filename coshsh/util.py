@@ -41,7 +41,7 @@ import os
 import re
 import sys
 import time
-from collections.abc import MutableMapping
+from collections.abc import Iterator, MutableMapping
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Any
@@ -71,7 +71,7 @@ class odict(MutableMapping):
     def __len__(self) -> int:
         return len(self._data)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         for i in self._data:
             yield i
 
@@ -239,9 +239,19 @@ def sanitize_filename(filename: str) -> str:
 
     If no replacement is needed the original filename is returned as-is.
     """
-    p = Path(filename)
-    name = p.stem
-    ext = p.suffix
+    # WHY: We cannot use Path().stem/.suffix here because the input
+    # filename may contain '/' as a literal character to be sanitized,
+    # not as a path separator.  Path("hostgroup_08/15.cfg") would
+    # incorrectly interpret 08/ as a directory component.  We split
+    # the extension with rfind('.') to match os.path.splitext semantics.
+    dot_pos = filename.rfind('.')
+    # Mimic os.path.splitext: a leading dot (e.g. ".hidden") is not an extension
+    if dot_pos > 0:
+        name = filename[:dot_pos]
+        ext = filename[dot_pos:]
+    else:
+        name = filename
+        ext = ''
     sanitized = re.sub(r'[\\/*?:"<>| ]+', '_', name)
     if sanitized == name:
         return filename

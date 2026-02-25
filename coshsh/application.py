@@ -18,9 +18,12 @@ directories listed in ``templates_dir`` and are loaded by the Jinja2
 environment configured on the Item base class.
 """
 
-import sys
-import os
+from __future__ import annotations
+
 import logging
+import sys
+from typing import Any, ClassVar
+
 import coshsh
 
 logger = logging.getLogger('coshsh')
@@ -28,13 +31,13 @@ logger = logging.getLogger('coshsh')
 
 class Application(coshsh.item.Item):
 
-    class_factory = []
-    class_file_prefixes = ["app_", "os_"]
-    class_file_ident_function = "__mi_ident__"
-    my_type = "application"
-    lower_columns = ['name', 'type', 'component', 'version', 'patchlevel']
+    class_factory: ClassVar[list[tuple[str, str, Any]]] = []
+    class_file_prefixes: ClassVar[list[str]] = ["app_", "os_"]
+    class_file_ident_function: ClassVar[str] = "__mi_ident__"
+    my_type: ClassVar[str] = "application"
+    lower_columns: ClassVar[list[str]] = ['name', 'type', 'component', 'version', 'patchlevel']
 
-    def __init__(self, params):
+    def __init__(self, params: dict[str, Any] = {}) -> None:
         """Initialise an Application, auto-selecting the correct subclass.
 
         When called as ``Application(params)`` (the generic base class),
@@ -67,7 +70,7 @@ class Application(coshsh.item.Item):
                         params[c] = None
             newcls = self.__class__.get_class(params)
             if newcls:
-                self.__class__ = newcls
+                self.__class__ = newcls  # type: ignore[assignment]  # WHY: intentional rebless pattern
                 self.contact_groups = []
                 super(Application, self).__init__(params)
                 self.__init__(params)
@@ -80,7 +83,7 @@ class Application(coshsh.item.Item):
                 # application types that have no dedicated subclass and no
                 # actionable details.
                 logger.debug('this will be Generic %s' % params)
-                self.__class__ = GenericApplication
+                self.__class__ = GenericApplication  # type: ignore[assignment]  # WHY: intentional rebless pattern
                 self.contact_groups = []
                 super(Application, self).__init__(params)
                 self.__init__(params)
@@ -89,7 +92,7 @@ class Application(coshsh.item.Item):
             pass
 
     @classmethod
-    def fingerprint(self, params={}):
+    def fingerprint(cls, params: dict[str, Any] = {}) -> str:
         """Return a unique identity string for this application instance.
 
         The fingerprint is composed as ``host_name + name + type``.
@@ -99,9 +102,9 @@ class Application(coshsh.item.Item):
         """
         # WHY: fingerprint = host_name + name + type -- these three fields
         # together uniquely identify an application instance on a host.
-        return "%s+%s+%s" % (params["host_name"], params["name"], params["type"])
+        return f"{params['host_name']}+{params['name']}+{params['type']}"
 
-    def create_servicegroups(self):
+    def create_servicegroups(self) -> None:
         """Hook for subclasses to define service groups for this application.
 
         Called during the recipe cook phase.  Subclasses override this to
@@ -109,7 +112,7 @@ class Application(coshsh.item.Item):
         """
         pass
 
-    def create_contacts(self):
+    def create_contacts(self) -> None:
         """Hook for subclasses to define contacts for this application.
 
         Called during the recipe cook phase.  Subclasses override this to
@@ -118,7 +121,7 @@ class Application(coshsh.item.Item):
         """
         pass
 
-    def create_templates(self):
+    def create_templates(self) -> None:
         """Hook for subclasses to set up custom template rules at runtime.
 
         Called during the recipe cook phase.  Subclasses override this when
@@ -143,11 +146,11 @@ class GenericApplication(Application):
             unique_attr=['type', 'name'], unique_config="app_%s_%s_default"),
     ]
 
-    def __init__(self, params={}):
+    def __init__(self, params: dict[str, Any] = {}) -> None:
         """Initialise a GenericApplication, delegating to Application."""
         super(GenericApplication, self).__init__(params)
 
-    def render(self, template_cache, jinja2, recipe):
+    def render(self, template_cache: dict[str, Any], jinja2: Any, recipe: Any) -> int:
         """Render only if this generic application has actionable details.
 
         Checks for the presence of at least one monitoring-relevant
@@ -168,4 +171,3 @@ class GenericApplication(Application):
             return super(GenericApplication, self).render(template_cache, jinja2, recipe)
         else:
             return 0
-

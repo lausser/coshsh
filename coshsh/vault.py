@@ -61,10 +61,13 @@ AI agent note:
     This is the same pattern used by Datasource and Datarecipient.
 """
 
-import sys
-import os
-import re
+from __future__ import annotations
+
 import logging
+import re
+import sys
+from typing import Any, ClassVar
+
 import coshsh
 
 logger = logging.getLogger('coshsh')
@@ -109,16 +112,16 @@ class Vault(coshsh.datainterface.CoshshDatainterface):
     internal key-value store.
     """
 
-    my_type = 'vault'
+    my_type: ClassVar[str] = 'vault'
     # WHY: class_file_prefixes is ["vault"] so that only files starting with
     # "vault" (e.g. vault_file.py, vault_hashicorp.py) are scanned during
     # plugin discovery.  This keeps the scan fast and avoids loading unrelated
     # Python files from the classes directory.
-    class_file_prefixes = ["vault"]
-    class_file_ident_function = "__vault_ident__"
-    class_factory = []
+    class_file_prefixes: ClassVar[list[str]] = ["vault"]
+    class_file_ident_function: ClassVar[str] = "__vault_ident__"
+    class_factory: ClassVar[list[tuple[str, str, Any]]] = []
 
-    def __init__(self, **params):
+    def __init__(self, **params: Any) -> None:
         """Initialise a Vault instance, auto-selecting the correct subclass.
 
         When called on the base Vault class, uses the class factory to find
@@ -153,7 +156,7 @@ class Vault(coshsh.datainterface.CoshshDatainterface):
         if self.__class__ == Vault:
             newcls = self.__class__.get_class(params)
             if newcls:
-                self.__class__ = newcls
+                self.__class__ = newcls  # type: ignore[assignment]  # WHY: intentional rebless pattern
                 self.__init__(**params)
             else:
                 logger.critical('vault for %s is not implemented' % params, exc_info=1)
@@ -168,7 +171,7 @@ class Vault(coshsh.datainterface.CoshshDatainterface):
         # i rebless
         # i call __init__
 
-    def open(self, **kwargs):
+    def open(self, **kwargs: Any) -> None:
         """Open the vault backend connection.
 
         Subclasses override this to establish connections to their
@@ -176,7 +179,7 @@ class Vault(coshsh.datainterface.CoshshDatainterface):
         """
         pass
 
-    def read(self, **kwargs):
+    def read(self, **kwargs: Any) -> None:
         """Read all secrets from the vault backend into ``self._data``.
 
         Subclasses override this to populate the internal key-value store.
@@ -187,7 +190,7 @@ class Vault(coshsh.datainterface.CoshshDatainterface):
         """
         pass
 
-    def close(self):
+    def close(self) -> None:
         """Close the vault backend connection.
 
         Subclasses override this to release resources.  The base
@@ -195,7 +198,7 @@ class Vault(coshsh.datainterface.CoshshDatainterface):
         """
         pass
 
-    def get(self, key):
+    def get(self, key: str) -> str | None:
         """Retrieve a single secret value by key.
 
         Args:
@@ -209,7 +212,7 @@ class Vault(coshsh.datainterface.CoshshDatainterface):
         except Exception:
             return None
 
-    def getall(self):
+    def getall(self) -> list[str]:
         """Retrieve all secret values stored in this vault.
 
         Returns:
@@ -219,4 +222,3 @@ class Vault(coshsh.datainterface.CoshshDatainterface):
             return list(self._data.values())
         except Exception:
             return []
-

@@ -43,14 +43,18 @@ AI agent note:
     each datarecipient only writes the files it cares about.
 """
 
-import sys
-import os
-import io
-import re
+from __future__ import annotations
+
 import logging
-from subprocess import Popen, PIPE, STDOUT
-import string
+import os
 import random
+import re
+import string
+import sys
+from pathlib import Path
+from subprocess import PIPE, STDOUT, Popen
+from typing import Any, ClassVar
+
 import coshsh
 
 logger = logging.getLogger('coshsh')
@@ -98,12 +102,12 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
     cleanup_target_dir().
     """
 
-    my_type = 'datarecipient'
-    class_file_prefixes = ["datarecipient"]
-    class_file_ident_function = "__dr_ident__"
-    class_factory = []
+    my_type: ClassVar[str] = 'datarecipient'
+    class_file_prefixes: ClassVar[list[str]] = ["datarecipient"]
+    class_file_ident_function: ClassVar[str] = "__dr_ident__"
+    class_factory: ClassVar[list[tuple[str, str, Any]]] = []
 
-    def __init__(self, **params):
+    def __init__(self, **params: Any) -> None:
         """Dispatch to the correct subclass or initialise a concrete instance.
 
         When called on the base Datarecipient class, uses the class_factory
@@ -126,7 +130,7 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
         if self.__class__ == Datarecipient:
             newcls = self.__class__.get_class(params)
             if newcls:
-                self.__class__ = newcls
+                self.__class__ = newcls  # type: ignore[assignment]  # WHY: intentional rebless pattern
                 self.__init__(**params)
             else:
                 logger.critical('datarecipient for %s is not implemented' % params, exc_info=1)
@@ -135,7 +139,7 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
             setattr(self, 'name', params["name"])
             self.objects = {}
 
-    def load(self, filter=None, objects={}):
+    def load(self, filter: Any = None, objects: dict[str, Any] = {}) -> None:
         """Accept the rendered objects dict from the recipe for later output.
 
         Stores a reference to the objects dict (keyed by type, e.g.
@@ -145,7 +149,7 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
         logger.info('load items to %s' % (self.name, ))
         self.objects = objects
 
-    def get(self, objtype, fingerprint):
+    def get(self, objtype: str, fingerprint: str) -> Any:
         """Return a single object by type and fingerprint, or a sentinel string if missing."""
         try:
             return self.objects[objtype][fingerprint]
@@ -153,18 +157,18 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
             # should be None
             return 'i do not exist. no. no!'
 
-    def getall(self, objtype):
+    def getall(self, objtype: str) -> Any:
         """Return all objects of the given type, or an empty list if none exist."""
         try:
             return self.objects[objtype].values()
         except Exception:
             return []
 
-    def find(self, objtype, fingerprint):
+    def find(self, objtype: str, fingerprint: str) -> bool:
         """Return True if an object with the given type and fingerprint exists."""
         return objtype in self.objects and fingerprint in self.objects[objtype]
 
-    def item_write_config(self, obj, dynamic_dir, objtype, want_tool=None):
+    def item_write_config(self, obj: Any, dynamic_dir: str, objtype: str, want_tool: str | None = None) -> None:
         """Write one object's rendered config files to disk.
 
         Iterates over obj.config_files, a two-level dict keyed as
@@ -186,17 +190,16 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
         # a single object carry configs for multiple tools (nagios, prometheus,
         # etc.) while each datarecipient writes only the subset it is
         # responsible for.
-        my_target_dir = os.path.join(dynamic_dir, objtype)
-        if not os.path.exists(my_target_dir):
-            os.makedirs(my_target_dir)
+        my_target_dir = Path(dynamic_dir) / objtype
+        my_target_dir.mkdir(parents=True, exist_ok=True)
         for tool in obj.config_files:
             if not want_tool or want_tool == tool:
                 for file in obj.config_files[tool]:
                     content = obj.config_files[tool][file]
-                    with io.open(os.path.join(my_target_dir, coshsh.util.sanitize_filename(file)), "w") as f:
+                    with open(my_target_dir / coshsh.util.sanitize_filename(file), "w") as f:
                         f.write(content)
 
-    def output(self, filter=None, want_tool=None):
+    def output(self, filter: Any = None, want_tool: str | None = None) -> None:
         """Write all loaded objects to the target directory.
 
         This is a no-op in the base class.  Concrete subclasses override
@@ -208,7 +211,7 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
         # for obj in self-objects["objtype"].values():
         #     self.item_write_config(obj, self.dynamic_dir, "objfolder", want_tool)
 
-    def count_objects(self):
+    def count_objects(self) -> tuple[int, int]:
         """Count host directories and non-empty application files on disk.
 
         Returns a (hosts, apps) tuple.  This is a filesystem-level count
@@ -227,13 +230,14 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
         # will read.  If rendering silently produced fewer files (e.g. due to
         # a datasource returning incomplete data), the disk count catches it.
         try:
-            hosts = len([name for name in os.listdir(os.path.join(self.dynamic_dir, 'hosts')) if os.path.isdir(os.path.join(self.dynamic_dir, 'hosts', name))])
-            apps = len([app for host in os.listdir(os.path.join(self.dynamic_dir, 'hosts')) if os.path.isdir(os.path.join(self.dynamic_dir, 'hosts', host)) for app in os.listdir(os.path.join(self.dynamic_dir, 'hosts', host)) if app != 'host.cfg' and os.path.getsize(os.path.join(self.dynamic_dir, 'hosts', host, app)) != 0])
+            hosts_dir = Path(self.dynamic_dir) / 'hosts'
+            hosts = len([d for d in hosts_dir.iterdir() if d.is_dir()])
+            apps = len([f for d in hosts_dir.iterdir() if d.is_dir() for f in d.iterdir() if f.name != 'host.cfg' and f.stat().st_size != 0])
             return (hosts, apps)
         except Exception:
             return (0, 0)
 
-    def count_before_objects(self):
+    def count_before_objects(self) -> None:
         """Snapshot the current on-disk object counts before output runs.
 
         Stores the result in self.old_objects for later comparison by
@@ -241,7 +245,7 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
         """
         self.old_objects = self.count_objects()
 
-    def count_after_objects(self):
+    def count_after_objects(self) -> None:
         """Snapshot the on-disk object counts after output has written files.
 
         Stores the result in self.new_objects.  Called by subclass output()
@@ -250,7 +254,7 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
         """
         self.new_objects = self.count_objects()
 
-    def prepare_target_dir(self):
+    def prepare_target_dir(self) -> None:
         """Create required subdirectories in the target output directory.
 
         No-op in the base class.  Subclasses override to create
@@ -258,7 +262,7 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
         """
         pass
 
-    def cleanup_target_dir(self):
+    def cleanup_target_dir(self) -> None:
         """Remove old generated files from the target directory before output.
 
         No-op in the base class.  Subclasses override to remove stale
@@ -266,7 +270,7 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
         """
         pass
 
-    def too_much_delta(self):
+    def too_much_delta(self) -> bool:
         """Check whether the change in object counts exceeds the allowed threshold.
 
         Compares self.old_objects (before) with self.new_objects (after) and
@@ -331,7 +335,7 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
             return True
         return False
 
-    def run_git_init(self, path):
+    def run_git_init(self, path: str) -> None:
         """Initialise a git repository in the given path with a dummy commit.
 
         Creates a git repo, adds and commits a random dummy file, then
@@ -351,7 +355,7 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
         # has a known-good state to revert to even on the very first run.  The
         # dummy file is created with a random name to avoid collisions, added,
         # committed, then removed and committed again, leaving a clean baseline.
-        save_dir = os.getcwd()
+        save_dir = Path.cwd()
         os.chdir(path)
         print("git init------------------")
         process = Popen(["git", "init", "."], stdout=PIPE, stderr=STDOUT, universal_newlines=True)
@@ -360,7 +364,7 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
         print(output)
         init_file = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
         open(init_file, "w").close()
-        print("git add {}------------------".format(init_file))
+        print(f"git add {init_file}------------------")
         process = Popen(["git", "add", init_file], stdout=PIPE, stderr=STDOUT, universal_newlines=True)
         output, unused_err = process.communicate()
         retcode = process.poll()
@@ -370,7 +374,7 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
         output, unused_err = process.communicate()
         retcode = process.poll()
         print(output)
-        print("git rm {}------------------".format(init_file))
+        print(f"git rm {init_file}------------------")
         process = Popen(["git", "rm", init_file], stdout=PIPE, stderr=STDOUT, universal_newlines=True)
         output, unused_err = process.communicate()
         retcode = process.poll()
@@ -381,4 +385,3 @@ class Datarecipient(coshsh.datainterface.CoshshDatainterface):
         retcode = process.poll()
         print(output)
         os.chdir(save_dir)
-

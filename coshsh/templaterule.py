@@ -26,6 +26,10 @@ AI agent note:
     and multiple rules can fire for the same object.
 """
 
+from __future__ import annotations
+
+from typing import Any
+
 
 class TemplateRule:
     """Declares the conditions under which a Jinja2 template is rendered for
@@ -43,7 +47,7 @@ class TemplateRule:
     rule is independent -- multiple rules can fire for the same object.
     """
 
-    def __init__(self, needsattr=None, isattr=None, template=None, unique_attr="name", unique_config=None, self_name="application", suffix="cfg", for_tool="nagios"):
+    def __init__(self, needsattr: str | None = None, isattr: str | None = None, template: str | None = None, unique_attr: str | list[str] = "name", unique_config: str | None = None, self_name: str = "application", suffix: str = "cfg", for_tool: str = "nagios") -> None:
         """Initialise a TemplateRule with matching conditions and output parameters.
 
         Args:
@@ -108,7 +112,7 @@ class TemplateRule:
         # datarecipient using this field to file output into separate trees.
         self.for_tool = for_tool
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a human-readable representation of this rule for logging."""
-        return "Rule: needsattr=%s, isattr=%s, template=%s, unique_attr=%s, unique_config=%s, suffix=%s, self_name=%s" % (self.needsattr, self.isattr, self.template, self.unique_attr, self.unique_config, self.suffix, self.self_name)
+        return f"Rule: needsattr={self.needsattr}, isattr={self.isattr}, template={self.template}, unique_attr={self.unique_attr}, unique_config={self.unique_config}, suffix={self.suffix}, self_name={self.self_name}"
 

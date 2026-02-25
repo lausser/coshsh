@@ -29,8 +29,13 @@ The factory lookup happens inside ``__init__`` by calling ``get_class(params)``
 called a second time on the new class.
 """
 
+from __future__ import annotations
+
 import logging
+from typing import Any, ClassVar
+
 import coshsh
+
 
 logger = logging.getLogger('coshsh')
 
@@ -41,17 +46,17 @@ class Contact(coshsh.item.Item):
     # recipe class directories are scanned for files matching
     # class_file_prefixes.  Each discovered module's __mi_ident__ function
     # decides whether it handles a given set of contact params.
-    class_factory = []
-    class_file_prefixes = ["contact_", "contact.py"]
-    class_file_ident_function = "__mi_ident__"
+    class_factory: ClassVar[list[tuple[str, str, Any]]] = []
+    class_file_prefixes: ClassVar[list[str]] = ["contact_", "contact.py"]
+    class_file_ident_function: ClassVar[str] = "__mi_ident__"
     # WHY: my_type is set to "application" (not "contact") because the
     # class-factory discovery reuses the same mechanism that Application
     # uses; the value is only relevant for the factory lookup path.
-    my_type = "application"
+    my_type: ClassVar[str] = "application"
 
-    lower_columns = []
+    lower_columns: ClassVar[list[str]] = []
 
-    template_rules = [
+    template_rules: ClassVar[list[coshsh.templaterule.TemplateRule]] = [
         coshsh.templaterule.TemplateRule(
             template="contact",
             self_name="contact",
@@ -59,7 +64,7 @@ class Contact(coshsh.item.Item):
         )
     ]
 
-    def __init__(self, params):
+    def __init__(self, params: dict[str, Any] = {}) -> None:
         """Create a Contact, re-classing to a recipe-specific subclass if one matches.
 
         When called on the base Contact class, this method:
@@ -100,13 +105,13 @@ class Contact(coshsh.item.Item):
             self.templates = []
             newcls = self.__class__.get_class(params)
             if newcls:
-                self.__class__ = newcls
+                self.__class__ = newcls  # type: ignore[assignment]  # WHY: intentional rebless pattern
                 super(Contact, self).__init__(params)
                 self.__init__(params)
                 self.fingerprint = lambda s=self:s.__class__.fingerprint(params)
             else:
                 logger.debug('this will be Generic %s' % params)
-                self.__class__ = GenericContact
+                self.__class__ = GenericContact  # type: ignore[assignment]  # WHY: intentional rebless pattern
                 self.contactgroups = []
                 super(Contact, self).__init__(params)
                 self.__init__(params)
@@ -120,19 +125,19 @@ class Contact(coshsh.item.Item):
         else:
             pass
 
-    def clean_name(self):
+    def clean_name(self) -> None:
         """Replace German umlauts and sharp-s in ``self.name`` with ASCII equivalents.
 
         # WHY: Nagios/Icinga contact_name fields must be plain ASCII.
-        # German datasources frequently contain names like "Müller" or
-        # "Größe".  Stripping umlauts here (ü->ue, ß->ss, etc.) keeps
+        # German datasources frequently contain names like "Muller" or
+        # "Grosse".  Stripping umlauts here (u->ue, ss->ss, etc.) keeps
         # the generated contact_name valid for the monitoring engine
         # while remaining human-readable.
         """
         self.name = coshsh.util.clean_umlauts(self.name)
 
     @classmethod
-    def fingerprint(self, params):
+    def fingerprint(cls, params: dict[str, Any] = {}) -> str:
         """Return a unique identity string for de-duplication in the recipe's object store.
 
         The fingerprint is composed as ``name+type+address+userid``, joined
@@ -145,22 +150,22 @@ class Contact(coshsh.item.Item):
         """
         return "+".join([str(params.get(a, "")) for a in ["name", "type", "address", "userid"]])
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a human-readable summary including the fingerprint fields and group memberships."""
         fipri = " ".join([str(getattr(self, a, "")) for a in ["name", "type", "address", "userid"]])
         grps = ",".join(self.contactgroups)
-        return str("contact %s groups (%s)" % (fipri, grps))
+        return f"contact {fipri} groups ({grps})"
 
 
 class GenericContact(Contact):
     """Fallback contact subclass used when no recipe-specific class matches."""
 
-    def __init__(self, params={}):
+    def __init__(self, params: dict[str, Any] = {}) -> None:
         super(GenericContact, self).__init__(params)
         self.clean_name()
         self.contact_name = "unknown_" + self.type + "_" + self.name + "_" + self.notification_period.replace("/", "_")
 
-    def render(self, template_cache, jinja2, recipe):
+    def render(self, template_cache: dict[str, Any], jinja2: Any, recipe: Any) -> int:
         """Render the contact configuration using the default ``contact`` template.
 
         Currently delegates directly to the parent render(). The override
@@ -170,4 +175,3 @@ class GenericContact(Contact):
         # Maybe we find some useful attributes in the future which can
         # be used like in GenericApplication
         return super(GenericContact, self).render(template_cache, jinja2, recipe)
-

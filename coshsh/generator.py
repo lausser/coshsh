@@ -36,22 +36,27 @@ AI agent note:
     and wired into Recipe objects.  run() then simply iterates and delegates.
 """
 
+from __future__ import annotations
+
+import getpass
+import logging
 import os
 import re
-import logging
-import time
 import sys
-import getpass
+import time
+from logging import DEBUG, INFO, getLogger
+from pathlib import Path
 from tempfile import gettempdir
+from typing import Any, ClassVar
+
 import coshsh
 from coshsh.datainterface import CoshshDatainterface
-from coshsh.vault import Vault
-from logging import INFO, DEBUG, getLogger
+from coshsh.vault import Vault  # noqa: F401 — side-effect import, loads coshsh.vault submodule
 
 logger = logging.getLogger('coshsh')
 
 
-class Generator(object):
+class Generator:
     """Top-level controller that reads cookbook configs and runs recipes.
 
     A Generator owns an ordered collection of Recipe objects.  It is the only
@@ -59,10 +64,10 @@ class Generator(object):
     control to each Recipe for the actual data pipeline.
     """
 
-    base_dir = os.path.dirname(os.path.dirname(__file__))
-    messages = []
+    base_dir: ClassVar[str] = str(Path(__file__).parent.parent)
+    messages: ClassVar[list[str]] = []
 
-    def __init__(self):
+    def __init__(self) -> None:
         # WHY: recipes is an odict (ordered dict) rather than a plain dict so
         # that recipes execute in the order they appear in the cookbook file.
         # The cookbook author controls execution order by section ordering, and
@@ -71,7 +76,7 @@ class Generator(object):
         self.recipes = coshsh.util.odict()
         self.default_log_level = "info"
 
-    def set_default_log_level(self, default_log_level):
+    def set_default_log_level(self, default_log_level: str) -> None:
         """Set the log level that will be used when logging is initialized during read_cookbook().
 
         This must be called *before* read_cookbook() because the cookbook reader
@@ -79,7 +84,7 @@ class Generator(object):
         """
         self.default_log_level = default_log_level
 
-    def add_recipe(self, *args, **kwargs):
+    def add_recipe(self, *args: Any, **kwargs: Any) -> None:
         """Create a Recipe from keyword arguments and register it by name.
 
         kwargs are the key-value pairs extracted from one ``[recipe_*]``
@@ -92,18 +97,18 @@ class Generator(object):
         except Exception as e:
             logger.error("exception creating a recipe: %s" % e)
 
-    def get_recipe(self, name):
+    def get_recipe(self, name: str) -> Any:
         """Return the Recipe registered under *name*, or None if it does not exist."""
         return self.recipes.get(name, None)
 
-    def add_pushgateway(self, *args, **kwargs):
+    def add_pushgateway(self, *args: Any, **kwargs: Any) -> None:
         """Store Prometheus Pushgateway connection details for run()-time metrics export."""
         self.pg_job = kwargs.get("job", "coshsh")
         self.pg_address = kwargs.get("address", "127.0.0.1:9091")
         self.pg_username = kwargs.get("username", None)
         self.pg_password = kwargs.get("password", None)
 
-    def run(self):
+    def run(self) -> None:
         """Execute every registered recipe's data pipeline.
 
         For each recipe the sequence is:
@@ -205,12 +210,12 @@ class Generator(object):
                 logger.error("skipping recipe %s (%s)" % (recipe.name, exp))
             else:
                 if recipe_completed:
-                    logger.info("recipe {} completed with {} problems".format(recipe.name, recipe.render_errors))
+                    logger.info("recipe %s completed with %d problems", recipe.name, recipe.render_errors)
             if self.default_log_level == "debug":
                 CoshshDatainterface.dump_classes_usage()
             coshsh.util.restore_logging()
 
-    def read_cookbook(self, cookbook_files, default_recipe, force, safe_output):
+    def read_cookbook(self, cookbook_files: list[str], default_recipe: str | None, force: Any, safe_output: Any) -> None:
         """Parse cookbook INI files and build fully wired Recipe objects.
 
         Parameters:
@@ -239,7 +244,7 @@ class Generator(object):
         #   4. Attaches datarecipients (add_datarecipient)
         # This ordering is critical; see the ``# WHY: Vault resolution order``
         # comment in recipe.py for details.
-        self.cookbook_files = '___'.join(map(lambda cf: os.path.basename(os.path.abspath(cf)), cookbook_files))
+        self.cookbook_files = '___'.join(map(lambda cf: Path(cf).resolve().name, cookbook_files))
         recipe_configs = {}
         datasource_configs = {}
         datarecipient_configs = {}
@@ -250,7 +255,7 @@ class Generator(object):
         self.cookbook = cookbook
         cookbook.read(cookbook_files)
         if cookbook._sections == {}:
-            print("Bad or missing cookbook files : %s " % ', '.join(cookbook_files))
+            print(f"Bad or missing cookbook files : {', '.join(cookbook_files)} ")
             sys.exit(2)
         for vault in [section for section in cookbook.sections() if section.startswith('vault_')]:
             vault_configs[vault.replace("vault_", "", 1).lower()] = cookbook.items(vault) + [('name', vault.replace("vault_", "", 1).lower())]
@@ -274,7 +279,7 @@ class Generator(object):
             log_dir = dict(cookbook.items("defaults"))["log_dir"]
             log_dir = re.sub('%.*?%', coshsh.util.substenv, log_dir)
         elif 'OMD_ROOT' in os.environ:
-            log_dir = os.path.join(os.environ['OMD_ROOT'], "var", "coshsh")
+            log_dir = str(Path(os.environ['OMD_ROOT']) / "var" / "coshsh")
         else:
             log_dir = gettempdir()
         if "defaults" in cookbook.sections() and "pid_dir" in [c[0] for c in cookbook.items("defaults")]:
@@ -303,7 +308,7 @@ class Generator(object):
                 matching_recipes = [recipe]
             elif matching_recipes:
                 # [recipe_lebensmitteldiscounter_.*_.*] <- lebensmitteldiscounter_at_hq
-                logger.info("no direct hit, but matching recipes found: {}".format(", ".join(matching_recipes)))
+                logger.info("no direct hit, but matching recipes found: %s", ", ".join(matching_recipes))
                 recipe_configs[recipe] = recipe_configs[matching_recipes[0]]
                 recipe_configs[recipe] = [('name', recipe) if kv[0] == 'name' else kv for kv in recipe_configs[recipe]]
             if matching_recipes:
@@ -362,4 +367,3 @@ class Generator(object):
 
         if "prometheus_pushgateway" in cookbook.sections() and "address" in [c[0] for c in cookbook.items("prometheus_pushgateway")]:
             self.add_pushgateway(**dict(cookbook.items("prometheus_pushgateway")))
-

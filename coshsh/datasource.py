@@ -32,11 +32,14 @@ AI agent note:
     and match plugins to datasource configurations at runtime.
 """
 
-import sys
-import os
-import re
+from __future__ import annotations
+
 import logging
+import re
 import socket
+import sys
+from typing import Any, ClassVar
+
 import coshsh
 
 logger = logging.getLogger('coshsh')
@@ -95,16 +98,16 @@ class Datasource(coshsh.datainterface.CoshshDatainterface):
     implement source-specific logic.
     """
 
-    my_type = 'datasource'
-    class_file_prefixes = ["datasource"]
+    my_type: ClassVar[str] = 'datasource'
+    class_file_prefixes: ClassVar[list[str]] = ["datasource"]
     # WHY: class_file_ident_function names the module-level function that every
     # datasource plugin must define. The factory in CoshshDatainterface calls
     # this function to decide which plugin class handles a given datasource
     # configuration block.
-    class_file_ident_function = "__ds_ident__"
-    class_factory = []
+    class_file_ident_function: ClassVar[str] = "__ds_ident__"
+    class_factory: ClassVar[list[tuple[str, str, Any]]] = []
 
-    def __init__(self, **params):
+    def __init__(self, **params: Any) -> None:
         #print "datasourceinit with", self.__class__
         for key in [k for k in params if k.startswith("recipe_")]:
             setattr(self, key, params[key])
@@ -119,7 +122,7 @@ class Datasource(coshsh.datainterface.CoshshDatainterface):
             newcls = self.__class__.get_class(params)
             if newcls:
                 #print "i rebless anon datasource to", newcls, params
-                self.__class__ = newcls
+                self.__class__ = newcls  # type: ignore[assignment]  # WHY: intentional rebless pattern
                 self.__init__(**params)
             else:
                 logger.critical('datasource for %s is not implemented' % params, exc_info=1)
@@ -161,7 +164,7 @@ class Datasource(coshsh.datainterface.CoshshDatainterface):
     # and unbind afterwards. Splitting the lifecycle lets the recipe runner
     # guarantee cleanup (close) even when read() raises an exception.
 
-    def open(self, **kwargs):
+    def open(self, **kwargs: Any) -> None:
         """Establish a connection or prepare the datasource for reading.
 
         Subclasses override this to perform setup such as opening a database
@@ -170,7 +173,7 @@ class Datasource(coshsh.datainterface.CoshshDatainterface):
         """
         pass
 
-    def read(self, **kwargs):
+    def read(self, **kwargs: Any) -> None:
         """Read inventory data from the source and populate ``self.objects``.
 
         Subclasses override this to fetch hosts, applications, contacts, and
@@ -180,7 +183,7 @@ class Datasource(coshsh.datainterface.CoshshDatainterface):
         """
         pass
 
-    def close(self):
+    def close(self) -> None:
         """Release resources acquired by ``open()``.
 
         Subclasses override this to close database connections, unbind from
@@ -191,7 +194,7 @@ class Datasource(coshsh.datainterface.CoshshDatainterface):
         """
         pass
 
-    def add(self, objtype, obj):
+    def add(self, objtype: str, obj: Any) -> None:
         """Store an inventory object in this datasource's objects dict.
 
         Args:
@@ -217,7 +220,7 @@ class Datasource(coshsh.datainterface.CoshshDatainterface):
                 setattr(obj, 'host', self.get('hosts', obj.host_name))
         obj.record_in_chronicle(f"added to {objtype} in datasource {self.name}")
 
-    def get(self, objtype, fingerprint):
+    def get(self, objtype: str, fingerprint: str) -> Any:
         """Retrieve a single object by type and fingerprint.
 
         Args:
@@ -235,16 +238,16 @@ class Datasource(coshsh.datainterface.CoshshDatainterface):
             return None
             return 'i do not exist. no. no!'
 
-    def getall(self, objtype):
+    def getall(self, objtype: str) -> list[Any]:
         try:
             return list(self.objects[objtype].values())
         except Exception:
             return []
 
-    def find(self, objtype, fingerprint):
+    def find(self, objtype: str, fingerprint: str) -> bool:
         return objtype in self.objects and fingerprint in self.objects[objtype]
 
-    def transform_hostname(self, hostname):
+    def transform_hostname(self, hostname: str) -> str:
         """Apply the configured chain of hostname transformations.
 
         Transforms are executed in the left-to-right order specified by the
@@ -268,7 +271,7 @@ class Datasource(coshsh.datainterface.CoshshDatainterface):
         """
         original = hostname
 
-        def is_ip(s):
+        def is_ip(s: str) -> bool:
             try:
                 socket.inet_aton(s)
                 return True

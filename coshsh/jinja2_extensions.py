@@ -59,9 +59,12 @@ AI agent note:
     This dual-output pattern is central to coshsh's config-override model.
 """
 
+from __future__ import annotations
+
+import os
 import re
 import urllib.request
-import os
+from typing import Any
 
 # Jinja2 extensions
 r"""
@@ -106,7 +109,7 @@ string that may have regular expression metacharacters in it.
 # rather than as Python constants because these functions are called from Jinja2
 # templates where Python's re module is not directly accessible.  The string
 # convention mirrors the inline-flag syntax familiar from most regex dialects.
-def get_re_flags(flagstr):
+def get_re_flags(flagstr: str | None) -> int:
     reflags = 0
     if flagstr:
         if flagstr.find("i") > -1: reflags |= re.IGNORECASE
@@ -118,19 +121,19 @@ def get_re_flags(flagstr):
     return reflags
 
 
-def is_re_match(s, rs, flagstr=None):
+def is_re_match(s: str, rs: str, flagstr: str | None = None) -> bool:
     reflags = get_re_flags(flagstr)
     if re.search(rs, s, reflags):
         return True
     else:
         return False
 
-def filter_re_sub(s, rs, repl, flagstr=None, count=0):
+def filter_re_sub(s: str, rs: str, repl: str, flagstr: str | None = None, count: int = 0) -> str:
     reflags = get_re_flags(flagstr)
     myre = re.compile(rs, reflags)
     return re.sub(myre, repl, s, count=count)
 
-def filter_re_escape(s):
+def filter_re_escape(s: str) -> str:
     return re.escape(s)
 
 # ['libkbo01.muc', 'os', 'linux', 'NAGIOSCONF', 'os_linux_default_check_ssh', 'max_check_attempts', '2', None, None, None],
@@ -145,69 +148,69 @@ def filter_re_escape(s):
 # two-tier approach lets Nagios admins override individual service attributes
 # per-host without duplicating the entire service definition.  Without
 # NAGIOSCONF attributes, a single simple service block is emitted.
-def filter_service(application, service_description):
+def filter_service(application: Any, service_description: str) -> str:
     relevant_details = [d for d in getattr(application, "nagios_config_attributes", []) if d.name == service_description]
     if not relevant_details:
-        snippet = "define service {\n  service_description             %s" % service_description
+        snippet = f"define service {{\n  service_description             {service_description}"
         if len(application.contact_groups) > 0:
-            snippet += "\n  contact_groups %s" % (application.contact_groups, )
+            snippet += f"\n  contact_groups {application.contact_groups}"
     else:
-        snippet = "define service {\n  service_description             %s\n" % service_description
+        snippet = f"define service {{\n  service_description             {service_description}\n"
         for detail in relevant_details:
-            snippet += "  %-31s %s\n" % (detail.attribute, detail.value)
-        snippet += "  use                             %s_%s\n}\n" % (service_description, application.host_name, )
-        snippet += "define service {\n  name                            %s_%s\n" % (service_description, application.host_name)
+            snippet += f"  {detail.attribute:<31} {detail.value}\n"
+        snippet += f"  use                             {service_description}_{application.host_name}\n}}\n"
+        snippet += f"define service {{\n  name                            {service_description}_{application.host_name}\n"
         snippet += "  register                        0"
         if len(application.contact_groups) > 0:
-            snippet += "\n  contact_groups %s" % application.contact_groups
+            snippet += f"\n  contact_groups {application.contact_groups}"
     macros = filter_custom_macros(application)
     if macros:
         snippet += macros
     return snippet
 
-def filter_host(host):
+def filter_host(host: Any) -> str:
     relevant_details = getattr(host, "nagios_config_attributes", [])
     if not relevant_details:
-        snippet = "define host {\n  host_name                         %s" % host.host_name
+        snippet = f"define host {{\n  host_name                         {host.host_name}"
         if len(host.contact_groups) > 0:
-            snippet += "\n  contact_groups %s" % host.contact_groups
+            snippet += f"\n  contact_groups {host.contact_groups}"
     else:
-        snippet = "define host {\n  host_name                         %s\n" % host.host_name
+        snippet = f"define host {{\n  host_name                         {host.host_name}\n"
         for detail in relevant_details:
-            snippet += "  %-31s %s\n" % (detail.attribute, detail.value)
-        snippet += "  use                             %s\n}\n" % (host.host_name + "_coshsh", )
-        snippet += "define host {\n  name                            %s\n" % (host.host_name + "_coshsh", )
+            snippet += f"  {detail.attribute:<31} {detail.value}\n"
+        snippet += f"  use                             {host.host_name}_coshsh\n}}\n"
+        snippet += f"define host {{\n  name                            {host.host_name}_coshsh\n"
         snippet += "  register                        0"
         if len(host.contact_groups) > 0:
-            snippet += "\n  contact_groups %s" % host.contact_groups
+            snippet += f"\n  contact_groups {host.contact_groups}"
     macros = filter_custom_macros(host)
     if macros:
         snippet += macros
     return snippet
 
-def filter_contact(contact):
+def filter_contact(contact: Any) -> str:
     relevant_details = getattr(contact, "nagios_config_attributes", [])
     if not relevant_details:
-        snippet = "define contact {\n  contact_name                      %s" % contact.contact_name
+        snippet = f"define contact {{\n  contact_name                      {contact.contact_name}"
         if len(contact.contactgroups) > 0:
-            snippet += "\n  contactgroups %s" % contact.contactgroups
+            snippet += f"\n  contactgroups {contact.contactgroups}"
     else:
-        snippet = "define contact {\n  contact_name                      %s\n" % contact.contact_name
+        snippet = f"define contact {{\n  contact_name                      {contact.contact_name}\n"
         for detail in relevant_details:
-            snippet += "  %-31s %s\n" % (detail.attribute, detail.value)
-        snippet += "  use                             %s\n}\n" % (contact.contact_name + "_coshsh", )
-        snippet += "define contact {\n  name                            %s\n" % (contact.contact_name + "_coshsh", )
+            snippet += f"  {detail.attribute:<31} {detail.value}\n"
+        snippet += f"  use                             {contact.contact_name}_coshsh\n}}\n"
+        snippet += f"define contact {{\n  name                            {contact.contact_name}_coshsh\n"
         snippet += "  register                        0"
         if len(contact.contactgroups) > 0:
-            snippet += "\n  contactgroups %s" % contact.contactgroups
+            snippet += f"\n  contactgroups {contact.contactgroups}"
     macros = filter_custom_macros(contact)
     if macros:
         snippet += macros
     return snippet
 
-def filter_custom_macros(obj):
+def filter_custom_macros(obj: Any) -> str:
     snippet = ""
-    macros = "\n".join("  %-31s %s" % (k, v) for k, v in
+    macros = "\n".join(f"  {k:<31} {v}" for k, v in
         sorted([x if x[0].startswith("_") else ("_" + x[0], x[1]) \
             for x in list(getattr(obj, "custom_macros", {}).items()) + \
                  list(getattr(obj, "macros", {}).items())], key=lambda x: x[0]))
@@ -218,12 +221,12 @@ def filter_custom_macros(obj):
 # WHY: The rfc3986 filter encodes arbitrary text (typically a service description
 # or hostname) into a URI-safe form.  This is used in templates that generate
 # URLs for web-based monitoring dashboards (e.g., Thruk action URLs).
-def filter_rfc3986(text):
+def filter_rfc3986(text: str) -> str:
     return 'rfc3986://' + urllib.request.pathname2url(text)
 
-def filter_neighbor_applications(application):
+def filter_neighbor_applications(application: Any) -> list[Any]:
     return [app for app in application.host.applications]
 
-def global_environ(var, default=None):
+def global_environ(var: str, default: str | None = None) -> str:
     val = os.getenv(var, default)
     return val if val != None else ""

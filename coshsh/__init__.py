@@ -37,6 +37,8 @@ dependency order. Changing the import order can cause ImportError at startup
 because some modules reference each other during class factory initialisation.
 """
 
+from __future__ import annotations
+
 import coshsh.configparser
 import coshsh.jinja2_extensions
 import coshsh.templaterule
