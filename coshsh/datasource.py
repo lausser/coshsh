@@ -210,11 +210,9 @@ class Datasource(coshsh.datainterface.CoshshDatainterface):
         an application, the method also links it to its host object if the
         host has already been added.
         """
-        try:
-            self.objects[objtype][obj.fingerprint()] = obj
-        except Exception:
+        if objtype not in self.objects:
             self.objects[objtype] = {}
-            self.objects[objtype][obj.fingerprint()] = obj
+        self.objects[objtype][obj.fingerprint()] = obj
         if objtype == 'applications':
             if self.find('hosts', obj.host_name):
                 setattr(obj, 'host', self.get('hosts', obj.host_name))

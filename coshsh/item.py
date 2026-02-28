@@ -125,7 +125,7 @@ class Item(coshsh.datainterface.CoshshDatainterface):
         # onto the parent object.  After this loop the object gains
         # attributes like ``filesystems``, ``login``, ``ports`` etc. that
         # Jinja2 templates can iterate over when rendering config files.
-        details = [d for d in self.monitoring_details]
+        details = list(self.monitoring_details)
         for detail in details:
             property = detail.__class__.property
             if property == "generic":
@@ -134,19 +134,18 @@ class Item(coshsh.datainterface.CoshshDatainterface):
                         if key:
                             if ":" in key:
                                 dictname, key = key.split(":")
-                                try:
-                                    setattr(getattr(self, dictname), key, detail.dictionary[dictname + ":" + key])
-                                except Exception:
+                                if not hasattr(self, dictname):
                                     setattr(self, dictname, EmptyObject())
-                                    setattr(getattr(self, dictname), key, detail.dictionary[dictname + ":" + key])
+                                setattr(getattr(self, dictname), key, detail.dictionary[dictname + ":" + key])
                             else:
                                 setattr(self, key, detail.dictionary[key])
                 elif detail.__class__.property_type == list:
                     for key in detail.dictionary:
                         if key:
-                            try:
-                                getattr(self, key).extend(detail.dictionary[key])
-                            except Exception:
+                            existing = getattr(self, key, None)
+                            if existing is not None:
+                                existing.extend(detail.dictionary[key])
+                            else:
                                 setattr(self, key, detail.dictionary[key])
                 else:
                     setattr(self, detail.attribute, detail.value)
@@ -161,17 +160,17 @@ class Item(coshsh.datainterface.CoshshDatainterface):
                         # appear in the list — the newer one replaces the older one.
                         # This prevents duplicate monitoring entries when the same detail
                         # is supplied from multiple datasources or repeated in the data.
-                        # from the details remove an existing detail
-                        # - which is of this class
-                        # - which has the same unique_attr
-                        if [o for o in getattr(self, property) if o.__class__ == detail.__class__ and getattr(o, detail.__class__.unique_attribute) == getattr(detail, detail.__class__.unique_attribute)]:
-                            old = getattr(self, property)
-                            new = [o for o in old if ((o.__class__ != detail.__class__) or (getattr(o, detail.__class__.unique_attribute) != getattr(detail, detail.__class__.unique_attribute)))]
-                            new.append(detail)
-                            setattr(self, property, new)
-                        #print "res", self.host.host_name, detail.path
-                        else:
-                            getattr(self, property).append(detail)
+                        prop_list = getattr(self, property)
+                        unique_attr_name = detail.__class__.unique_attribute
+                        unique_val = getattr(detail, unique_attr_name)
+                        replaced = False
+                        for i, o in enumerate(prop_list):
+                            if o.__class__ == detail.__class__ and getattr(o, unique_attr_name) == unique_val:
+                                prop_list[i] = detail
+                                replaced = True
+                                break
+                        if not replaced:
+                            prop_list.append(detail)
                     else:
                         if hasattr(detail.__class__, "property_attr"):
                             getattr(self, property).append(getattr(detail, getattr(detail.__class__, "property_attr")))
@@ -188,9 +187,8 @@ class Item(coshsh.datainterface.CoshshDatainterface):
                         setattr(self, property, getattr(detail, property))
                     else:
                         setattr(self, property, detail)
-            # This detail has been resolved. Maybe we run resolve_monitoring_details
-            # later again, we don't want to repeat ourselves.
-            self.monitoring_details.remove(detail)
+        # Clear all resolved details at once (O(1) instead of O(n) per remove)
+        self.monitoring_details.clear()
         self.wemustrepeat()
         # example: if we have self.ports
         # and self.ports[0] has an inside property ports
@@ -268,7 +266,7 @@ class Item(coshsh.datainterface.CoshshDatainterface):
         if hasattr(self, "service_notification_commands"):
             self.service_notification_commands = ",".join(sorted(list(set(self.service_notification_commands))))
 
-    def render_cfg_template(self, jinja2: Any, template_cache: dict[str, Any], name: str, output_name: str, suffix: str, for_tool: str, **kwargs: Any) -> int:
+    def render_cfg_template(self, jinja2: Any, template_cache: dict[str, Any], name: str, output_name: str, suffix: str, for_tool: str, _skip_pythonize: bool = False, **kwargs: Any) -> int:
         """Load a single Jinja2 template and render it into ``config_files``.
 
         Parameters
@@ -315,8 +313,9 @@ class Item(coshsh.datainterface.CoshshDatainterface):
             render_errors += 1
 
         if name in template_cache:
-            # transform hostgroups, contacts, etc. from list to string
-            self.depythonize()
+            if not _skip_pythonize:
+                # transform hostgroups, contacts, etc. from list to string
+                self.depythonize()
             try:
                 if not for_tool in self.config_files:
                     self.config_files[for_tool] = {}
@@ -331,8 +330,9 @@ class Item(coshsh.datainterface.CoshshDatainterface):
                 else:
                     logger.critical("render exception in template %s for %s: %s" % (name, self, exp), exc_info=1)
                 render_errors += 1
-            # transform hostgroups, contacts, etc. back to lists
-            self.pythonize()
+            if not _skip_pythonize:
+                # transform hostgroups, contacts, etc. back to lists
+                self.pythonize()
         return render_errors
 
     def render(self, template_cache: dict[str, Any], jinja2: Any, recipe: Any) -> int:
@@ -348,6 +348,7 @@ class Item(coshsh.datainterface.CoshshDatainterface):
         render_errors = 0
         if not hasattr(self, 'template_rules'):
             return render_errors
+        self.depythonize()
         for rule in self.template_rules:
             render_this = False
             try:
@@ -359,12 +360,12 @@ class Item(coshsh.datainterface.CoshshDatainterface):
                     # TemplateRule(needsattr=None,template="os_solaris_default")
                     render_this = True
     
-                elif hasattr(self, rule.needsattr) and not isinstance (getattr(self, rule.needsattr), list) and ((getattr(self, rule.needsattr) == rule.isattr) or re.match(rule.isattr, getattr(self, rule.needsattr))):
+                elif hasattr(self, rule.needsattr) and not isinstance (getattr(self, rule.needsattr), list) and ((getattr(self, rule.needsattr) == rule.isattr) or rule._isattr_re.match(getattr(self, rule.needsattr))):
                     # TemplateRule(needsattr="cluster", isattr="veritas",
                     #     template="os_solaris_cluster_veritas")
                     render_this = True
-    
-                elif hasattr(self, rule.needsattr) and isinstance (getattr(self, rule.needsattr), list) and [elem for elem in getattr(self, rule.needsattr) if (elem == rule.isattr or re.match(rule.isattr, elem))]:
+
+                elif hasattr(self, rule.needsattr) and isinstance (getattr(self, rule.needsattr), list) and any(elem == rule.isattr or rule._isattr_re.match(elem) for elem in getattr(self, rule.needsattr)):
                     # TemplateRule(needsattr="hostgroups",
                     #     isattr="cluster_solaris_veritas.*",
                     #     template="os_solaris_cluster_veritas")
@@ -383,11 +384,12 @@ class Item(coshsh.datainterface.CoshshDatainterface):
                 # Default (else branch) generates one file per template
                 # rule, using the template name as the output filename.
                 if rule.unique_config and isinstance(rule.unique_attr, str) and hasattr(self, rule.unique_attr):
-                    render_errors += self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % getattr(self, rule.unique_attr), rule.suffix, rule.for_tool, **dict([(rule.self_name, self), ("recipe", recipe)]))
+                    render_errors += self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % getattr(self, rule.unique_attr), rule.suffix, rule.for_tool, _skip_pythonize=True, **dict([(rule.self_name, self), ("recipe", recipe)]))
                 elif rule.unique_config and isinstance(rule.unique_attr, list) and functools.reduce(lambda x, y: x and y, [hasattr(self, ua) for ua in rule.unique_attr]):
-                    render_errors += self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % tuple([getattr(self, a) for a in rule.unique_attr]), rule.suffix, rule.for_tool, **dict([(rule.self_name, self), ("recipe", recipe)]))
+                    render_errors += self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % tuple([getattr(self, a) for a in rule.unique_attr]), rule.suffix, rule.for_tool, _skip_pythonize=True, **dict([(rule.self_name, self), ("recipe", recipe)]))
                 else:
-                    render_errors += self.render_cfg_template(jinja2, template_cache, rule.template, rule.template, rule.suffix, rule.for_tool, **dict([(rule.self_name, self), ("recipe", recipe)]))
+                    render_errors += self.render_cfg_template(jinja2, template_cache, rule.template, rule.template, rule.suffix, rule.for_tool, _skip_pythonize=True, **dict([(rule.self_name, self), ("recipe", recipe)]))
+        self.pythonize()
         return render_errors
 
     def fingerprint(self) -> str:

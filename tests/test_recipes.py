@@ -101,8 +101,8 @@ class RecipesTest(CommonCoshshTest):
         r = self.generator.get_recipe("test10")
         self.assertIsNone(r.get_datarecipient("nonexistent"))
 
-    def test_recipe_count_after_objects_raises_typeerror(self):
-        """[BUG-2] count_after_objects() raises TypeError due to reversed sum() arguments."""
+    def test_recipe_count_after_objects_works(self):
+        """count_after_objects() correctly sums new object counts."""
         self.setUpConfig("etc/coshsh.cfg", "test10")
         r = self.generator.get_recipe("test10")
         r.count_before_objects()
@@ -112,8 +112,9 @@ class RecipesTest(CommonCoshshTest):
         r.assemble()
         r.render()
         r.output()
-        with self.assertRaises(TypeError):
-            r.count_after_objects()
+        r.count_after_objects()
+        self.assertIsInstance(r.new_objects, tuple)
+        self.assertEqual(len(r.new_objects), 2)
 
     def test_recipe_assemble_removes_orphaned_applications(self):
         """assemble() removes applications that refer to non-existing hosts."""

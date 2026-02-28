@@ -45,6 +45,7 @@ AI agent note:
 
 from __future__ import annotations
 
+import itertools
 import logging
 import os
 import re
@@ -386,13 +387,13 @@ class Recipe:
             try:
                 ds.open()
                 pre_count = dict([(key, len(self.objects[key].keys())) for key in self.objects.keys()])
-                pre_detail_count = sum([(len(obj.monitoring_details) if hasattr(obj, 'monitoring_details') else 99) for objs in [self.objects[key].values() for key in self.objects.keys()] for obj in objs], 0)
+                pre_detail_count = sum(len(obj.monitoring_details) if hasattr(obj, 'monitoring_details') else 99 for key in self.objects for obj in self.objects[key].values())
                 # NOTE: self.objects is passed by reference; the datasource's read()
                 # method populates it in place via datasource.add() which keys
                 # entries by obj.fingerprint().
                 ds.read(filter=filter, objects=self.objects, force=self.force)
                 post_count = dict([(key, len(self.objects[key].keys())) for key in self.objects.keys()])
-                post_detail_count = sum([(len(obj.monitoring_details) if hasattr(obj, 'monitoring_details') else 99) for objs in [self.objects[key].values() for key in self.objects.keys()] for obj in objs], 0)
+                post_detail_count = sum(len(obj.monitoring_details) if hasattr(obj, 'monitoring_details') else 99 for key in self.objects for obj in self.objects[key].values())
                 pre_count['details'] = pre_detail_count
                 post_count['details'] = post_detail_count
                 pre_count.update(dict.fromkeys([k for k in post_count if not k in pre_count], 0))
@@ -458,22 +459,32 @@ class Recipe:
                 generic_details.append(detail)
             else:
                 logger.info("found a %s detail %s for an unknown application %s" % (detail.__class__.__name__, detail, fingerprint))
+        # Collect generic details per object, then prepend once (avoids O(M) per insert)
+        host_generics = []  # details with fingerprint '*' apply to all hosts
+        app_generic_map = {}  # {app_fingerprint: [details]} for app-specific generics
         for detail in generic_details:
             dfingerprint = detail.application_fingerprint()
             if dfingerprint == '*':
-                for host in self.objects['hosts'].values():
-                    host.monitoring_details.insert(0, detail)
+                host_generics.append(detail)
             else:
+                suffix = dfingerprint[1:]
                 for app in self.objects['applications'].values():
                     afingerprint = app.fingerprint()
-                    if dfingerprint[1:] == afingerprint[afingerprint.index('+'):]:
-                        app.monitoring_details.insert(0, detail)
+                    if suffix == afingerprint[afingerprint.index('+'):]:
+                        app_generic_map.setdefault(afingerprint, []).append(detail)
+        for host in self.objects['hosts'].values():
+            if host_generics:
+                host.monitoring_details[:] = host_generics + host.monitoring_details
+        for afingerprint, details in app_generic_map.items():
+            app = self.objects['applications'][afingerprint]
+            app.monitoring_details[:] = details + app.monitoring_details
 
 
         for host in self.objects['hosts'].values():
             host.resolve_monitoring_details()
-            for key in [k for k in host.__dict__.keys() if not k.startswith("__") and isinstance(getattr(host, k), (list, tuple)) and k not in ["templates"]]:
-                getattr(host, key).sort()
+            for k, v in host.__dict__.items():
+                if not k.startswith("__") and isinstance(v, (list, tuple)) and k != "templates":
+                    v.sort()
             host.create_templates()
             host.create_hostgroups()
             host.create_contacts()
@@ -487,9 +498,10 @@ class Recipe:
                 setattr(app, 'host', self.objects['hosts'][app.host_name])
                 app.host.applications.append(app)
                 app.resolve_monitoring_details()
-                for key in [k for k in app.__dict__.keys() if not k.startswith("__") and isinstance(getattr(app, k), (list, tuple))]:
+                for k, v in app.__dict__.items():
                     # sort monitoring_type/monitoring_0 to bring some order into services,filesystems etc.
-                    getattr(app, key).sort()
+                    if not k.startswith("__") and isinstance(v, (list, tuple)):
+                        v.sort()
                 app.create_templates()
                 app.create_servicegroups()
                 app.create_contacts()
@@ -504,11 +516,7 @@ class Recipe:
         # in application.wemustrepeat()
         for host in self.objects['hosts'].values():
             for hostgroup in host.hostgroups:
-                try:
-                    self.objects['hostgroups'][hostgroup].append(host.host_name)
-                except Exception:
-                    self.objects['hostgroups'][hostgroup] = []
-                    self.objects['hostgroups'][hostgroup].append(host.host_name)
+                self.objects['hostgroups'].setdefault(hostgroup, []).append(host.host_name)
         for (hostgroup_name, members) in self.objects['hostgroups'].items():
             logger.debug("creating hostgroup %s" % hostgroup_name)
             self.objects['hostgroups'][hostgroup_name] = coshsh.hostgroup.HostGroup({ "hostgroup_name" : hostgroup_name, "members" : members})
@@ -546,7 +554,7 @@ class Recipe:
         for hg in self.objects['hostgroups'].values():
             self.render_errors += hg.render(template_cache, self.jinja2, self)
         # you can put anything in objects (Item class with own templaterules)
-        for item in sum([list(self.objects[itype].values()) for itype in self.objects if itype not in ['hosts', 'applications', 'details', 'contactgroups', 'contacts', 'hostgroups']], []):
+        for item in itertools.chain.from_iterable(self.objects[itype].values() for itype in self.objects if itype not in ['hosts', 'applications', 'details', 'contactgroups', 'contacts', 'hostgroups']):
             # first check hasattr, because somebody may accidentially
             # add objects which are not a subclass of Item.
             # (And such a stupid mistake crashes coshsh-cook)
@@ -565,7 +573,7 @@ class Recipe:
         """Count config files in output dirs *after* writing (for delta comparison with before)."""
         for datarecipient in self.datarecipients:
             datarecipient.count_after_objects()
-        self.new_objects = (sum(0, [dr.new_objects[0] for dr in self.datarecipients]), sum(0, [dr.new_objects[1] for dr in self.datarecipients]))
+        self.new_objects = (sum([dr.new_objects[0] for dr in self.datarecipients], 0), sum([dr.new_objects[1] for dr in self.datarecipients], 0))
 
     def cleanup_target_dir(self) -> None:
         """Remove old generated config files from each datarecipient's target directory."""

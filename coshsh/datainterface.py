@@ -168,10 +168,8 @@ class CoshshDatainterface(object):
             try:
                 newcls = class_func(params)
                 if newcls:
-                    try:
-                        cls.usage_numbers[path+"___"+newcls.__name__] += 1
-                    except Exception:
-                        cls.usage_numbers[path+"___"+newcls.__name__] = 1
+                    key = path + "___" + newcls.__name__
+                    cls.usage_numbers[key] = cls.usage_numbers.get(key, 0) + 1
                     return newcls
             except Exception as exp:
                 print(cls.__name__+".get_class exception", exp)

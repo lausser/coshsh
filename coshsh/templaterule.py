@@ -28,6 +28,7 @@ AI agent note:
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 
@@ -90,6 +91,7 @@ class TemplateRule:
         # rule to cover families of values (e.g. isattr="linux.*" matches
         # linux, linux_suse, linux_rhel).
         self.isattr = isattr
+        self._isattr_re = re.compile(isattr) if isattr is not None else None
         self.template = template
         # Sometimes more than one configs are needed
         # This property is used to separate the application objects
