@@ -158,6 +158,24 @@ version designed, written, and maintained by human contributors.
 - [Appendix A: Quick Reference — All Config Keys](#appendix-a-quick-reference--all-config-keys)
 - [Appendix B: Quick Reference — All MonitoringDetail Types](#appendix-b-quick-reference--all-monitoringdetail-types)
 - [Appendix C: Class Factory Decision Tree](#appendix-c-class-factory-decision-tree)
+- [18. AI-Era Development History](#18-ai-era-development-history)
+  - [18.1 Transition from human to AI development](#181-transition-from-human-to-ai-development)
+  - [18.2 Spec-driven development workflow](#182-spec-driven-development-workflow)
+- [19. Test Suite Modernization (Specs 002-003)](#19-test-suite-modernization-specs-002-003)
+  - [19.1 Test refactoring for AI readability](#191-test-refactoring-for-ai-readability)
+  - [19.2 Coverage expansion: 100 to 205 tests](#192-coverage-expansion-100-to-205-tests)
+  - [19.3 Latent bugs discovered](#193-latent-bugs-discovered)
+- [20. Codebase Modernization (Spec 004)](#20-codebase-modernization-spec-004)
+  - [20.1 Python 3.12+ type annotations](#201-python-312-type-annotations)
+  - [20.2 f-strings and pathlib migration](#202-f-strings-and-pathlib-migration)
+  - [20.3 Future annotations and import cleanup](#203-future-annotations-and-import-cleanup)
+- [21. Performance Optimization (Spec 005)](#21-performance-optimization-spec-005)
+  - [21.1 Bottleneck analysis methodology](#211-bottleneck-analysis-methodology)
+  - [21.2 Render phase: regex pre-compilation and depythonize hoisting](#212-render-phase-regex-pre-compilation-and-depythonize-hoisting)
+  - [21.3 Assemble phase: O(n^2) dedup and broadcast fixes](#213-assemble-phase-on2-dedup-and-broadcast-fixes)
+  - [21.4 Collect phase: flat generators and exception elimination](#214-collect-phase-flat-generators-and-exception-elimination)
+  - [21.5 Bug fix: count_after_objects](#215-bug-fix-count_after_objects)
+  - [21.6 Backward compatibility considerations](#216-backward-compatibility-considerations)
 
 ---
 
@@ -3770,3 +3788,283 @@ After all applications:
     Collect host.hostgroups → recipe.objects['hostgroups']
     (This is why app.wemustrepeat() can modify host.hostgroups)
 ```
+
+---
+
+## 18. AI-Era Development History
+
+This section documents the improvements made to coshsh since AI agents began contributing
+to the codebase in February 2026. The human-written code (sections 1-17 above) remains
+the authoritative reference for *what coshsh does*. This section and those that follow
+document *how the codebase has been improved* while preserving all original functionality.
+
+### 18.1 Transition from human to AI development
+
+The coshsh codebase was designed, written, and maintained by human contributors from its
+inception through February 2026. At that point, the project adopted a spec-driven AI
+development workflow. The transition was deliberate: the first AI task was to document the
+entire codebase (spec 001, which produced this document), ensuring that AI agents could
+work on the project with full understanding of its architecture, invariants, and production
+deployment patterns.
+
+The guiding principle throughout: **the human-written code is the oracle**. Every AI change
+must preserve existing behavior as verified by the test suite. No production code was
+changed without tests proving the change is safe.
+
+### 18.2 Spec-driven development workflow
+
+All AI work follows a spec-driven process:
+
+1. **Spec** (`specs/NNN-feature-name/spec.md`) — defines the goal, scope, user stories,
+   and acceptance criteria.
+2. **Plan** (`specs/NNN-feature-name/plan.md`) — describes the implementation approach,
+   files to modify, and verification strategy.
+3. **Implementation** — code changes committed to master with descriptive messages.
+4. **Verification** — full test suite must pass after every change.
+
+Specs are numbered sequentially. As of February 2026, five specs have been completed:
+
+| Spec | Title | Status | Key Metric |
+|------|-------|--------|------------|
+| 001 | AI Handover Documentation | Done | 3800+ line reference document |
+| 002 | Refactor Tests for AI Readability | Done | Homogeneous test structure |
+| 003 | Add Missing Tests | Done | 100 -> 205 tests |
+| 004 | Modernize Codebase | Done | Type annotations on all public methods |
+| 005 | Performance Optimization | Done | 9 bottlenecks eliminated |
+
+---
+
+## 19. Test Suite Modernization (Specs 002-003)
+
+### 19.1 Test refactoring for AI readability
+
+Spec 002 restructured the existing 98 tests (across 43 test files) into a consistent,
+AI-readable format. The goal was not to change what the tests verify, but to make them
+uniform in structure so that any agent can immediately understand what a test covers and
+why it passes or fails.
+
+Key changes:
+- **Consistent naming**: Every test method name follows `test_<unit>_<behavior>` convention
+  with an intent-revealing docstring.
+- **Homogeneous structure**: Each test file follows the same setup/teardown/assert pattern
+  using the `CommonCoshshTest` base class.
+- **Logical grouping**: Tests are organized by source module rather than by the historical
+  order they were written.
+
+### 19.2 Coverage expansion: 100 to 205 tests
+
+Spec 003 added 105 new tests covering code paths that had no direct coverage or only
+incidental coverage through full-pipeline integration tests. New test files were created
+for modules that previously had no dedicated tests:
+
+| New test file | Source module under test |
+|---------------|------------------------|
+| `tests/test_host.py` | `coshsh/host.py` |
+| `tests/test_item.py` | `coshsh/item.py` |
+| `tests/test_configparser.py` | `coshsh/configparser.py` |
+| `tests/test_dependency.py` | `coshsh/dependency.py` |
+| `tests/test_util.py` | `coshsh/util.py` |
+| `tests/test_datarecipient.py` | `coshsh/datarecipient.py` |
+| `tests/test_jinja2_extensions.py` | `coshsh/jinja2_extensions.py` |
+| `tests/test_templaterule.py` | `coshsh/templaterule.py` |
+| `tests/test_contactgroup.py` | `coshsh/contactgroup.py` |
+| `tests/test_datasource.py` | `coshsh/datasource.py` |
+
+Existing test files (`test_delta.py`, `test_details.py`, `test_merge.py`,
+`test_recipes.py`, `test_vault.py`, `test_contacts.py`) were extended with additional
+cases.
+
+### 19.3 Latent bugs discovered
+
+Spec 003 discovered three latent bugs during test analysis. These were documented with
+tests that assert the broken behavior (not fixed in spec 003 — fixes belong in separate
+specs). BUG-2 was subsequently fixed in spec 005.
+
+| ID | Location | Bug | Status |
+|----|----------|-----|--------|
+| BUG-1 | `host.py:121` | `hasattr(self.host_name)` — 1 arg instead of 2; raises `TypeError` | Documented |
+| BUG-2 | `recipe.py:568` | `sum(0, [list])` — args reversed; raises `TypeError` | **Fixed in spec 005** |
+| BUG-3a | `item.py:397` | `raise "impossible fingerprint"` — Python 2 string raise | Documented |
+| BUG-3b | `monitoringdetail.py:196` | Same as BUG-3a | Documented |
+
+---
+
+## 20. Codebase Modernization (Spec 004)
+
+Spec 004 modernized all 19 Python files in `coshsh/` and 2 scripts in `bin/` to
+Python 3.12+ quality. This was a purely internal change — zero behavior change, all
+205 tests pass without modification.
+
+### 20.1 Python 3.12+ type annotations
+
+Every public method across all 19 core modules received full type annotations (parameters
+and return types). The `ClassVar` annotation was used for class-level attributes like
+`class_factory`, `class_file_prefixes`, and `my_type`. Union types use the modern
+`X | Y` syntax enabled by `from __future__ import annotations`.
+
+Key typing patterns:
+- `params: dict[str, Any]` for the ubiquitous params dicts
+- `ClassVar[list[tuple[str, str, Any]]]` for class_factory
+- `str | None` for optional string parameters
+- `-> None` for methods with no return value
+- `# type: ignore[assignment]` comments on intentional rebless patterns
+
+### 20.2 f-strings and pathlib migration
+
+All `%`-formatting and `.format()` calls were replaced with f-strings. All `os.path`
+operations were migrated to `pathlib.Path`. These are consistent across every module —
+there is exactly one style for string formatting and path handling in the entire codebase.
+
+### 20.3 Future annotations and import cleanup
+
+Every module begins with `from __future__ import annotations` enabling PEP 604 union
+syntax (`X | Y`) and forward references without quotes. Import ordering follows the
+standard convention: stdlib, then third-party (`jinja2`), then local (`coshsh.*`).
+
+---
+
+## 21. Performance Optimization (Spec 005)
+
+Spec 005 targeted raw execution speed in the 4-phase pipeline. Nine bottlenecks were
+identified through static code analysis and fixed in three phases ordered by risk level.
+All 205 tests pass after every change.
+
+### 21.1 Bottleneck analysis methodology
+
+Bottlenecks were identified by analyzing the algorithmic complexity of hot paths in each
+pipeline phase:
+
+- **Collect phase**: Detail counting uses nested iteration over all objects.
+- **Assemble phase**: Monitoring detail resolution, generic detail broadcast, and attribute
+  sorting all iterate over the full object set.
+- **Render phase**: Template rule matching and depythonize/pythonize run per-object with
+  per-template overhead.
+
+The analysis focused on asymptotic complexity (O-notation) rather than micro-benchmarks,
+because the bottlenecks are algorithmic — they scale poorly with the number of objects,
+not with constant overhead.
+
+### 21.2 Render phase: regex pre-compilation and depythonize hoisting
+
+**Pre-compiled regex in TemplateRule** (`templaterule.py`, `item.py`):
+
+Each `TemplateRule` has an `isattr` parameter that can be a regex pattern (e.g.
+`"linux.*"`). Previously, `re.match(rule.isattr, value)` was called inside
+`Item.render()` for every template rule on every object — Python's `re.match()` compiles
+the pattern string to a regex object on every call. For a recipe with 1000 hosts, 10
+template rules each, and 5 attributes to check, this is 50,000+ unnecessary compilations.
+
+Fix: `TemplateRule.__init__` now pre-compiles the pattern into `self._isattr_re`. The
+render loop uses `rule._isattr_re.match(value)` instead. Additionally, the list
+comprehension `[elem for elem in list if match]` (which always scans the entire list) was
+replaced with `any(... for elem in list)` which short-circuits on the first match.
+
+**Depythonize/pythonize hoisting** (`item.py`):
+
+The `depythonize()` and `pythonize()` methods convert list attributes (hostgroups,
+contacts, etc.) between Python lists and comma-separated strings. Previously these were
+called inside `render_cfg_template()` — meaning they ran once per template rule per
+object. A typical object has 3-10 matching template rules, so depythonize/pythonize ran
+3-10x more than necessary.
+
+Fix: `render()` now calls `depythonize()` once at the start and `pythonize()` once at
+the end. The calls inside `render_cfg_template()` are skipped via a `_skip_pythonize=True`
+parameter. External callers of `render_cfg_template()` are unaffected because the
+parameter defaults to `False`.
+
+### 21.3 Assemble phase: O(n^2) dedup and broadcast fixes
+
+**O(n^2) monitoring detail dedup** (`item.py`):
+
+`resolve_monitoring_details()` previously called `self.monitoring_details.remove(detail)`
+inside the loop for every detail processed. `list.remove()` is O(n) because it must scan
+to find the element, making the overall loop O(n^2). Additionally, the `unique_attribute`
+dedup logic rebuilt the entire list on every replacement.
+
+Fix: The per-detail `remove()` calls were replaced with a single
+`self.monitoring_details.clear()` after the loop completes. The unique_attribute dedup now
+does in-place replacement (`prop_list[i] = detail`) using an indexed scan, avoiding full
+list rebuilds.
+
+**Generic detail broadcast O(M) inserts** (`recipe.py`):
+
+Generic monitoring details (fingerprint starting with `*`) are broadcast to all matching
+objects by prepending them to `monitoring_details`. Previously this used
+`list.insert(0, detail)` which is O(M) per insert (shifts all existing elements right).
+With G generic details and M existing details per object, this is O(G*M).
+
+Fix: All generics are collected into per-host/per-app lists first, then prepended with
+a single list concatenation (`host.monitoring_details[:] = generics + host.monitoring_details`).
+This is O(G+M) per object instead of O(G*M).
+
+**Redundant getattr in sort loops** (`recipe.py`):
+
+The assemble sort loop used `for k in host.__dict__.keys()` followed by
+`isinstance(getattr(host, k), ...)` and `getattr(host, k).sort()` — two `getattr()`
+calls per attribute. Replaced with `for k, v in host.__dict__.items()` which accesses
+each value exactly once.
+
+### 21.4 Collect phase: flat generators and exception elimination
+
+**Flat generator for detail counting** (`recipe.py`):
+
+The pre/post detail count used a triple-nested list comprehension with `sum([...], 0)`:
+```python
+sum([(len(obj.monitoring_details) if hasattr(obj, 'monitoring_details') else 99)
+     for objs in [self.objects[key].values() for key in self.objects.keys()]
+     for obj in objs], 0)
+```
+
+This creates intermediate lists at every level. Replaced with a flat generator expression:
+```python
+sum(len(obj.monitoring_details) if hasattr(obj, 'monitoring_details') else 99
+    for key in self.objects for obj in self.objects[key].values())
+```
+
+**Exception-as-flow-control elimination** (multiple files):
+
+Three hot-path locations used try/except for normal control flow:
+- `datasource.add()`: try to write to dict, except create dict first
+- `datainterface.get_class()`: try to increment counter, except initialize it
+- `recipe.assemble()`: try to append to hostgroup list, except create list first
+
+All replaced with dict operations: `if key not in dict`, `dict.get(key, 0) + 1`, and
+`dict.setdefault(key, []).append(value)`.
+
+**O(n^2) list concatenation in render** (`recipe.py`):
+
+`sum([list(...) for ...], [])` concatenates lists by creating a new list for each
+addition — O(n^2) total allocation. Replaced with
+`itertools.chain.from_iterable(...)` which lazily iterates without copying.
+
+### 21.5 Bug fix: count_after_objects
+
+`recipe.py` line 568 had `sum(0, [list])` with arguments reversed compared to the
+correct `sum([list], 0)` pattern on line 562 (`count_before_objects`). This caused
+`count_after_objects()` to always raise `TypeError`, preventing the delta-safety
+mechanism from functioning in any recipe using multiple datarecipients.
+
+This bug was originally discovered and documented in spec 003 (BUG-2) with a test
+asserting the broken behavior. Spec 005 fixed the bug and updated the test to assert
+correct behavior: `test_recipe_count_after_objects_works` verifies that `new_objects`
+is a 2-tuple of integers.
+
+### 21.6 Backward compatibility considerations
+
+All optimizations preserve existing behavior:
+
+- **`_skip_pythonize` parameter**: `render_cfg_template()` gained a new keyword parameter
+  `_skip_pythonize` defaulting to `False`. Internal calls from `render()` pass `True` to
+  skip redundant work. Any external caller using the old signature is unaffected.
+
+- **`TemplateRule._isattr_re`**: New attribute added to TemplateRule objects. Any code that
+  constructs TemplateRules via the existing `__init__` interface gets the pre-compiled
+  regex automatically. Code that accesses `rule.isattr` continues to work.
+
+- **`monitoring_details.clear()`**: Semantically identical to the previous per-item
+  `remove()` — all details are consumed during resolution. The only difference is
+  performance: O(1) instead of O(n^2).
+
+- **Generic detail ordering**: The prepend-by-concatenation preserves the same ordering
+  semantics as the previous `insert(0, ...)` approach — generics appear at the front of
+  the list, meaning they are resolved first and can be overridden by specific details.
