@@ -46,7 +46,7 @@ class Item(coshsh.datainterface.CoshshDatainterface):
         cls.env = Environment(loader=loader)
         cls.env.trim_blocks = True
 
-    def __init__(self, params: dict[str, Any] = {}) -> None:
+    def __init__(self, params: dict[str, Any] | None = None) -> None:
         """Initialise an Item from a dict of datasource parameters.
 
         Each key/value pair in *params* becomes an instance attribute.
@@ -60,6 +60,8 @@ class Item(coshsh.datainterface.CoshshDatainterface):
         - ``object_chronicle``: audit trail of notable events for this
           object.
         """
+        if params is None:
+            params = {}
         for key in params:
             if hasattr(self, "dont_strip_attributes") and isinstance(params[key], str):
                 if isinstance(self.dont_strip_attributes, bool) and self.dont_strip_attributes == True:
@@ -121,73 +123,9 @@ class Item(coshsh.datainterface.CoshshDatainterface):
         Details are consumed (removed from ``self.monitoring_details``) so
         that calling this method again is safe and idempotent.
         """
-        # WHY: monitoring detail resolution sets/appends/merges attributes
-        # onto the parent object.  After this loop the object gains
-        # attributes like ``filesystems``, ``login``, ``ports`` etc. that
-        # Jinja2 templates can iterate over when rendering config files.
         details = list(self.monitoring_details)
         for detail in details:
-            property = detail.__class__.property
-            if property == "generic":
-                if detail.__class__.property_type == dict:
-                    for key in detail.dictionary:
-                        if key:
-                            if ":" in key:
-                                dictname, key = key.split(":")
-                                if not hasattr(self, dictname):
-                                    setattr(self, dictname, EmptyObject())
-                                setattr(getattr(self, dictname), key, detail.dictionary[dictname + ":" + key])
-                            else:
-                                setattr(self, key, detail.dictionary[key])
-                elif detail.__class__.property_type == list:
-                    for key in detail.dictionary:
-                        if key:
-                            existing = getattr(self, key, None)
-                            if existing is not None:
-                                existing.extend(detail.dictionary[key])
-                            else:
-                                setattr(self, key, detail.dictionary[key])
-                else:
-                    setattr(self, detail.attribute, detail.value)
-            else:
-                if detail.__class__.property_type == list:
-                    if not hasattr(self, property):
-                        setattr(self, property, [])
-                    if hasattr(detail.__class__, "unique_attribute"):
-                        # WHY: unique_attribute enforces replacement-instead-of-append
-                        # semantics.  If a detail class declares unique_attribute="path",
-                        # then two FILESYSTEM details with the same path value won't both
-                        # appear in the list — the newer one replaces the older one.
-                        # This prevents duplicate monitoring entries when the same detail
-                        # is supplied from multiple datasources or repeated in the data.
-                        prop_list = getattr(self, property)
-                        unique_attr_name = detail.__class__.unique_attribute
-                        unique_val = getattr(detail, unique_attr_name)
-                        replaced = False
-                        for i, o in enumerate(prop_list):
-                            if o.__class__ == detail.__class__ and getattr(o, unique_attr_name) == unique_val:
-                                prop_list[i] = detail
-                                replaced = True
-                                break
-                        if not replaced:
-                            prop_list.append(detail)
-                    else:
-                        if hasattr(detail.__class__, "property_attr"):
-                            getattr(self, property).append(getattr(detail, getattr(detail.__class__, "property_attr")))
-                        else:
-                            getattr(self, property).append(detail)
-                elif detail.__class__.property_type == dict:
-                    if not hasattr(self, property):
-                        setattr(self, property, {})
-                    if hasattr(detail, "key") and hasattr(detail, "value"):
-                        getattr(self, property)[detail.key] = detail.value
-                else:
-                    if getattr(detail.__class__, 'property_flat', False):
-                        # ex. MonitoringDetailRole: appl.role == str instead of appl.role.role == str
-                        setattr(self, property, getattr(detail, property))
-                    else:
-                        setattr(self, property, detail)
-        # Clear all resolved details at once (O(1) instead of O(n) per remove)
+            detail.resolve_onto(self)
         self.monitoring_details.clear()
         self.wemustrepeat()
         # example: if we have self.ports
@@ -214,57 +152,35 @@ class Item(coshsh.datainterface.CoshshDatainterface):
         # detail values).  The base implementation is intentionally a no-op.
         pass
 
+    # WHY: datasources deliver list-type attributes as comma-separated
+    # strings (Nagios format).  pythonize converts them to Python lists
+    # so code can use append/extend/set operations.  depythonize is the
+    # inverse, called before rendering to restore Nagios-compatible CSV.
+    # The render_cfg_template cycle is: depythonize → render → pythonize,
+    # so list form is the "resting state" between renders.  Note that
+    # depythonize deduplicates and sorts all attributes EXCEPT templates
+    # (template ordering matters for Nagios config inheritance).
+    _csv_attributes = (
+        "templates", "contactgroups", "contact_groups", "contacts",
+        "hostgroups", "servicegroups", "members", "parents",
+        "host_notification_commands", "service_notification_commands",
+    )
+    _no_dedup_csv_attributes = frozenset(("templates",))
+
     def pythonize(self) -> None:
-        # WHY: datasources deliver list-type attributes as comma-separated
-        # strings (Nagios format).  pythonize converts them to Python lists
-        # so code can use append/extend/set operations.  depythonize is the
-        # inverse, called before rendering to restore Nagios-compatible CSV.
-        # The render_cfg_template cycle is: depythonize → render → pythonize,
-        # so list form is the "resting state" between renders.  Note that
-        # depythonize deduplicates and sorts all attributes EXCEPT templates
-        # (template ordering matters for Nagios config inheritance).
-        if hasattr(self, "templates"):
-            self.templates = self.templates.split(',')
-        if hasattr(self, "contactgroups"):
-            self.contactgroups = self.contactgroups.split(',')
-        if hasattr(self, "contact_groups"): #! contacts have contact!_!groups
-            self.contact_groups = self.contact_groups.split(',')
-        if hasattr(self, "contacts"):
-            self.contacts = self.contacts.split(',')
-        if hasattr(self, "hostgroups"):
-            self.hostgroups = self.hostgroups.split(',')
-        if hasattr(self, "servicegroups"):
-            self.servicegroups = self.servicegroups.split(',')
-        if hasattr(self, "members"):
-            self.members = self.members.split(',')
-        if hasattr(self, "parents"):
-            self.parents = self.parents.split(',')
-        if hasattr(self, "host_notification_commands"):
-            self.host_notification_commands = self.host_notification_commands.split(',')
-        if hasattr(self, "service_notification_commands"):
-            self.service_notification_commands = self.service_notification_commands.split(',')
+        for attr in self._csv_attributes:
+            val = getattr(self, attr, None)
+            if val is not None and isinstance(val, str):
+                setattr(self, attr, val.split(','))
 
     def depythonize(self) -> None:
-        if hasattr(self, "templates"):
-            self.templates = ",".join(self.templates)
-        if hasattr(self, "contactgroups"):
-            self.contactgroups = ",".join(sorted(list(set(self.contactgroups))))
-        if hasattr(self, "contact_groups"):
-            self.contact_groups = ",".join(sorted(list(set(self.contact_groups))))
-        if hasattr(self, "contacts"):
-            self.contacts = ",".join(sorted(list(set(self.contacts))))
-        if hasattr(self, "hostgroups"):
-            self.hostgroups = ",".join(sorted(list(set(self.hostgroups))))
-        if hasattr(self, "servicegroups"):
-            self.servicegroups = ",".join(sorted(list(set(self.servicegroups))))
-        if hasattr(self, "members"):
-            self.members = ",".join(sorted(list(set(self.members))))
-        if hasattr(self, "parents"):
-            self.parents = ",".join(sorted(list(set(self.parents))))
-        if hasattr(self, "host_notification_commands"):
-            self.host_notification_commands = ",".join(sorted(list(set(self.host_notification_commands))))
-        if hasattr(self, "service_notification_commands"):
-            self.service_notification_commands = ",".join(sorted(list(set(self.service_notification_commands))))
+        for attr in self._csv_attributes:
+            val = getattr(self, attr, None)
+            if val is not None and isinstance(val, list):
+                if attr in self._no_dedup_csv_attributes:
+                    setattr(self, attr, ",".join(val))
+                else:
+                    setattr(self, attr, ",".join(sorted(set(val))))
 
     def render_cfg_template(self, jinja2: Any, template_cache: dict[str, Any], name: str, output_name: str, suffix: str, for_tool: str, _skip_pythonize: bool = False, **kwargs: Any) -> int:
         """Load a single Jinja2 template and render it into ``config_files``.
@@ -350,32 +266,12 @@ class Item(coshsh.datainterface.CoshshDatainterface):
             return render_errors
         self.depythonize()
         for rule in self.template_rules:
-            render_this = False
             try:
-                if not rule.needsattr:
-                    # TemplateRule(template="os_solaris_default")
-                    render_this = True
-    
-                elif (hasattr(self, rule.needsattr) and rule.isattr == None):
-                    # TemplateRule(needsattr=None,template="os_solaris_default")
-                    render_this = True
-    
-                elif hasattr(self, rule.needsattr) and not isinstance (getattr(self, rule.needsattr), list) and ((getattr(self, rule.needsattr) == rule.isattr) or rule._isattr_re.match(getattr(self, rule.needsattr))):
-                    # TemplateRule(needsattr="cluster", isattr="veritas",
-                    #     template="os_solaris_cluster_veritas")
-                    render_this = True
-
-                elif hasattr(self, rule.needsattr) and isinstance (getattr(self, rule.needsattr), list) and any(elem == rule.isattr or rule._isattr_re.match(elem) for elem in getattr(self, rule.needsattr)):
-                    # TemplateRule(needsattr="hostgroups",
-                    #     isattr="cluster_solaris_veritas.*",
-                    #     template="os_solaris_cluster_veritas")
-                    render_this = True
-                    
-                elif hasattr(self, rule.needsattr) and isinstance (getattr(self, rule.needsattr), list):
-                    pass
+                render_this = rule.matches(self)
             except Exception as e:
                 logger.critical("error in %s template rules. please check %s. Error was: %s" % (self.__class__.__name__, rule, str(e)), exc_info=1)
                 render_errors += 1
+                render_this = False
 
             if render_this:
                 # WHY: unique_config generates per-instance filenames
@@ -401,5 +297,5 @@ class Item(coshsh.datainterface.CoshshDatainterface):
             return f"{self.host_name}"
         except AttributeError:
             pass
-        raise "impossible fingerprint"
+        raise AttributeError("impossible fingerprint")
 

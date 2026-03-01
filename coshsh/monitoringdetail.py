@@ -123,7 +123,7 @@ class MonitoringDetail(coshsh.item.Item):
     my_type: ClassVar[str] = "detail"
     lower_columns: ClassVar[list[str]] = ['name', 'type', 'application_name', 'application_type']
 
-    def __init__(self, params: dict[str, Any] = {}) -> None:
+    def __init__(self, params: dict[str, Any] | None = None) -> None:
         """Dispatch to the correct detail subclass based on ``monitoring_type``.
 
         When called on the base ``MonitoringDetail`` class, this method:
@@ -138,6 +138,8 @@ class MonitoringDetail(coshsh.item.Item):
         When called on a subclass (the ``else: pass`` branch), does nothing
         -- the subclass ``__init__`` handles its own setup.
         """
+        if params is None:
+            params = {}
         if self.__class__.__name__ == "MonitoringDetail":
             for c in self.__class__.lower_columns:
                 try:
@@ -170,6 +172,88 @@ class MonitoringDetail(coshsh.item.Item):
         else:
             pass
 
+    def resolve_onto(self, target) -> None:
+        """Merge this detail's data onto *target* (a Host or Application).
+
+        The default implementation dispatches on the class-level attributes
+        ``property``, ``property_type``, ``property_flat``, ``property_attr``,
+        and ``unique_attribute``.  Subclasses may override for custom merge
+        behaviour without touching item.py.
+        """
+        prop_name = self.__class__.property
+        if prop_name == "generic":
+            self._resolve_generic(target)
+        elif self.__class__.property_type == list:
+            self._resolve_list(target)
+        elif self.__class__.property_type == dict:
+            self._resolve_dict(target)
+        else:
+            self._resolve_scalar(target)
+
+    def _resolve_generic(self, target) -> None:
+        """Merge a ``property='generic'`` detail via its ``dictionary``."""
+        if self.__class__.property_type == dict:
+            for key in self.dictionary:
+                if key:
+                    if ":" in key:
+                        dictname, key = key.split(":")
+                        if not hasattr(target, dictname):
+                            setattr(target, dictname, coshsh.item.EmptyObject())
+                        setattr(getattr(target, dictname), key,
+                                self.dictionary[dictname + ":" + key])
+                    else:
+                        setattr(target, key, self.dictionary[key])
+        elif self.__class__.property_type == list:
+            for key in self.dictionary:
+                if key:
+                    existing = getattr(target, key, None)
+                    if existing is not None:
+                        existing.extend(self.dictionary[key])
+                    else:
+                        setattr(target, key, self.dictionary[key])
+        else:
+            setattr(target, self.attribute, self.value)
+
+    def _resolve_list(self, target) -> None:
+        """Append (or deduplicate) this detail into a list on *target*."""
+        prop_name = self.__class__.property
+        if not hasattr(target, prop_name):
+            setattr(target, prop_name, [])
+        if hasattr(self.__class__, "unique_attribute"):
+            prop_list = getattr(target, prop_name)
+            unique_attr_name = self.__class__.unique_attribute
+            unique_val = getattr(self, unique_attr_name)
+            replaced = False
+            for i, o in enumerate(prop_list):
+                if (o.__class__ == self.__class__
+                        and getattr(o, unique_attr_name) == unique_val):
+                    prop_list[i] = self
+                    replaced = True
+                    break
+            if not replaced:
+                prop_list.append(self)
+        elif hasattr(self.__class__, "property_attr"):
+            getattr(target, prop_name).append(
+                getattr(self, self.__class__.property_attr))
+        else:
+            getattr(target, prop_name).append(self)
+
+    def _resolve_dict(self, target) -> None:
+        """Insert this detail's key/value into a dict on *target*."""
+        prop_name = self.__class__.property
+        if not hasattr(target, prop_name):
+            setattr(target, prop_name, {})
+        if hasattr(self, "key") and hasattr(self, "value"):
+            getattr(target, prop_name)[self.key] = self.value
+
+    def _resolve_scalar(self, target) -> None:
+        """Assign this detail (or its flat value) as a scalar on *target*."""
+        prop_name = self.__class__.property
+        if getattr(self.__class__, 'property_flat', False):
+            setattr(target, prop_name, getattr(self, prop_name))
+        else:
+            setattr(target, prop_name, self)
+
     def fingerprint(self) -> int:
         """Return a unique identity for this detail instance.
 
@@ -196,7 +280,7 @@ class MonitoringDetail(coshsh.item.Item):
             return f"{self.host_name}+{self.application_name}+{self.application_type}"
         elif self.host_name:
             return f"{self.host_name}"
-        raise "impossible fingerprint"
+        raise AttributeError("impossible fingerprint")
 
     # WHY: comparison operators use the tuple (monitoring_type, monitoring_0)
     # instead of named attributes because named attributes vary by subclass
