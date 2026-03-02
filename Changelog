@@ -1,3 +1,5 @@
+* 2026-03-02 12.2.1
+  bugfix
 * 2026-03-01 12.2
   refactor detail merge dispatch, performance optimizations, code cleanup
 * 2026-02-22 12.1

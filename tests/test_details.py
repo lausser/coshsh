@@ -196,7 +196,7 @@ class MonitoringDetailTest(CommonCoshshTest):
             'monitoring_type': 'FILESYSTEM', 'monitoring_0': '/',
         })
         d.host_name = None
-        with self.assertRaises(TypeError):
+        with self.assertRaises(AttributeError):
             d.application_fingerprint()
 
     def test_repr_format(self):

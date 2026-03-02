@@ -114,6 +114,21 @@ class TemplateRule:
         # datarecipient using this field to file output into separate trees.
         self.for_tool = for_tool
 
+    _MISSING = object()
+
+    def matches(self, item: Any) -> bool:
+        """Return True if this rule should fire for *item*."""
+        if not self.needsattr:
+            return True
+        val = getattr(item, self.needsattr, self._MISSING)
+        if val is self._MISSING:
+            return False
+        if self.isattr is None:
+            return True
+        if isinstance(val, list):
+            return any(elem == self.isattr or self._isattr_re.match(elem) for elem in val)
+        return val == self.isattr or bool(self._isattr_re.match(val))
+
     def __str__(self) -> str:
         """Return a human-readable representation of this rule for logging."""
         return f"Rule: needsattr={self.needsattr}, isattr={self.isattr}, template={self.template}, unique_attr={self.unique_attr}, unique_config={self.unique_config}, suffix={self.suffix}, self_name={self.self_name}"
