@@ -3,7 +3,7 @@ import glob
 import os
 
 setup(name='coshsh',
-      version='12.2.1',
+      version='12.2.1.1',
       python_requires='>=3.8',
       description='Coshsh - config generator for monitoring systems',
       long_description=open('README.md').read(),

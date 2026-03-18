@@ -3,3 +3,5 @@ recursive-include tests *
 global-exclude *.pyc
 global-exclude .git
 recursive-exclude tests/var/objects/*/dynamic .git
+prune tests/pushgateway/pushgateway-1.1.0.linux-amd64
+exclude tests/pushgateway/pushgateway-1.1.0.linux-amd64.tar.gz
