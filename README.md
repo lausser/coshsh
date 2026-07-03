@@ -12,7 +12,7 @@ Coshsh is a framework which helps you producing configuration files for open sou
 
 ## Why should you use it?
 Because others use it too.
-* The city of Munich. https://bit.ly/2QhNCOJ
+* Schwarz Digits. https://short.do/FJs2L2
 * A car manufacturer in Munich with three letters. 
 * A global storage company with three letters. (they were bought and now have four letters)
 * Lidl/Kaufland. https://bit.ly/2L459nH
@@ -20,6 +20,7 @@ Because others use it too.
 * An austrian company producing crystal products.
 * A world-wide operating consulting firm.
 * A venerable hanseatic bank.
+* The city of Munich. https://bit.ly/2QhNCOJ
 
 and many more companies which eliminated manual tasks in monitoring.
 
