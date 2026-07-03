@@ -34,7 +34,7 @@ coshsh's core sources target Python 3.12 and use `from __future__ import annotat
 - `setup.py` is **not** editable → the compat module is a top-level source-tree module discovered via `sys.path`, not a `py_modules` install entry. `setup.py`'s `python_requires='>=3.8'` already blocks `pip install` on 3.6, so the only supported legacy path is running from the source tree (exactly the OMD-packaging and `pytest-3` scenarios). This is acceptable and documented.
 - Layer MUST be inert and uninstalled on Python ≥3.8 (FR-003, FR-013).
 
-**Scale/Scope**: ~1 new module (~120 LOC), 1 new `tests/conftest.py` (~4 LOC), 2 one-line-region edits to bin scripts. 215-test suite is the acceptance surface.
+**Scale/Scope**: ~1 new module (~120 LOC), 1 new `tests/conftest.py` (~4 LOC), 1 new `tests/test_pycompat.py` (skipif-gated legacy-only regression test), 2 one-line-region edits to bin scripts. The 215-test suite (collected → 206 passed under full compat on 3.6; the new compat test runs on <3.8 and is skipped on ≥3.8) is the acceptance surface.
 
 ## Constitution Check
 
@@ -85,6 +85,7 @@ coshsh_pycompat.py              # NEW — the compatibility layer (top-level mod
 bin/coshsh-cook                 # EDIT — replace line-9 future-import with gated bootstrap
 bin/coshsh-create-template-tree # EDIT — same
 tests/conftest.py               # NEW — gated `import coshsh_pycompat` before collection
+tests/test_pycompat.py          # NEW — skipif(>=3.8) legacy-only regression test for the compat layer
 tests/…                         # UNTOUCHED
 recipes/default/classes/*.py    # UNTOUCHED — verified: none use post-3.6 syntax
 setup.py                        # UNTOUCHED (python_requires='>=3.8' retained)

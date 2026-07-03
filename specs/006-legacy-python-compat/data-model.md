@@ -13,7 +13,7 @@ The single compatibility unit. Purely additive; stdlib-only.
 **Internal parts**:
 - **Version gate** — `if sys.version_info < (3, 8): _install()`. Above the gate, importing is a no-op on modern Python.
 - **AST annotation-stripper** (`ast.NodeTransformer`) — removes `from __future__ import annotations`; nulls `arg.annotation` / `FunctionDef.returns`; converts annotated assignments with a value to plain assignments; drops annotation-only statements; repairs emptied blocks with `pass`.
-- **Strip loader** (`importlib.machinery.SourceFileLoader` subclass) — overrides `source_to_code()` to parse → transform → `compile()`.
+- **Strip loader** (`importlib.machinery.SourceFileLoader` subclass) — overrides `source_to_code()` to parse → transform → `compile()`; **writes no bytecode cache** (`.pyc`) for transformed modules, so no shimmed bytecode is ever cached and no stale unshimmed `.pyc` can shadow the transform on <3.8.
 - **coshsh finder** (`importlib.abc.MetaPathFinder`) — returns a spec (from the default `PathFinder`) with the strip loader swapped in, **only** for `fullname == "coshsh"` or `fullname.startswith("coshsh.")`.
 - **`typing.Protocol` shim** — injects a no-op `Protocol` and `runtime_checkable` if absent.
 - **`subprocess.run` shim** — wraps `subprocess.run` to translate `capture_output=`.
@@ -26,6 +26,17 @@ The single compatibility unit. Purely additive; stdlib-only.
 ### `tests/conftest.py` (new)
 
 Test-suite bootstrap. Under `sys.version_info < (3, 8)`, inserts the package root onto `sys.path` and imports `coshsh_pycompat`. Runs before pytest collects any test module, so the finder is active before the first `import coshsh`.
+
+### `tests/test_pycompat.py` (new)
+
+Legacy-only regression guard for the compat layer. Module-level `pytestmark =
+pytest.mark.skipif(sys.version_info >= (3, 8), reason=…)` keeps the `tests/` suite
+single-version-agnostic: on Python ≥3.8 the whole file is skipped (the layer is inert there);
+on the <3.8 CI matrix job it actively asserts the compat behavior — `import coshsh` /
+`coshsh.<submodule>` succeed, the `typing.Protocol` and `subprocess.run` shims work, the finder
+is scoped to `coshsh.*` (a non-`coshsh` import is not transformed), and re-import is idempotent.
+This is the automated coverage for the transform logic that would otherwise never run on modern
+CI. See [contracts/compat-activation.md](./contracts/compat-activation.md) C1–C4.
 
 ### `bin/coshsh-cook`, `bin/coshsh-create-template-tree` (edited)
 

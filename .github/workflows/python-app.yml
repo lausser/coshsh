@@ -1,4 +1,14 @@
-# This workflow will install Python dependencies and run tests with multiple Python versions
+# This workflow installs Python dependencies and runs the test suite across a broad range of
+# Python versions.
+#
+#   * job "build"  — modern interpreters (3.8 .. 3.13) via actions/setup-python on ubuntu-latest.
+#                    The legacy-Python compat layer (coshsh_pycompat.py) is INERT here and
+#                    tests/test_pycompat.py is SKIPPED (skipif >= 3.8).
+#   * job "legacy" — Python 3.6 / 3.7. These cannot be provided by actions/setup-python on modern
+#                    runners (GLIBC mismatch; both interpreters are EOL), so the job runs INSIDE the
+#                    official python:<ver>-slim-bullseye container images. Bullseye ships GLIBC 2.31,
+#                    new enough for actions/checkout@v4 (node20). This is where the compat layer
+#                    actually activates and tests/test_pycompat.py executes instead of being skipped.
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
 
 name: Python application
@@ -14,11 +24,12 @@ permissions:
 
 jobs:
   build:
-
+    name: modern (${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.8", "3.13"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
 
     steps:
     - uses: actions/checkout@v4
@@ -36,3 +47,39 @@ jobs:
     - name: Test with pytest
       run: |
         pytest
+
+  legacy:
+    name: legacy (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.6", "3.7"]
+    container:
+      image: python:${{ matrix.python-version }}-slim-bullseye
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Provision environment (writable temp, non-root user, git identity)
+      # Mirrors specs/006-legacy-python-compat/quickstart.md: several tests require writable
+      # /tmp & /var/tmp and a NON-root run user (test_pid asserts non-writable-dir detection,
+      # which root bypasses). The job container runs as root by default, so create an
+      # unprivileged user and hand it the workspace.
+      run: |
+        mkdir -p /tmp /var/tmp && chmod 1777 /tmp /var/tmp
+        useradd -m tester
+        chown -R tester "$GITHUB_WORKSPACE"
+        git config --system --add safe.directory "$GITHUB_WORKSPACE"
+        runuser -u tester -- git config --global user.email "test@coshsh.test"
+        runuser -u tester -- git config --global user.name "coshsh test"
+        runuser -u tester -- git config --global --add safe.directory "$GITHUB_WORKSPACE"
+    - name: Test with pytest (non-root, compat layer active)
+      # `python -m pytest` prepends the workspace to sys.path so `import coshsh` resolves from the
+      # source tree; tests/conftest.py activates coshsh_pycompat before collection on <3.8.
+      run: |
+        runuser -u tester -- env TMPDIR=/tmp python -m pytest -p no:cacheprovider
