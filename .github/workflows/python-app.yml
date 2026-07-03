@@ -59,6 +59,13 @@ jobs:
       image: python:${{ matrix.python-version }}-slim-bullseye
 
     steps:
+    - name: Install git
+      # The python:<ver>-slim-bullseye images ship without git. actions/checkout@v4 tolerates
+      # that (it falls back to the tarball download API), but the provision step below runs
+      # `git config`, which then fails with "git: not found" (exit 127). Install it first.
+      run: |
+        apt-get update
+        apt-get install -y --no-install-recommends git
     - uses: actions/checkout@v4
     - name: Install dependencies
       run: |
