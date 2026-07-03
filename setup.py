@@ -3,7 +3,7 @@ import glob
 import os
 
 setup(name='coshsh',
-      version='12.2.1.1',
+      version='13.0',
       python_requires='>=3.8',
       description='Coshsh - config generator for monitoring systems',
       long_description=open('README.md').read(),
@@ -14,6 +14,7 @@ setup(name='coshsh',
       license='AGPLv3',
       keywords=['nagios', 'icinga', 'naemon', 'shinken', 'prometheus', 'monitoring'],
       packages=['coshsh'],
+      py_modules=['coshsh_pycompat'],
       data_files=[
           (os.path.join('recipes', 'default', 'classes'),
               glob.glob(os.path.join('recipes', 'default', 'classes', '*.py'))),
