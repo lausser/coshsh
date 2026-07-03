@@ -1,0 +1,36 @@
+DeprecationWarning: invalid escape sequence \s
+in classes werden alle regexp als r"raw string" geschrieben
+
+
+Legacy Python (<3.8) support
+============================
+
+The coshsh core sources target Python 3.12 and use syntax that does not even
+compile on Python 3.6/3.7 (`from __future__ import annotations`, PEP 585/604
+annotations, `typing.Protocol`). To run the *unmodified* sources on those old
+interpreters (CentOS 7 / RHEL 7-era distros, OMD packaging) there is an additive,
+version-gated compatibility layer:
+
+    coshsh_pycompat.py    (top-level module, sibling of the coshsh/ package)
+
+It installs an import hook, scoped to the coshsh.* namespace, that strips
+annotations from the coshsh source AST before compilation, plus small no-op
+shims for typing.Protocol and subprocess.run(capture_output=). On Python >= 3.8
+importing it is completely inert (a version gate short-circuits) and nothing is
+installed. See specs/006-legacy-python-compat/ for the full design.
+
+Supported legacy run path = FROM THE SOURCE TREE (not pip):
+
+    # from the package root, on Python 3.6/3.7:
+    TMPDIR=/tmp pytest-3 -p no:cacheprovider -q       # run the tests
+    bin/coshsh-cook --cookbook <file>                 # run the generator
+
+The bin scripts and tests/conftest.py activate the layer automatically (gated on
+sys.version_info < (3, 8)). `pip install` on <3.8 is intentionally blocked:
+setup.py keeps `python_requires='>=3.8'`, so the compat layer is deliberately a
+source-tree module discovered via sys.path, NOT a py_modules install entry.
+
+CI exercises both paths (.github/workflows/python-app.yml): the `build` job runs
+3.8-3.13 (layer inert, tests/test_pycompat.py skipped) and the `legacy` job runs
+3.6/3.7 inside python:<ver>-slim-bullseye containers (layer active,
+tests/test_pycompat.py executes).

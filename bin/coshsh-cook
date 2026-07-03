@@ -6,7 +6,15 @@
 # This software is licensed under the
 # GNU Affero General Public License version 3 (see the file LICENSE).
 
-from __future__ import annotations
+# Legacy-Python (<3.8) compatibility: the coshsh sources use 3.8+/3.12 syntax that
+# fails to even compile on Python 3.6/3.7. Activate the source-tree compat layer
+# before the first "import coshsh". Inert (skipped) on Python >= 3.8. This block
+# replaces this script's own "from __future__ import annotations" (itself a 3.6
+# SyntaxError). See specs/006-legacy-python-compat/.
+import sys, os
+if sys.version_info < (3, 8):
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    import coshsh_pycompat
 
 import sys
 sys.dont_write_bytecode = True
