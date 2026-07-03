@@ -6,6 +6,7 @@ os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 import unittest
 from coshsh.configparser import CoshshConfigParser
 import shutil
+import tempfile
 import logging
 import coshsh
 from coshsh.generator import Generator
@@ -36,6 +37,16 @@ class CommonCoshshTest(unittest.TestCase):
         self.tests_run_in_dir = os.path.dirname(os.path.realpath(__file__))
         self.coshsh_base_dir = os.path.dirname(self.tests_run_in_dir)
         os.chdir(self.tests_run_in_dir)
+        # Keep temp output inside the project instead of /tmp. generator.log_dir (and
+        # pid_dir) fall back to tempfile.gettempdir() when a cookbook has no [defaults]
+        # log_dir and OMD_ROOT is unset -- that resolves to /tmp, and the (now guarded)
+        # tearDown cleanup would otherwise wipe the real /tmp. Point gettempdir() at a
+        # stable project-local dir that lives OUTSIDE the tests/ tree, so the tearDown
+        # guard never removes it (it must stay put for the whole run, since non-CommonCoshshTest
+        # tests also allocate tempfiles through it). Set idempotently; no per-test restore.
+        self.test_tmp_dir = os.path.join(self.coshsh_base_dir, "var", "tmp")
+        os.makedirs(self.test_tmp_dir, exist_ok=True)
+        tempfile.tempdir = self.test_tmp_dir
         if not self.tests_run_in_dir in sys.path:
             sys.path.append(self.coshsh_base_dir)
         sys.path = list(set([p for p in sys.path if not self.tests_run_in_dir in os.path.realpath(p)]))
@@ -80,7 +91,11 @@ class CommonCoshshTest(unittest.TestCase):
                     if objects_dir.startswith(self.tests_run_in_dir) and len(objects_dir) > len(self.tests_run_in_dir):
                         shutil.rmtree(objects_dir, True)
             if hasattr(self.generator, "log_dir"):
-                shutil.rmtree(self.generator.log_dir, True)
+                log_dir = os.path.realpath(self.generator.log_dir)
+                # Never rmtree a shared temp root (/tmp, /var/tmp, ...). Only remove a
+                # log_dir that lives under the test tree (mirrors the objects_dir guard above).
+                if log_dir.startswith(self.tests_run_in_dir) and len(log_dir) > len(self.tests_run_in_dir):
+                    shutil.rmtree(log_dir, True)
 
         if hasattr(self, '_objectsdir'):
             if not isinstance(self._objectsdir, list):
