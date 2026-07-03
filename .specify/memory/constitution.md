@@ -1,25 +1,29 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.0.0 → 1.1.0 (MINOR — new principle added, Python version tightened)
+Version change: 1.1.0 → 1.2.0 (MINOR — Technology Constraints expanded with a legacy-Python
+                compat-layer carve-out)
 
-Modified principles:
-  - Technology Constraints: Python 3 → Python 3.12+
+Modified sections:
+  - Technology Constraints: Language bullet — added an explicit, bounded exception permitting
+    pre-3.12 support via an additive, external compat layer (no core source touched).
 
-Added sections:
-  - Core Principles: VI. AI-First Development (new)
-  - Governance: AI Transition Baseline sub-section (new)
+Added sections: N/A (no new principle; existing constraint materially clarified/expanded)
 
 Removed sections: N/A
 
 Templates reviewed:
-  ✅ .specify/templates/plan-template.md   — Constitution Check section present; aligns with these principles
-  ✅ .specify/templates/spec-template.md   — User Scenarios, Requirements, and Success Criteria sections align
-  ✅ .specify/templates/tasks-template.md  — Phase structure and parallel markers align with Principles III, V, VI
-  ✅ .specify/templates/constitution-template.md — Source template used as basis
+  ✅ .specify/templates/plan-template.md   — Constitution Check / Complexity Tracking still align;
+       compat-layer features now map to an explicit constraint carve-out rather than a Principle-V waiver
+  ✅ .specify/templates/spec-template.md   — no change required
+  ✅ .specify/templates/tasks-template.md  — no change required
+  ✅ .specify/templates/constitution-template.md — source template unaffected
 
 Follow-up TODOs:
   None — all placeholders resolved.
+
+Prior amendment (1.0.0 → 1.1.0, 2026-02-17): added Principle VI (AI-First Development) and the
+Governance "AI Transition Baseline" sub-section; tightened Language from Python 3 to Python 3.12+.
 -->
 
 # coshsh Constitution
@@ -114,6 +118,22 @@ reliable and auditable.
 
 - **Language**: Python 3.12+ (modern language features are encouraged; no Python 2 or
   pre-3.12 compatibility shims permitted in new code).
+  - **Legacy-Python compatibility exception (bounded)**: Support for interpreters older than
+    3.12 (e.g. Python 3.6/3.7 on long-lived enterprise distros) is PERMITTED *only* when it is
+    delivered as an **additive compatibility layer in EXTRA, new files** and the existing code
+    is left byte-for-byte untouched. Such a layer MUST satisfy all of:
+    1. It MUST NOT modify any core source file; core packages remain pure Python 3.12+.
+    2. All compatibility logic MUST live in new files added alongside the core (not edits to
+       existing modules). At most, designated entry-point scripts MAY carry a minimal,
+       version-gated activation `import` of the compat layer.
+    3. It MUST be version-gated and completely inert on Python 3.12+ (and, more generally, on
+       any interpreter at or above the compat floor) — no behavioural change, no code path taken.
+    4. Its scope MUST be limited to coshsh's own modules; it MUST NOT alter third-party or
+       stdlib import behaviour.
+
+    A compat layer meeting these conditions is an approved, first-class pattern and does NOT
+    require a Principle-V Complexity-Tracking waiver. Any shim that would require touching core
+    source, or that is not fully inert on modern interpreters, remains prohibited.
 - **Templating**: Jinja2 is the exclusive templating engine; custom Jinja2 extensions are
   permitted via the class-file mechanism.
 - **Datasources**: Any datasource adapter MUST implement the standard coshsh datasource
@@ -168,4 +188,4 @@ From this point forward:
 - The February 2026 baseline is preserved in git history and serves as the reference point
   for measuring AI-driven evolution of the project.
 
-**Version**: 1.1.0 | **Ratified**: 2026-02-17 | **Last Amended**: 2026-02-17
+**Version**: 1.2.0 | **Ratified**: 2026-02-17 | **Last Amended**: 2026-07-03
