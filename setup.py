@@ -1,9 +1,19 @@
-from setuptools import setup
-import glob
+import sys
 import os
 
+# Python < 3.8 compat: coshsh sources use "from __future__ import annotations"
+# (PEP 563) which is a compile-time SyntaxError on Python 3.6. The
+# coshsh_pycompat import hook strips these at import time, so byte-compilation
+# during install would fail.  Skip it — .pyc files are created lazily on first
+# import, where the hook is already active.
+if sys.version_info < (3, 8):
+    sys.dont_write_bytecode = True
+
+from setuptools import setup
+import glob
+
 setup(name='coshsh',
-      version='13.0',
+      version='13.0.0.1',
       python_requires='>=3.8',
       description='Coshsh - config generator for monitoring systems',
       long_description=open('README.md').read(),
