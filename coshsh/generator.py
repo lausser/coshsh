@@ -88,13 +88,29 @@ class Generator:
         """Create a Recipe from keyword arguments and register it by name.
 
         kwargs are the key-value pairs extracted from one ``[recipe_*]``
-        section of the cookbook.  On any exception the recipe is silently
-        skipped (an error is logged).
+        section of the cookbook.
+
+        A ``RecipeInvalidConfig`` propagates to the caller and stops the run.
+        Any other exception is logged and the recipe is skipped, as before.
         """
         try:
             recipe = coshsh.recipe.Recipe(**kwargs)
             self.recipes[kwargs["name"]] = recipe
+        except coshsh.recipe.RecipeInvalidConfig:
+            # WHY this one exception type escapes the handler below: that
+            # handler drops the recipe and lets the run continue. For an
+            # unreadable *run-safety* value that is the worst possible outcome
+            # -- the run reports success while silently omitting every object
+            # this recipe would have produced, and the missing objects are the
+            # only evidence. A typo in max_delta, max_render_error_pct or
+            # tolerate_missing_templates must stop the run instead, so those
+            # three raise RecipeInvalidConfig and it travels past here to
+            # bin/coshsh-cook, which exits 2 (FR-016, FR-016a).
+            raise
         except Exception as e:
+            # Deliberately left broad for every other construction failure.
+            # Narrowing it further is out of scope and was explicitly rejected
+            # during clarification.
             logger.error("exception creating a recipe: %s" % e)
 
     def get_recipe(self, name: str) -> Any:
@@ -108,7 +124,81 @@ class Generator:
         self.pg_username = kwargs.get("username", None)
         self.pg_password = kwargs.get("password", None)
 
-    def run(self) -> None:
+    def export_recipe_metrics(self, recipe: Any, registry: Any, tic: float,
+                              completed: bool, aborted: bool) -> None:
+        """Fill *registry* with one recipe's gauges, ready to be pushed.
+
+        Called only when run() has already established that prometheus_client
+        imported successfully, so the local import here cannot fail.
+
+        The split between the two lists below is the whole freshness contract,
+        and it is not arbitrary:
+
+        - The render gauges are exported on **every** run that got as far as
+          rendering, aborted or not. pushadd_to_gateway replaces only the
+          metrics a push actually carries and leaves every other one at its
+          stored value, so a metric omitted from an aborted run's push would go
+          on reporting the last *good* run's figures -- a recipe failing every
+          night would show zero errors indefinitely. An aborted run is the one
+          whose numbers an operator most needs.
+        - The rest are exported only when output was actually published,
+          because that is what they claim happened. coshsh_recipe_last_success
+          in particular is the timestamp the standard liveness alarm subtracts
+          from, (now - last_success) > threshold; that alarm can only fire if
+          nothing but published output refreshes it. Do not move a gauge from
+          the second list to the first without working out what it would then
+          be asserting about a run that wrote nothing.
+        """
+        from prometheus_client import Gauge
+
+        tally = recipe.render_tally
+        gauges = [
+            ("coshsh_recipe_render_errors",
+             "The number of render errors", recipe.render_errors),
+            ("coshsh_recipe_render_attempts",
+             "The number of template render attempts", tally.attempts),
+            ("coshsh_recipe_missing_templates",
+             "The number of templates which could not be found", tally.missing),
+            # The flag is a gauge of its own because missing_templates carries
+            # the same value whether or not absences are tolerated: on its own
+            # it cannot distinguish a deliberate omission from a counted
+            # failure. With both, a consumer can compute either reading, and
+            # the metric set stays additive rather than growing a gauge whose
+            # meaning changes with config.
+            ("coshsh_recipe_tolerate_missing_templates",
+             "Whether this recipe declares missing templates tolerated",
+             1 if tally.tolerate_missing else 0),
+            # Exported rather than derived: under tolerate_missing_templates the
+            # denominator is accountable attempts, so computing this externally
+            # would mean reimplementing the policy in PromQL.
+            ("coshsh_recipe_render_error_pct",
+             "The percentage of failed renderings the abort decision was made on",
+             tally.error_pct),
+            ("coshsh_recipe_aborted",
+             "Whether this run aborted because of template errors",
+             1 if aborted else 0),
+        ]
+        if completed:
+            gauges += [
+                ("coshsh_recipe_last_generated",
+                 "The timestamp when a configuration was generated", time.time()),
+                ("coshsh_recipe_last_duration",
+                 "The duration of a recipe", time.time() - tic),
+                ("coshsh_recipe_last_success",
+                 "The timestamp when the recipe successfully ran last time", time.time()),
+            ]
+        for name, documentation, value in gauges:
+            Gauge(name, documentation, registry=registry).set(value)
+
+        if completed:
+            # The one labelled gauge, so it does not fit the table above.
+            g = Gauge("coshsh_recipe_number_of_objects",
+                "The number of objects of a certain type", ['type'],
+                registry=registry)
+            for objtype in recipe.objects.keys():
+                g.labels(type=objtype).set(len(recipe.objects[objtype]))
+
+    def run(self) -> int:
         """Execute every registered recipe's data pipeline.
 
         For each recipe the sequence is:
@@ -133,6 +223,10 @@ class Generator:
         # the library is an optional dependency.  If it is not installed,
         # has_prometheus is set to False and all metrics-related code is skipped.
         try:
+            # Gauge is imported here but used in export_recipe_metrics(): this
+            # try block is the capability probe for the whole optional
+            # dependency, so it names everything the run will need and fails
+            # once, up front, rather than part-way through a recipe.
             from prometheus_client import CollectorRegistry, Gauge, push_to_gateway, pushadd_to_gateway
             from prometheus_client.exposition import basic_auth_handler, default_handler
             from urllib.parse import quote_plus
@@ -153,8 +247,10 @@ class Generator:
             has_prometheus = False
         if has_prometheus and not hasattr(self, "pg_address"):
             has_prometheus = False
+        aborted_recipes = 0
         for recipe in self.recipes.values():
             recipe_completed = False
+            recipe_aborted = False
             try:
                 recipe.update_item_class_factories()
                 coshsh.util.switch_logging(logfile=recipe.log_file)
@@ -165,31 +261,30 @@ class Generator:
                     if recipe.collect():
                         recipe.assemble()
                         recipe.render()
-                        recipe.output()
-                        recipe_completed = True
+                        if recipe.render_tally.too_many_errors:
+                            # WHY skipping output() is the entire mechanism:
+                            # output() is what calls cleanup_target_dir() and
+                            # then writes. Not calling it is precisely what
+                            # leaves the previous run's files where they are,
+                            # byte for byte. Nothing has to be restored, because
+                            # nothing was removed.
+                            recipe_aborted = True
+                            aborted_recipes += 1
+                            logger.error(
+                                "recipe %s aborted: %d of %d renderings failed [%s] (%.4f%%, maximum is %s%%). "
+                                "nothing was written, the previous output is unchanged",
+                                recipe.name, recipe.render_tally.template_errors,
+                                recipe.render_tally.accountable_attempts,
+                                recipe.render_tally.breakdown,
+                                recipe.render_tally.error_pct,
+                                recipe.render_tally.max_error_pct)
+                        else:
+                            recipe.output()
+                            recipe_completed = True
                         if has_prometheus:
-                            g = Gauge("coshsh_recipe_last_generated",
-                                "The timestamp when a configuration was generated",
-                                registry=registry)
-                            g.set_to_current_time()
-                            g = Gauge("coshsh_recipe_number_of_objects",
-                                "The number of objects of a certain type", ['type'],
-                                registry=registry)
-                            for objtype in recipe.objects.keys():
-                                g.labels(type=objtype).set(len(recipe.objects[objtype]))
-                            g = Gauge("coshsh_recipe_last_duration",
-                                "The duration of a recipe",
-                                registry=registry)
-                            g.set(time.time() - tic)
-                            g = Gauge("coshsh_recipe_render_errors",
-                                "The number of render errors",
-                                registry=registry)
-                            g.set(recipe.render_errors)
+                            self.export_recipe_metrics(recipe, registry, tic,
+                                                       recipe_completed, recipe_aborted)
                     if has_prometheus:
-                        g = Gauge("coshsh_recipe_last_success",
-                            "The timestamp when the recipe successfully ran last time",
-                            registry=registry)
-                        g.set_to_current_time()
                         try:
                             pushadd_to_gateway(self.pg_address, grouping_key={
                                 'hostname': hostname,
@@ -209,11 +304,25 @@ class Generator:
             except Exception as exp:
                 logger.error("skipping recipe %s (%s)" % (recipe.name, exp))
             else:
+                # WHY an aborted recipe gets no "completed" line: "completed
+                # with N problems" reads as success-with-caveats to an operator
+                # skimming a log and to anything scraping it, and FR-009 forbids
+                # reporting an aborted run as a successful completion. The abort
+                # itself is already logged at ERROR where it happens, with the
+                # numbers it was decided on.
                 if recipe_completed:
-                    logger.info("recipe %s completed with %d problems", recipe.name, recipe.render_errors)
+                    breakdown = recipe.render_tally.breakdown
+                    logger.info("recipe %s completed with %d problems out of %d rendering attempts%s",
+                                recipe.name, recipe.render_errors, recipe.render_tally.attempts,
+                                " [%s]" % breakdown if breakdown else "")
             if self.default_log_level == "debug":
                 CoshshDatainterface.dump_classes_usage()
             coshsh.util.restore_logging()
+        # WHY a count and not a bool: bin/coshsh-cook turns any non-zero result
+        # into exit code 4, but the number is what makes the log and the exit
+        # agree when a cookbook holds many recipes and only some of them
+        # aborted. Callers that do not care simply ignore it.
+        return aborted_recipes
 
     def read_cookbook(self, cookbook_files: list[str], default_recipe: str | None, force: Any, safe_output: Any) -> None:
         """Parse cookbook INI files and build fully wired Recipe objects.

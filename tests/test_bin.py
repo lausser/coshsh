@@ -45,3 +45,53 @@ class BinTest(CommonCoshshTest):
         self.assertTrue(os.path.exists("var/objects/test1_mod/static/service_templates"))
         self.assertTrue(os.path.exists("var/objects/test1_mod/static/service_templates/os_windows_fs.cfg"))
         self.assertTrue(os.path.exists("var/objects/test1_mod/static/service_templates/os_windows.cfg"))
+
+
+class BinExitCodeTest(CommonCoshshTest):
+    """Process exit codes for aborted runs and refused configs (spec 007).
+
+    These matter because coshsh runs unattended from a scheduler. The scheduler
+    only ever sees the exit code, so "templates broke, previous config
+    preserved" (4) has to be distinguishable from "coshsh could not start" (2).
+    """
+
+    def tearDown(self):
+        for leftover in ["renderr_abort", "renderr_badpct", "renderr_badpct_innocent",
+                         "renderr_baddelta", "renderr_baddelta_innocent"]:
+            shutil.rmtree("./var/objects/" + leftover, True)
+
+    def cook(self, *args):
+        return subprocess.call("../bin/coshsh-cook " + " ".join(args), shell=True)
+
+    def test_aborted_recipe_exits_4(self):
+        """FR-014a / SC-001a: an abort is a distinct, non-zero outcome."""
+        rc = self.cook("--cookbook etc/coshsh_renderr.cfg --recipe RENDERR_ABORT")
+        self.assertEqual(rc, 4)
+        # Exit 4 means "nothing was published", so there must be nothing there.
+        self.assertFalse(os.path.exists("var/objects/renderr_abort/dynamic/hosts"))
+
+    def test_malformed_max_render_error_pct_exits_2_with_no_recipe_processed(self):
+        """FR-016: the run refuses to start rather than dropping the bad recipe.
+
+        The second assertion is the one that matters: the *other*, entirely
+        valid recipe in the cookbook must not publish either. Letting it run
+        would mean a successful-looking run whose output silently lacks every
+        object the refused recipe owns -- the failure this exit code exists to
+        prevent.
+        """
+        rc = self.cook("--cookbook etc/coshsh_renderr_badpct.cfg")
+        self.assertEqual(rc, 2)
+        self.assertFalse(os.path.exists("var/objects/renderr_badpct/dynamic/hosts"))
+        self.assertFalse(os.path.exists("var/objects/renderr_badpct_innocent/dynamic/hosts"))
+
+    def test_malformed_max_delta_exits_2_with_no_recipe_processed(self):
+        """FR-016a: max_delta is a run-safety setting and refuses the run too.
+
+        Same contract as max_render_error_pct above. Only structure is checked
+        (one integer, or two separated by a colon) -- any integer value is
+        meaningful, so an unparseable one is the only thing that can be wrong.
+        """
+        rc = self.cook("--cookbook etc/coshsh_renderr_baddelta.cfg")
+        self.assertEqual(rc, 2)
+        self.assertFalse(os.path.exists("var/objects/renderr_baddelta/dynamic/hosts"))
+        self.assertFalse(os.path.exists("var/objects/renderr_baddelta_innocent/dynamic/hosts"))

@@ -1,3 +1,7 @@
+* 2026-07-20 13.1
+  abort a recipe instead of publishing partial output when too many templates fail to render (max_render_error_pct), count missing templates, new render metrics
+  a broken or missing template is now parsed and logged once per run instead of once per affected object
+  the end-of-run summary line gained the attempt count and a missing/faulty breakdown (a regex anchored to the end of that line needs adjusting)
 * 2026-07-04 13.0.0.1
   bugfix in py36 installation
 * 2026-07-03 13.0

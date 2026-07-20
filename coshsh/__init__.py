@@ -42,6 +42,9 @@ from __future__ import annotations
 import coshsh.configparser
 import coshsh.jinja2_extensions
 import coshsh.templaterule
+# rendertally has no coshsh imports of its own, so it can sit anywhere in this
+# order; placed before item/recipe, which are the two modules that use it.
+import coshsh.rendertally
 import coshsh.datainterface
 import coshsh.datasource
 import coshsh.datarecipient

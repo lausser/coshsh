@@ -83,6 +83,77 @@ class RecipePidGarbage(Exception):
     pass
 
 
+class RecipeInvalidConfig(Exception):
+    """Raised when a run-safety cookbook value cannot be interpreted.
+
+    A distinct type rather than a bare ValueError because Generator.add_recipe()
+    deliberately logs-and-continues on any other construction failure, dropping
+    just that recipe. For a run-safety value that reaction is unacceptable: the
+    run would report success while silently omitting everything the recipe would
+    have produced. add_recipe re-raises this type specifically, which is what
+    makes it stop the run (see its handler).
+
+    Carries the key, the raw value, and what was expected, so the operator reads
+    the name of the setting they mistyped instead of "invalid literal for int()".
+    """
+
+    def __init__(self, key: str, raw: Any, expected: str = "") -> None:
+        self.key = key
+        self.raw = raw
+        self.expected = expected
+        message = "invalid value %r for %s" % (raw, key)
+        if expected:
+            message += " (expected %s)" % expected
+        super().__init__(message)
+
+
+def parse_max_delta(raw: str) -> tuple[int, ...]:
+    """Parse a max_delta value: one integer, or two separated by a colon.
+
+    Structure only, deliberately no range bound: max_delta is a percentage
+    change, and any integer is a meaningful one -- "101" and "0:5000" are
+    unusual but valid ways to say "effectively never" and "services only".
+    The only thing that can be wrong here is a value that is not a number.
+    """
+    parts = raw.split(":") if ":" in raw else [raw, raw]
+    if len(parts) != 2:
+        raise ValueError("max_delta takes at most one colon")
+    return tuple(int(p) for p in parts)
+
+
+def parse_yes_no(raw: str) -> bool:
+    """Parse a yes/no cookbook value, following the existing git_init idiom."""
+    if raw == "yes":
+        return True
+    if raw == "no":
+        return False
+    raise ValueError("not yes or no")
+
+
+def validated_setting(key: str, raw: Any, convert: Any, accept: Any = None, expected: str = "") -> Any:
+    """Parse one run-safety cookbook value or raise RecipeInvalidConfig.
+
+    WHY a helper rather than three hand-written try/excepts: refusing the run is
+    the easy behaviour to forget, and forgetting it is not a visible failure --
+    it is a recipe quietly vanishing from the output. Routing every run-safety
+    setting through one function means the next one added inherits the refusal
+    by declaring a converter, without anyone having to remember (FR-016b).
+
+    Its scope is deliberately the three run-safety settings -- max_delta,
+    max_render_error_pct, tolerate_missing_templates -- and not every cookbook
+    key. Those three share the property that an uninterpretable value must stop
+    the run rather than degrade it; routing the rest through here would be a
+    speculative abstraction (constitution Principle V).
+    """
+    try:
+        value = convert(raw)
+    except (TypeError, ValueError):
+        raise RecipeInvalidConfig(key, raw, expected)
+    if accept is not None and not accept(value):
+        raise RecipeInvalidConfig(key, raw, expected)
+    return value
+
+
 class Recipe:
     """
     Central orchestrator for a single coshsh configuration-generation run.
@@ -188,13 +259,51 @@ class Recipe:
         self.classes_dir = kwargs.get("classes_dir")
         self.max_delta = kwargs.get("max_delta", ())
         self.max_delta_action = kwargs.get("max_delta_action", None)
+        # WHY the isinstance guard: self.max_delta is also handed around as an
+        # already-parsed tuple (see the add_datarecipient call further down,
+        # which passes it on), so this branch is the only place a string is
+        # turned into a tuple. Validation belongs where parsing happens, not
+        # everywhere the value travels.
+        #
+        # WHY structure only, with no range bound: any one or two integers are
+        # legitimate here -- "0:5000" is unusual but meaningful -- so the only
+        # thing that can be checked is that the value parses at all.
         if isinstance(self.max_delta, str):
-            if ":" in self.max_delta:
-                self.max_delta = tuple(map(int, self.max_delta.split(":")))
-            else:
-                self.max_delta = tuple(map(int, (self.max_delta, self.max_delta)))
+            self.max_delta = validated_setting(
+                "max_delta", self.max_delta, parse_max_delta,
+                expected="one integer, or two separated by a colon")
         self.my_jinja2_extensions = kwargs.get("my_jinja2_extensions", None)
         self.git_init = False if kwargs.get("git_init", "yes") == "no" else True
+        # WHY an opt-out exists at all, given that a template rule pointing at a
+        # file that is not there is normally a mistake: some sites split one
+        # object population across several recipes, so a rule firing against a
+        # template this particular recipe does not ship is deliberate and
+        # routine. Without the flag those recipes could never adopt
+        # max_render_error_pct, because their baseline failure rate is high by
+        # design. The flag removes such absences from the percentage while
+        # keeping them counted and logged: it silences the verdict, never the
+        # evidence.
+        self.tolerate_missing_templates = validated_setting(
+            "tolerate_missing_templates",
+            kwargs.get("tolerate_missing_templates", "no"),
+            parse_yes_no, expected="yes or no")
+        # WHY a percentage and not a bare count of failures: a count that means
+        # "something is wrong" for a 50-object recipe means "almost everything
+        # worked" for a 50,000-object one, so a shared cookbook default is
+        # impossible. The "abort on even one failure" policy every operator asks
+        # for first is fully expressible as 0.
+        #
+        # WHY 250 is rejected although it behaves exactly like 100: both are
+        # unable to abort, since error_pct cannot exceed 100 and the comparison
+        # is strict >. But 100 is a deliberate "never abort" and 250 is a typo,
+        # and accepting it would mean accepting a value the author plainly did
+        # not mean.
+        self.max_render_error_pct = None
+        if kwargs.get("max_render_error_pct") is not None:
+            self.max_render_error_pct = validated_setting(
+                "max_render_error_pct", kwargs.get("max_render_error_pct"),
+                float, accept=lambda v: 0.0 <= v <= 100.0,
+                expected="a percentage from 0 to 100")
 
         if 'OMD_ROOT' in os.environ:
             self.classes_path = [str(Path(os.environ['OMD_ROOT']) / 'share/coshsh/recipes/default/classes')]
@@ -342,7 +451,32 @@ class Recipe:
                 if rule[1].lower() in self.datasource_names:
                     self.datasource_filters[rule[1].lower()] = rule[2]
 
-        self.render_errors = 0
+        # WHY the recipe owns one mutable tally instead of summing what
+        # render() returns: the counters are produced two levels down, in
+        # Item.render_cfg_template(), and there are three of them. Passing them
+        # back up would mean a three-tuple threaded through two signatures and
+        # re-summed at the six render() call sites in this class -- and a fourth
+        # counter would touch all of it again. The objects being rendered
+        # already receive the recipe, so they can record directly.
+        self.render_tally = coshsh.rendertally.RenderTally(
+            max_error_pct=self.max_render_error_pct,
+            tolerate_missing=self.tolerate_missing_templates)
+
+    @property
+    def render_errors(self) -> int:
+        """Number of failed renderings in the last render() pass (read-only).
+
+        Includes templates that could not be found, unless the recipe sets
+        tolerate_missing_templates -- a rule that fires against an absent
+        template produced no output, which is a failed rendering whatever the
+        cause.
+
+        Read-only on purpose: the tally is the single writer of these numbers,
+        and a stray ``recipe.render_errors = 0`` in a class file would desync
+        this value from render_tally.attempts, which is the denominator the
+        abort decision divides by. Read recipe.render_tally for the breakdown.
+        """
+        return self.render_tally.template_errors
 
     def set_recipe_sys_path(self) -> None:
         """Prepend classes_path directories to sys.path so plugin modules can be imported."""
@@ -531,28 +665,29 @@ class Recipe:
 
         Iterates over hosts, applications, contactgroups, contacts, hostgroups,
         and any custom object types, calling each object's render() method.
-        Rendering errors are accumulated in self.render_errors.
+        Each object records its own attempts and failures into
+        self.render_tally, which is why nothing is accumulated here.
 
         Preconditions:
             - assemble() must have been called first.
 
         Side effects:
             - Populates each object's config_files dict with rendered text.
-            - Increments self.render_errors on template failures.
+            - Mutates self.render_tally on every render attempt.
         """
         template_cache = {}
         for host in self.objects['hosts'].values():
-            self.render_errors += host.render(template_cache, self.jinja2, self)
+            host.render(template_cache, self.jinja2, self)
         for app in self.objects['applications'].values():
             # because of this __new__ construct the Item.searchpath is
             # not inherited. Needs to be done explicitely
-            self.render_errors += app.render(template_cache, self.jinja2, self)
+            app.render(template_cache, self.jinja2, self)
         for cg in self.objects['contactgroups'].values():
-            self.render_errors += cg.render(template_cache, self.jinja2, self)
+            cg.render(template_cache, self.jinja2, self)
         for c in self.objects['contacts'].values():
-            self.render_errors += c.render(template_cache, self.jinja2, self)
+            c.render(template_cache, self.jinja2, self)
         for hg in self.objects['hostgroups'].values():
-            self.render_errors += hg.render(template_cache, self.jinja2, self)
+            hg.render(template_cache, self.jinja2, self)
         # you can put anything in objects (Item class with own templaterules)
         for item in itertools.chain.from_iterable(self.objects[itype].values() for itype in self.objects if itype not in ['hosts', 'applications', 'details', 'contactgroups', 'contacts', 'hostgroups']):
             # first check hasattr, because somebody may accidentially
@@ -561,7 +696,7 @@ class Recipe:
             if hasattr(item, 'config_files') and not item.config_files:
                 # has not been populated with content in the datasource
                 # (like bmw appmon timeperiods)
-                self.render_errors += item.render(template_cache, self.jinja2, self)
+                item.render(template_cache, self.jinja2, self)
 
     def count_before_objects(self) -> None:
         """Count existing config files in output dirs *before* writing new ones (for delta check)."""

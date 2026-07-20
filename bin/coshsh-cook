@@ -73,10 +73,31 @@ if __name__ == '__main__':
     generator = Generator()
     generator.set_default_log_level(opts.default_log_level)
     if opts.cookbook_files:
-        generator.read_cookbook(opts.cookbook_files, opts.default_recipe, opts.force, opts.safe_output)
+        try:
+            generator.read_cookbook(opts.cookbook_files, opts.default_recipe, opts.force, opts.safe_output)
+        except coshsh.recipe.RecipeInvalidConfig as e:
+            # Exit 2 is the "bad cookbook" code, also used by generator.py for
+            # an unreadable cookbook file. A value coshsh cannot interpret is
+            # the same class of failure -- the config is wrong and nothing ran
+            # -- so it shares the code rather than adding a third one.
+            #
+            # Note where this catch sits: around read_cookbook, so it fires
+            # before a single recipe has run. That is deliberate. A run-safety
+            # setting nobody can parse must stop everything, because the
+            # alternative -- carrying on without the offending recipe -- is a
+            # run that reports success while its output silently lacks every
+            # object that recipe owns.
+            print("Invalid recipe configuration: %s" % e)
+            sys.exit(2)
     else:
         parser.error("Use option -c/--cookbook")
     if args:
         parser.error("Does not accept any argument. Use option -c/--cookbook")
 
-    generator.run()
+    # WHY a dedicated code rather than folding aborts into 2: to a scheduler,
+    # "templates broke and the previous config is still in place" and "coshsh
+    # could not start at all" call for different responses. A run that aborts
+    # one recipe still processes the others and still exits 4 -- the exit code
+    # reports that something needs attention, not how much of the run survived.
+    if generator.run():
+        sys.exit(4)

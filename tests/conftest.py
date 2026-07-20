@@ -18,3 +18,15 @@ if sys.version_info < (3, 8):
     if _pkg_root not in sys.path:
         sys.path.insert(0, _pkg_root)
     import coshsh_pycompat  # noqa: F401  (import for its install side effect)
+
+
+def pytest_configure(config):
+    """Register the markers this suite uses so -m never warns about a typo."""
+    # WHY "benchmark" exists: tests/test_performance.py measures the
+    # constitutional 60,000-services-in-10-seconds bound (Principle IV). It is a
+    # gate that is run deliberately, not part of an ordinary suite run, so it
+    # carries a marker the normal invocation deselects with -m "not benchmark".
+    config.addinivalue_line(
+        "markers",
+        "benchmark: long-running performance gate, excluded from normal runs",
+    )

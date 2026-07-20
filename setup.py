@@ -13,7 +13,7 @@ from setuptools import setup
 import glob
 
 setup(name='coshsh',
-      version='13.0.0.1',
+      version='13.1',
       python_requires='>=3.8',
       description='Coshsh - config generator for monitoring systems',
       long_description=open('README.md').read(),

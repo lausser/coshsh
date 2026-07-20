@@ -19,7 +19,6 @@ datainterface.py (CoshshDatainterface).
 
 from __future__ import annotations
 
-import functools
 import logging
 import re
 from copy import copy, deepcopy
@@ -35,6 +34,27 @@ logger = logging.getLogger('coshsh')
 
 class EmptyObject:
     pass
+
+
+class _TemplateFailure:
+    """Remembers that a template could not be loaded, and why.
+
+    Stored in the render pass's template_cache in place of the Template that
+    could not be built, so a broken or absent template is read and parsed once
+    per recipe run rather than once per object that references it. Without this
+    a single bad template in a 60,000-object recipe means 60,000 file reads,
+    60,000 parses and 60,000 identical tracebacks in the log.
+
+    It does not change any count: every object referencing the template still
+    records its own failure, because a rendering that did not happen is a
+    rendering that did not happen however many objects shared the cause.
+    """
+
+    __slots__ = ("outcome",)
+
+    def __init__(self, outcome: str) -> None:
+        # coshsh.rendertally.MISSING or coshsh.rendertally.ERROR
+        self.outcome = outcome
 
 
 class Item(coshsh.datainterface.CoshshDatainterface):
@@ -182,7 +202,7 @@ class Item(coshsh.datainterface.CoshshDatainterface):
                 else:
                     setattr(self, attr, ",".join(sorted(set(val))))
 
-    def render_cfg_template(self, jinja2: Any, template_cache: dict[str, Any], name: str, output_name: str, suffix: str, for_tool: str, _skip_pythonize: bool = False, **kwargs: Any) -> int:
+    def render_cfg_template(self, jinja2: Any, template_cache: dict[str, Any], name: str, output_name: str, suffix: str, for_tool: str, _skip_pythonize: bool = False, tally: Any = None, **kwargs: Any) -> int:
         """Load a single Jinja2 template and render it into ``config_files``.
 
         Parameters
@@ -201,6 +221,9 @@ class Item(coshsh.datainterface.CoshshDatainterface):
         for_tool : str
             Monitoring tool key (e.g. ``'nagios'``, ``'prometheus'``)
             under which the output is stored in ``self.config_files``.
+        tally : RenderTally or None
+            Where this attempt and its outcome are recorded.  ``None`` means
+            "do not count" and never raises -- see the WHY note below.
         **kwargs
             Extra variables passed into the Jinja2 render context
             (typically ``self`` and the active recipe).
@@ -208,27 +231,61 @@ class Item(coshsh.datainterface.CoshshDatainterface):
         Returns
         -------
         int
-            Number of rendering errors encountered (0 on success).
+            Number of rendering errors encountered (0 on success).  Note that
+            ``tally`` -- not this value -- is what the recipe counts with; the
+            return value is a convenience for callers holding no tally.
         """
-        # WHY: render_errors is a counter that accumulates Jinja2 rendering
-        # failures without aborting the whole run.  The caller aggregates
-        # the total so that coshsh can report how many templates failed
-        # while still producing output for everything that succeeded.
-        render_errors = 0
-        try:
-            if not name in template_cache:
-                template_cache[name] = jinja2.env.get_template(name + ".tpl")
+        # WHY tally is an explicit parameter and not kwargs["recipe"]: the
+        # recipe does travel in **kwargs, but only because Item.render() packs
+        # it there for the Jinja2 namespace, whose keys come from template-rule
+        # configuration (rule.self_name).  Reaching into that dict would couple
+        # the counting to an unrelated namespace and would silently count
+        # nothing if a caller ever omitted "recipe".  Defaulting to None keeps
+        # the parameter optional for callers outside this repository, and its
+        # absence means "do not count" rather than an AttributeError.
+        #
+        # Exactly one outcome per call, recorded once at the end: a template
+        # that fails to load never reaches the render block, so the two failure
+        # regions below are mutually exclusive.
+        outcome = coshsh.rendertally.OK
+        cached = template_cache.get(name)
+        if cached is None:
+            try:
+                cached = template_cache[name] = jinja2.env.get_template(name + ".tpl")
                 logger.info("load template " + name)
-        except TemplateSyntaxError as e:
-            logger.critical("%s template %s has an error in line %d: %s" % (self.__class__.__name__, name, e.lineno, e.message), exc_info=1)
-            render_errors += 1
-        except TemplateNotFound:
-            logger.error("cannot find template " + name)
-        except Exception as exp:
-            logger.critical("error in template %s (%s,%s)" % (name, exp.__class__.__name__, exp), exc_info=1)
-            render_errors += 1
+            except TemplateSyntaxError as e:
+                logger.critical("%s template %s has an error in line %d: %s" % (self.__class__.__name__, name, e.lineno, e.message), exc_info=1)
+                cached = template_cache[name] = _TemplateFailure(coshsh.rendertally.ERROR)
+            except TemplateNotFound:
+                # WHY this logs at ERROR even for a recipe that tolerates absent
+                # templates, and why the wording is fixed: tolerating an absence
+                # suppresses the *verdict* (it leaves the abort percentage), never
+                # the evidence. Deployments grep for this exact string to find a
+                # half-deployed template pack, so keep the level and the phrasing.
+                logger.error("cannot find template " + name)
+                cached = template_cache[name] = _TemplateFailure(coshsh.rendertally.MISSING)
+            except Exception as exp:
+                logger.critical("error in template %s (%s,%s)" % (name, exp.__class__.__name__, exp), exc_info=1)
+                cached = template_cache[name] = _TemplateFailure(coshsh.rendertally.ERROR)
+        elif isinstance(cached, _TemplateFailure):
+            # Same broken template, another object. It was already reported in
+            # full, so repeating it here would only bury the run's other output
+            # under thousands of identical tracebacks.
+            #
+            # DEBUG and not INFO because this is per-object: at 60,000 objects
+            # even a one-line message is a log storm. Note where DEBUG goes --
+            # the file handler is pinned at INFO (coshsh.util.setup_logging), so
+            # these reach the console under --debug and never the log file.
+            # That is the right trade here: a template that fails to *load* is
+            # broken for every object equally, so which ones hit it adds little.
+            # A failure while *rendering* is genuinely object-specific, and that
+            # one still logs per object at CRITICAL further down.
+            logger.debug("template %s already failed to load (%s), skipping it for %s",
+                         name, cached.outcome, self)
 
-        if name in template_cache:
+        if isinstance(cached, _TemplateFailure):
+            outcome = cached.outcome
+        else:
             if not _skip_pythonize:
                 # transform hostgroups, contacts, etc. from list to string
                 self.depythonize()
@@ -236,20 +293,26 @@ class Item(coshsh.datainterface.CoshshDatainterface):
                 if not for_tool in self.config_files:
                     self.config_files[for_tool] = {}
                 if suffix:
-                    self.config_files[for_tool][output_name + "." + suffix] = template_cache[name].render(kwargs)
+                    self.config_files[for_tool][output_name + "." + suffix] = cached.render(kwargs)
                 else:
                     # files without suffix
-                    self.config_files[for_tool][output_name] = template_cache[name].render(kwargs)
+                    self.config_files[for_tool][output_name] = cached.render(kwargs)
             except Exception as exp:
                 if hasattr(self, "fingerprint"):
                     logger.critical("render exception in template %s for %s %s: %s" % (name, self, self.fingerprint(), exp), exc_info=1)
                 else:
                     logger.critical("render exception in template %s for %s: %s" % (name, self, exp), exc_info=1)
-                render_errors += 1
+                # Not an early return: pythonize() below must run either way, or
+                # this object's list attributes stay in their string form and
+                # every later rule renders them wrong.
+                outcome = coshsh.rendertally.ERROR
             if not _skip_pythonize:
                 # transform hostgroups, contacts, etc. back to lists
                 self.pythonize()
-        return render_errors
+
+        if tally is not None:
+            tally.record(outcome)
+        return 0 if outcome == coshsh.rendertally.OK else 1
 
     def render(self, template_cache: dict[str, Any], jinja2: Any, recipe: Any) -> int:
         """Render all applicable template rules for this item.
@@ -271,6 +334,10 @@ class Item(coshsh.datainterface.CoshshDatainterface):
             except Exception as e:
                 logger.critical("error in %s template rules. please check %s. Error was: %s" % (self.__class__.__name__, rule, str(e)), exc_info=1)
                 render_errors += 1
+                # A rule that should have produced output and did not is a failed
+                # rendering, so it counts as an attempt too -- excluding it would
+                # flatter the percentage the abort decision is made on.
+                recipe.render_tally.record(coshsh.rendertally.ERROR)
                 render_this = False
 
             if render_this:
@@ -280,11 +347,16 @@ class Item(coshsh.datainterface.CoshshDatainterface):
                 # Default (else branch) generates one file per template
                 # rule, using the template name as the output filename.
                 if rule.unique_config and isinstance(rule.unique_attr, str) and hasattr(self, rule.unique_attr):
-                    render_errors += self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % getattr(self, rule.unique_attr), rule.suffix, rule.for_tool, _skip_pythonize=True, **dict([(rule.self_name, self), ("recipe", recipe)]))
-                elif rule.unique_config and isinstance(rule.unique_attr, list) and functools.reduce(lambda x, y: x and y, [hasattr(self, ua) for ua in rule.unique_attr]):
-                    render_errors += self.render_cfg_template(jinja2, template_cache, rule.template, rule.unique_config % tuple([getattr(self, a) for a in rule.unique_attr]), rule.suffix, rule.for_tool, _skip_pythonize=True, **dict([(rule.self_name, self), ("recipe", recipe)]))
+                    output_name = rule.unique_config % getattr(self, rule.unique_attr)
+                elif rule.unique_config and isinstance(rule.unique_attr, list) and all(hasattr(self, ua) for ua in rule.unique_attr):
+                    output_name = rule.unique_config % tuple(getattr(self, a) for a in rule.unique_attr)
                 else:
-                    render_errors += self.render_cfg_template(jinja2, template_cache, rule.template, rule.template, rule.suffix, rule.for_tool, _skip_pythonize=True, **dict([(rule.self_name, self), ("recipe", recipe)]))
+                    output_name = rule.template
+                render_errors += self.render_cfg_template(
+                    jinja2, template_cache, rule.template, output_name,
+                    rule.suffix, rule.for_tool, _skip_pythonize=True,
+                    tally=recipe.render_tally,
+                    **dict([(rule.self_name, self), ("recipe", recipe)]))
         self.pythonize()
         return render_errors
 

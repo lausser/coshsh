@@ -6,6 +6,46 @@ version designed, written, and maintained by human contributors.
 
 ---
 
+## Document Currency
+
+**Baseline:** February 2026 · **Last reconciled against the code:** 2026-07-20 (at `aa39d9b`).
+
+This document describes a codebase that keeps moving. Treat it as a **map, not as
+ground truth**: it is the fastest way to understand *why* the architecture is shaped the
+way it is, but before you rely on a specific signature, control-flow claim, or attribute
+name, verify it against the source. Where the two disagree, **the source wins** — and you
+should fix the document as part of your change.
+
+### How to keep this section honest
+
+When you change coshsh, check whether this document describes what you changed. If it
+does, update it in the same commit and note it below. A drift entry costs a line; a
+misled agent costs an afternoon.
+
+### Reconciled drift (already corrected in the text)
+
+The February baseline was reconciled against `master` on 2026-07-20. Three points had
+drifted and have been **corrected in place** — they are listed here so that anyone
+holding an older copy knows what changed:
+
+| Area | What the baseline said | Reality |
+|---|---|---|
+| Detail resolution ([3.6](#36-itempy), [3.12](#312-monitoringdetailpy)) | Four-case merge logic lives in `Item.resolve_monitoring_details()` | Dispatch moved to `MonitoringDetail.resolve_onto()` in `86222f0`; `item.py` only drives the loop. Override `resolve_onto()` on the detail subclass — do not touch `item.py`. |
+| Template rules ([3.13](#313-templaterulepy)) | `Item.render()` evaluates `needsattr`/`isattr` inline | `TemplateRule.matches()` (added `01bc32b`) is the authoritative check. |
+| Legacy Python ([3.19](#319-coshsh_pycompatpy-legacy-python--38)) | Not mentioned | `coshsh_pycompat.py` + a 3.6/3.7 CI job now support Python < 3.8. New section added. |
+
+### Known unreconciled areas
+
+- **Overlap with the `coshsh-classes` skill.** That skill also covers plugin authoring
+  (datasources, application/OS classes, details, templates). Where the two disagree on
+  authoring guidance, prefer the skill — it is maintained more actively. Sections
+  [4](#4-plugin--extension-system) and [12](#12-plugin-authoring-guide) here are the
+  most likely to overlap.
+- Nothing else is currently known to have drifted. Absence of an entry is not proof of
+  correctness — it only means nobody has checked recently.
+
+---
+
 ## Table of Contents
 
 - [1. Project Purpose and Use Cases](#1-project-purpose-and-use-cases)
@@ -38,6 +78,7 @@ version designed, written, and maintained by human contributors.
   - [3.16 jinja2_extensions.py](#316-jinja2_extensionspy)
   - [3.17 dependency.py](#317-dependencypy)
   - [3.18 util.py](#318-utilpy)
+  - [3.19 coshsh_pycompat.py (legacy Python < 3.8)](#319-coshsh_pycompatpy-legacy-python--38)
 - [4. Plugin / Extension System](#4-plugin--extension-system)
   - [4.1 Class factory mechanism](#41-class-factory-mechanism)
   - [4.2 Class path search order and catchall](#42-class-path-search-order-and-catchall)
@@ -475,14 +516,34 @@ See also: [Section 3 (Core Module Reference)](#3-core-module-reference) for deta
   - Configures Prometheus Pushgateway settings by storing `self.pg_job`, `self.pg_address`, `self.pg_username`, and `self.pg_password` from kwargs.
   - Defaults: job=`"coshsh"`, address=`"127.0.0.1:9091"`, username/password=`None`.
 
+- `export_recipe_metrics(self, recipe, registry, tic, completed, aborted)`
+  - Fills *registry* with one recipe's gauges. Called by `run()` only after the optional `prometheus_client` dependency has been confirmed importable, so its local `from prometheus_client import Gauge` cannot fail.
+  - Splits the gauges into two groups, and the split *is* the freshness contract: render-related gauges are exported on every run that reached the render phase (aborted or not), while `last_generated`, `number_of_objects`, `last_duration` and `last_success` are exported only when output was actually published. See §15.1.
+
 - `run(self)`
   - Iterates over all recipes in `self.recipes`. For each recipe:
     1. Calls `recipe.update_item_class_factories()` to refresh the class factory lookup tables.
     2. Switches logging to the recipe's log file via `coshsh.util.switch_logging()`.
     3. Calls `recipe.pid_protect()` to acquire a PID lock (prevents concurrent runs of the same recipe).
-    4. If `recipe.collect()` returns `True`, proceeds to `recipe.assemble()`, `recipe.render()`, and `recipe.output()`.
-    5. If Prometheus is configured, pushes metrics (`coshsh_recipe_last_generated`, `coshsh_recipe_number_of_objects`, `coshsh_recipe_last_duration`, `coshsh_recipe_render_errors`, `coshsh_recipe_last_success`) via `pushadd_to_gateway` with grouping keys `hostname`, `username`, `cookbook`, and `recipe`.
-    6. Calls `recipe.pid_remove()` to release the PID lock.
+    4. If `recipe.collect()` returns `True`, proceeds to `recipe.assemble()` and `recipe.render()`.
+    5. **Abort gate.** If `recipe.render_tally.too_many_errors` is true, `recipe.output()` is skipped entirely and the recipe is counted as aborted. Skipping `output()` is what preserves the previous run's files: `output()` is what calls `cleanup_target_dir()` and then writes, so not calling it means nothing was removed and nothing needs restoring. Otherwise `recipe.output()` runs as before.
+    6. If Prometheus is configured, fills a registry via `Generator.export_recipe_metrics()` and pushes it with `pushadd_to_gateway`, using grouping keys `hostname`, `username`, `cookbook`, and `recipe`. See §15.1 for which metrics are pushed on which path.
+    7. Calls `recipe.pid_remove()` to release the PID lock — outside the inner block, so the lock is released on the abort path too.
+  - Returns the **number of recipes that aborted** (previously `None`). `bin/coshsh-cook` turns a non-zero result into exit code `4`.
+  - An aborted recipe is not logged as "completed with N problems"; it gets a distinct ERROR line carrying failures, attempts, percentage, and the configured maximum.
+
+**End-of-run log lines (what a scraper should match).** Every recipe that publishes output emits exactly one INFO summary line; a recipe that aborts emits an ERROR line instead and no summary. A recipe that fails before rendering emits neither.
+
+```
+recipe prod_linux completed with 0 problems out of 4213 rendering attempts
+recipe prod_linux completed with 3 problems out of 4213 rendering attempts [1 missing, 2 faulty]
+recipe prod_linux completed with 0 problems out of 4213 rendering attempts [5 missing (tolerated)]
+recipe prod_linux aborted: 3 of 4 renderings failed [1 missing, 2 faulty] (75.0000%, maximum is 0.0%). nothing was written, the previous output is unchanged
+```
+
+The supported "this run was clean" pattern is `recipe \S+ completed with 0 problems` — unanchored at the end. It is pinned by `tests/test_logging.RenderErrorLoggingTest`, in both directions: it must match a clean run, and must *not* match an aborted one or a run that published with failures. Success has to be a positive statement in the log, because for an unattended run the absence of error lines is indistinguishable from coshsh never having started.
+
+Note the trailing `out of N rendering attempts` and the optional `[...]` breakdown: **a regex anchored to the end of the line (`problems$`) will no longer match.** The breakdown is present only when something failed, and it is the only place in the log the missing/faulty split survives, since a template that fails to load is reported once per run rather than once per affected object.
   - Exceptions handled: `RecipePidAlreadyRunning` (logged at info, recipe skipped), `RecipePidNotWritable` (logged at error, recipe skipped), `RecipePidGarbage` (logged at error, recipe skipped). Any other exception causes the recipe to be skipped with a generic error log.
   - Side effect: If `self.default_log_level == "debug"`, calls `CoshshDatainterface.dump_classes_usage()` after each recipe. Calls `coshsh.util.restore_logging()` at the end of each recipe iteration.
 
@@ -510,6 +571,19 @@ generator.set_default_log_level("info")  # or "debug"
 generator.read_cookbook(["cookbook.cfg"], default_recipe=None, force=False, safe_output=False)
 generator.run()
 ```
+
+**Process exit codes (`coshsh-cook`):**
+
+| Code | Meaning |
+|---|---|
+| `0` | All recipes processed; none aborted |
+| `2` | Bad or missing cookbook file, **or** a recipe config value that cannot be interpreted (`RecipeInvalidConfig`) — in the latter case **no recipe was processed at all** |
+| `3` | Could not import the `coshsh` package |
+| `4` | One or more recipes aborted on template errors; their previous output is unchanged |
+
+`4` is distinct so a scheduler can tell "templates broke, the previous config is still in place" from "coshsh could not start". A run that aborts one recipe still processes the others and still exits `4`.
+
+Exit `2` on `RecipeInvalidConfig` covers the three run-safety settings (`max_delta`, `max_render_error_pct`, `tolerate_missing_templates`). `Generator.add_recipe()` re-raises that one exception type ahead of its blanket `except Exception`, because the blanket handler drops the recipe and lets the run continue — which for a safety setting means a "successful" run silently missing every object that recipe would have produced.
 
 See also: [3.2 recipe.py](#32-recipepy), [6. INI Configuration File Reference](#6-ini-configuration-file-reference), [15. Prometheus Pushgateway Integration](#15-prometheus-pushgateway-integration)
 
@@ -968,7 +1042,9 @@ See also: [3.3 datasource.py](#33-datasourcepy), [3.4 datarecipient.py](#34-data
 
 `Item.write_config(self, target_dir, want_tool=None)` -- Writes all rendered config file content from `self.config_files` to disk under `<target_dir>/hosts/<self.host_name>/`. If `want_tool` is set, only files for that tool are written. Creates directories as needed. Side effects: filesystem writes.
 
-`Item.resolve_monitoring_details(self)` -- Iterates over `self.monitoring_details` and promotes each detail into a proper attribute on the object. The logic handles four cases: generic details (property `"generic"`) that set dict/list/scalar attributes directly; list-typed details that append to a list property; dict-typed details that populate a dict property; and scalar details that set a single property. Details with a `unique_attribute` class attribute cause deduplication. After processing, calls `self.wemustrepeat()` and auto-populates singular property aliases from the first element of a plural list (e.g. `self.port` from `self.ports[0].port`). Side effects: mutates `self`, empties `self.monitoring_details`.
+`Item.resolve_monitoring_details(self)` -- Iterates over `self.monitoring_details` and calls `detail.resolve_onto(self)` on each one, letting the detail merge itself onto this object. **The merge logic itself lives in `MonitoringDetail.resolve_onto()` ([section 3.12](#312-monitoringdetailpy)), not here** — `item.py` only drives the loop. After the loop it clears `self.monitoring_details`, calls `self.wemustrepeat()`, and auto-populates singular property aliases from the first element of a plural list (e.g. `self.port` from `self.ports[0].port`). The alias step is skipped for details that declare `unique_attribute` or `property_attr`. Because details are consumed, calling this method twice is safe and idempotent. Side effects: mutates `self`, empties `self.monitoring_details`.
+
+> **Extension point.** To add custom merge behaviour for a new detail type, override `resolve_onto()` on the detail subclass. Do not modify `item.py` — that was the point of the refactoring in commit `86222f0`.
 
 `Item.wemustrepeat(self)` -- Hook method (no-op in the base class). Subclasses override this to perform cross-detail reconciliation after `resolve_monitoring_details` runs, for example merging a LOGIN detail's credentials with a URL detail.
 
@@ -976,9 +1052,15 @@ See also: [3.3 datasource.py](#33-datasourcepy), [3.4 datarecipient.py](#34-data
 
 `Item.depythonize(self)` -- Inverse of `pythonize`: joins list attributes back to comma-separated strings. For all attributes *except* `templates`, the join applies `sorted(list(set(...)))` which **deduplicates** (via `set`) and **sorts** the values alphabetically. The `templates` attribute is joined without deduplication or sorting to preserve template ordering (which can affect Nagios config inheritance). Called by `render_cfg_template()` just before Jinja2 rendering so that template output contains Nagios-compatible comma-separated strings. The pythonize/depythonize cycle means list attributes toggle between list and string form during each template render.
 
-`Item.render_cfg_template(self, jinja2, template_cache, name, output_name, suffix, for_tool, **kwargs)` -- Loads and caches the Jinja2 template `<name>.tpl`, calls `self.depythonize()`, renders the template with `kwargs`, stores the result in `self.config_files[for_tool][output_name.suffix]`, then calls `self.pythonize()` to restore list form. Returns an integer count of render errors. Side effects: may populate `template_cache`, mutates `self.config_files`.
+`Item.render_cfg_template(self, jinja2, template_cache, name, output_name, suffix, for_tool, _skip_pythonize=False, tally=None, **kwargs)` -- Loads and caches the Jinja2 template `<name>.tpl`, calls `self.depythonize()`, renders the template with `kwargs`, stores the result in `self.config_files[for_tool][output_name.suffix]`, then calls `self.pythonize()` to restore list form. Returns an integer count of render errors (0 or 1). Side effects: may populate `template_cache`, mutates `self.config_files`, and records one outcome on `tally` when one is supplied.
 
-`Item.render(self, template_cache, jinja2, recipe)` -- Iterates `self.template_rules`, evaluates each `TemplateRule`'s `needsattr`/`isattr` conditions against `self`, and for matching rules delegates to `render_cfg_template`. Supports unique config filenames via `unique_config` with `%s` formatting from `unique_attr` (string or list). Returns total render error count.
+Exactly one outcome per call — `OK`, `MISSING` or `ERROR` from `coshsh.rendertally` — recorded via `tally.record(outcome)` just before returning. A template that fails to load never reaches the render block, so the load and render failure regions are mutually exclusive by construction.
+
+**Failed loads are remembered.** When a template cannot be loaded, an `item._TemplateFailure` marker carrying the outcome is stored in `template_cache` under the template's name. Later objects referencing the same template take the remembered outcome instead of re-reading and re-parsing the file, so a broken or absent template is reported once per render pass rather than once per object. This changes log volume only — every affected object still records its own failure, so `render_errors` is unchanged. Subsequent hits log at DEBUG naming the object; note that the file handler is pinned at INFO, so those lines reach the console under `--debug` and not the log file.
+
+`tally` is an explicit keyword rather than being read out of `kwargs["recipe"]`: the recipe travels in `kwargs` only because `Item.render()` packs it there for the Jinja2 namespace, whose keys come from template-rule configuration. `tally=None` means "do not count" and never raises.
+
+`Item.render(self, template_cache, jinja2, recipe)` -- Iterates `self.template_rules` and calls `rule.matches(self)` on each ([section 3.13](#313-templaterulepy)); the `needsattr`/`isattr` logic lives on `TemplateRule`, not here. For matching rules, delegates to `render_cfg_template`. Supports unique config filenames via `unique_config` with `%s` formatting from `unique_attr` (string or list). Calls `self.depythonize()` once up front and passes `_skip_pythonize=True` into each render, so the pythonize/depythonize cycle happens once per `render()` rather than once per rule. An exception raised inside `matches()` is caught and logged at CRITICAL, counts as a render error, and skips that rule — one malformed rule does not abort the remaining ones. Returns total render error count.
 
 `Item.fingerprint(self)` -- Returns `"<host_name>+<name>+<type>"` if all three attributes exist, otherwise `"<host_name>"` alone. This is the base fallback; subclasses override it.
 
@@ -1206,7 +1288,7 @@ See also: `Item` base class in [section 3.6](#36-itempy); `Host.create_hostgroup
 
 ### 3.12 monitoringdetail.py
 
-**Responsibility.** `monitoringdetail.py` defines the `MonitoringDetail` base class, which represents a single piece of supplementary monitoring metadata attached to a host or application (such as a filesystem path, a login credential, a URL, a TCP port, etc.). Like `Application` and `Contact`, it uses the class factory to dynamically select the correct detail subclass based on `monitoring_type`. Individual detail types are implemented as plugin files with the `detail_` prefix. `MonitoringDetail` does NOT resolve itself onto a host or application -- that is done by `Item.resolve_monitoring_details()`.
+**Responsibility.** `monitoringdetail.py` defines the `MonitoringDetail` base class, which represents a single piece of supplementary monitoring metadata attached to a host or application (such as a filesystem path, a login credential, a URL, a TCP port, etc.). Like `Application` and `Contact`, it uses the class factory to dynamically select the correct detail subclass based on `monitoring_type`. Individual detail types are implemented as plugin files with the `detail_` prefix. `MonitoringDetail` **does** resolve itself onto a host or application, via `resolve_onto()`; `Item.resolve_monitoring_details()` only drives the loop and decides *when* resolution happens. (Before commit `86222f0` the merge logic lived in `item.py` — older notes and comments may still say so.)
 
 **Public classes.**
 
@@ -1218,6 +1300,17 @@ See also: `Item` base class in [section 3.6](#36-itempy); `Host.create_hostgroup
 **Key methods.**
 
 `MonitoringDetail.__init__(self, params)` -- When called on the base class, lowercases `lower_columns` (`'name'`, `'type'`, `'application_name'`, `'application_type'`). Normalizes `params`: if `'name'` is present it is moved to `'application_name'`; if `'type'` is present it is moved to `'application_type'`. Calls `get_class(params)` and re-classes to the matching detail plugin, or raises `MonitoringDetailNotImplemented` if none matches. Side effects: mutates `self.__class__`, mutates `params` dict.
+
+`MonitoringDetail.resolve_onto(self, target)` -- Merges this detail's data onto `target` (a `Host` or `Application`). This is the single dispatch point for detail resolution, called once per detail by `Item.resolve_monitoring_details()`. It branches on the class-level attributes `property`, `property_type`, `property_flat`, `property_attr`, and `unique_attribute`, delegating to one of four private helpers:
+
+| Condition | Helper | Behaviour |
+|---|---|---|
+| `property == "generic"` | `_resolve_generic()` | For `property_type == dict`, sets each key of `self.dictionary` directly on the target; keys containing `:` are split into `dictname:key` and set on a nested `EmptyObject` attribute (auto-created if absent). For `property_type == list`, extends an existing list attribute or sets it. Otherwise sets `self.attribute` to `self.value`. |
+| `property_type == list` | `_resolve_list()` | Creates the list attribute if absent. With `unique_attribute`, scans the list for an entry of the same class and matching unique value and **replaces it in place**, else appends — this is how deduplication works. With `property_attr`, appends `getattr(self, property_attr)` instead of the detail object. Otherwise appends the detail object itself. |
+| `property_type == dict` | `_resolve_dict()` | Creates the dict attribute if absent, then sets `dict[self.key] = self.value` (only if the detail has both `key` and `value`). |
+| anything else | `_resolve_scalar()` | With `property_flat = True`, sets the target attribute to the detail's *value* (e.g. a plain `str`). Otherwise sets it to the detail object itself. |
+
+Subclasses may override `resolve_onto()` to implement custom merge behaviour without touching `item.py`. Side effects: mutates `target`.
 
 `MonitoringDetail.fingerprint(self)` -- Returns `id(self)` (the Python object identity). This is intentional: monitoring details have no meaningful natural key, and identity-based deduplication is used in `self.add('details')`.
 
@@ -1260,6 +1353,16 @@ See also: `Item.resolve_monitoring_details()` in [section 3.6](#36-itempy); Moni
 - `self_name` -- The variable name under which the object is passed into the template context (default `"application"`).
 - `suffix` -- File extension for the output file (default `"cfg"`).
 - `for_tool` -- Tool namespace for the output file (default `"nagios"`).
+
+`TemplateRule.matches(self, item)` -- Returns `True` if this rule should fire for `item`. This is the authoritative condition check, called by `Item.render()` once per rule; the logic is **not** inlined in `item.py`. Evaluation order:
+
+1. No `needsattr` -> `True` (rule always fires).
+2. `needsattr` missing on the item -> `False`. Absence is distinguished from a falsy value via a private `_MISSING` sentinel, so an attribute that exists but is `None`, `0`, or `""` still counts as present.
+3. `isattr is None` -> `True` (attribute exists, any value suffices).
+4. Value is a list -> `True` if **any** element equals `isattr` or matches it as a regex.
+5. Otherwise -> `True` if the value equals `isattr` or matches it as a regex.
+
+Equality is tried before the regex in both branches, so a literal `isattr` works even when it contains regex metacharacters. The compiled pattern `_isattr_re` uses `re.match`, i.e. it is anchored at the start but **not** at the end — `isattr="prod"` matches `"production"`. Anchor with `$` when you need an exact match.
 
 `TemplateRule.__str__(self)` -- Returns a debug string showing all rule attributes.
 
@@ -1417,6 +1520,33 @@ See also: used by datasources to populate the `parents` attribute on `Host` obje
 `get_logger(self, name="coshsh")` -- Returns `logging.getLogger(name)`.
 
 See also: `substenv` is used by `Vault.__init__` ([section 3.14](#314-vaultpy)) and recipe-level config processing; `compare_attr` and `is_attr` are used throughout application plugin `__mi_ident__` functions ([section 4](#4-plugin--extension-system)); `sanitize_filename` is used for output file naming ([section 8.5](#85-filename-conventions-and-sanitization)); logging functions are called from `generator.py` ([section 3.1](#31-generatorpy)).
+
+---
+
+### 3.19 coshsh_pycompat.py (legacy Python < 3.8)
+
+**Responsibility.** `coshsh_pycompat.py` lets the *unmodified* coshsh sources import and run on Python 3.6 / 3.7 (CentOS 7). It is the one module that is **not** inside the `coshsh/` package — it is a top-level sibling, shipped via `py_modules=['coshsh_pycompat']` in `setup.py`. It must live outside the package because it has to run *before* `coshsh/__init__.py` is compiled, and that file is precisely one of the files that fails to compile on 3.6.
+
+**Why it is needed.** The `coshsh/` package is authored for Python 3.12 and uses constructs that fail at *compile time* on older interpreters, so an ordinary runtime shim cannot rescue them — the module never compiles. This layer rewrites the coshsh source AST before compilation and injects two small stdlib shims:
+
+| Construct | Fails on | Handling |
+|---|---|---|
+| `from __future__ import annotations` (PEP 563) | < 3.7 (`SyntaxError`) | Statement dropped from the AST. |
+| PEP 585 (`list[str]`) / PEP 604 (`X \| None`) annotations | < 3.9 / < 3.10 | All annotations stripped. Safe because upstream uses PEP 563, so annotations are never evaluated at runtime on modern Python either — behaviour is identical. |
+| `typing.Protocol`, `typing.runtime_checkable` | < 3.8 | No-op stand-ins injected when absent (used by `coshsh/datainterface.py`). |
+| `subprocess.run(capture_output=...)` | < 3.7 | Translated to `stdout=PIPE, stderr=PIPE` (used by `tests/test_delta.py`). |
+
+**Key components.** `_AnnotationStripper` (an `ast.NodeTransformer`) performs the rewrite; `_repair_empty_blocks()` re-inserts `pass` where stripping emptied a block; `_StripLoader` / `_CoshshFinder` are the `SourceFileLoader` and `MetaPathFinder` that hook compilation; `_install()` inserts the finder and applies the shims.
+
+**Three invariants worth preserving.** These are contract requirements, not incidental behaviour:
+
+1. **Version-gated.** The sole entry point is `_install()`, guarded by `if sys.version_info < (3, 8):` at the bottom of the file. On Python >= 3.8 importing the module is completely inert — no `sys.meta_path` change, no attribute added to `typing` or `subprocess`.
+2. **Scope-limited.** The import hook transforms only `coshsh` and `coshsh.*` modules. Stdlib, third-party packages (Jinja2), and dynamically-loaded recipe class files are never touched.
+3. **Idempotent.** Repeated imports install the finder at most once and apply each shim at most once.
+
+**Implication for contributors.** The `coshsh/` package stays byte-for-byte identical to upstream; all legacy-compat logic lives in this one file. Do **not** add version checks or `try/except ImportError` fallbacks inside `coshsh/` to support old Pythons — extend this module instead. Modern type-annotation syntax in the package is explicitly fine.
+
+See also: `tests/test_pycompat.py` for the contract tests; `README.python3` for installation on legacy interpreters; spec `006-legacy-python-compat`; the constitution carve-out in v1.2.0.
 
 ---
 
@@ -3485,7 +3615,7 @@ The test suite runs from the repository root. All paths in cookbook configs are 
 
 ### 14.9 property_flat gotcha
 
-**Observed behaviour:** When a `MonitoringDetail` subclass declares `property_flat = True` with a scalar `property_type` (e.g. `str`, `int`), `resolve_monitoring_details()` stores the **value** of the detail's property attribute on the parent object, not the detail object itself. For example, with `MonitoringDetailRole` (`property = "role"`, `property_type = str`, `property_flat = True`), after resolution `application.role` is a plain string like `"webserver"`, not a `MonitoringDetailRole` instance.
+**Observed behaviour:** When a `MonitoringDetail` subclass declares `property_flat = True` with a scalar `property_type` (e.g. `str`, `int`), detail resolution (`MonitoringDetail._resolve_scalar()`, reached via `resolve_onto()`) stores the **value** of the detail's property attribute on the parent object, not the detail object itself. For example, with `MonitoringDetailRole` (`property = "role"`, `property_type = str`, `property_flat = True`), after resolution `application.role` is a plain string like `"webserver"`, not a `MonitoringDetailRole` instance.
 
 **Reason:** This is intentional. Scalar details like ROLE, DEPTH, and TAG are simple values that don't need the overhead of a full detail object. The `property_flat` flag makes templates simpler: `{{ application.role }}` works directly instead of requiring `{{ application.role.role }}`.
 
@@ -3497,13 +3627,28 @@ The test suite runs from the repository root. All paths in cookbook configs are 
 
 ### 15.1 Metrics emitted and timing
 
-When a Prometheus Pushgateway is configured, `Generator.run()` pushes metrics after each recipe completes. Metrics include:
+When a Prometheus Pushgateway is configured, `Generator.run()` pushes metrics after each recipe completes.
 
-- Object counts (hosts, applications, contacts, etc.) per recipe
-- Timing information for each pipeline phase
-- Render error counts
+| Metric | Meaning | Pushed on |
+|---|---|---|
+| `coshsh_recipe_last_generated` | Timestamp a configuration was generated | published runs only |
+| `coshsh_recipe_number_of_objects{type}` | Object count per category | published runs only |
+| `coshsh_recipe_last_duration` | Recipe wall-clock duration | published runs only |
+| `coshsh_recipe_render_errors` | Failed renderings counting against the tolerance | published **and aborted** runs |
+| `coshsh_recipe_render_attempts` | Template render attempts this run | published **and aborted** runs |
+| `coshsh_recipe_missing_templates` | Templates not found, counted whether or not tolerated | published **and aborted** runs |
+| `coshsh_recipe_tolerate_missing_templates` | `1` if the recipe sets the flag, else `0` | published **and aborted** runs |
+| `coshsh_recipe_render_error_pct` | The percentage the abort decision was made on | published **and aborted** runs |
+| `coshsh_recipe_aborted` | `1` if this run aborted on template errors | published **and aborted** runs |
+| `coshsh_recipe_last_success` | Timestamp the recipe last actually published | published runs only |
 
-Metrics are pushed using the `prometheus_client` library's `push_to_gateway()` function. The library is optional -- if not installed, metrics are silently skipped.
+Two semantics worth knowing:
+
+- **`coshsh_recipe_render_errors` now includes missing templates** by default. The number was previously under-reporting: the `TemplateNotFound` branch logged and counted nothing. Set `tolerate_missing_templates = yes` on a recipe to restore the old value for it.
+- **`coshsh_recipe_last_success` now ages.** It used to advance on every run that acquired the pid lock, including runs that generated nothing, which made `(now - last_success) > threshold` alerting unable to fire — it was refreshed by exactly the runs that should have tripped it. A previously-silent age alert becoming active after this change is an old alert finally working, not a new one.
+- **`coshsh_recipe_tolerate_missing_templates` exists because the missing count alone is ambiguous**: it carries the same value whether or not absences are tolerated, so without the flag a consumer cannot tell a deliberate omission from a counted failure. `missing_templates and tolerate_missing_templates` is the tolerated count; `missing_templates unless tolerate_missing_templates` is the part folded into `render_errors`.
+
+Metrics are pushed using the `prometheus_client` library's `pushadd_to_gateway()` function. The library is optional -- if not installed, metrics are silently skipped.
 
 ### 15.2 Configuration
 
@@ -3517,7 +3662,12 @@ The `address` key specifies the Pushgateway URL. The `job` key sets the Promethe
 
 ### 15.3 Relationship to recipe execution
 
-Metrics are pushed at the end of each recipe's pipeline execution within `Generator.run()`. If a recipe fails (e.g. `collect()` returns `False`), partial metrics may still be pushed. If the Pushgateway is unreachable, a warning is logged but the recipe execution is not affected.
+Metrics are pushed at the end of each recipe's pipeline execution within `Generator.run()`. If the Pushgateway is unreachable, a warning is logged but the recipe execution is not affected.
+
+**Freshness contract.** `pushadd_to_gateway` uses POST, which replaces only the metrics present in the push — a metric omitted from a push keeps its previous value in the gateway indefinitely. That has two consequences:
+
+- A run that **aborts** on template errors still exports the render metrics and `coshsh_recipe_aborted = 1`. It has to: those are the runs whose numbers matter most, and omitting them would leave the last *good* run's figures standing, so a failing recipe would keep reporting zero errors.
+- A run that fails **before rendering** (e.g. `collect()` returns `False`) may leave the render metrics stale. This is acceptable only because `coshsh_recipe_last_success` now ages correctly and is the authoritative liveness signal: alert on `(now - coshsh_recipe_last_success) > threshold`, not on the freshness of any individual render metric.
 
 ---
 
