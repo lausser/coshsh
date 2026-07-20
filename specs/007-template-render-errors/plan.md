@@ -107,7 +107,7 @@ tests/
 ├── test_classes.py       # existing assertion on render_errors (must stay 1)
 └── test_recipes.py       # existing assertion on render_errors (must stay 3)
 
-.claude/skills/coshsh-classes/references/cookbook.md   # document both keys
+.agents/skills/coshsh-classes/references/cookbook.md   # document both keys
 docs/ai_handover.md                                    # metrics, exit codes, run() contract
 Changelog                                              # one-liner, added at completion
 ```
